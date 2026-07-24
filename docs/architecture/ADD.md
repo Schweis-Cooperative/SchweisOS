@@ -74,6 +74,32 @@ The monorepo is chosen because the early project has one maintainer. Splitting t
 
 Related decision: [ADR-001 Repository Strategy](../adr/ADR-001-repository-strategy.md).
 
+## Distribution Identity Layer
+
+The Distribution Identity Layer is the smallest host-level layer that makes an installed system recognizably and safely SchweisOS.
+
+It is made of four infrastructure packages:
+
+- `schweisos-release`
+- `schweisos-keyring`
+- `schweisos-mirrorlist`
+- `schweisos-pacman-config`
+
+These packages sit between upstream Arch and higher-level SchweisOS features. They do not provide a desktop experience, gaming stack, installer behavior, Flatpak integration, AUR workflow, or Distrobox workflow. Their job is to define identity, trust, repository discovery, and pacman integration.
+
+| Package | Architectural responsibility | Must not own |
+| --- | --- | --- |
+| `schweisos-release` | Distribution identity, release metadata, project URLs, `/etc/os-release` integration | Repository enablement, signing keys, desktop defaults |
+| `schweisos-keyring` | Public signing keys for official SchweisOS packages | Third-party trust, disabled signature checks, mirror policy |
+| `schweisos-mirrorlist` | Official SchweisOS mirror endpoints | Arch mirror configuration, automatic mirror ranking |
+| `schweisos-pacman-config` | pacman snippets for official SchweisOS repositories | Update manager behavior, partial-upgrade policy, AUR configuration |
+
+This split keeps the first distribution package set auditable. Identity can be inspected without reading repository configuration; trust material can be updated without changing release metadata; mirror changes can be shipped without changing pacman policy.
+
+The layer must preserve Arch package semantics. It integrates SchweisOS repositories into pacman; it does not replace pacman, hide package sources, or redefine the update model.
+
+Related decision: [ADR-009 Distribution Identity Packages](../adr/ADR-009-distribution-identity-packages.md).
+
 ## Package Architecture
 
 SchweisOS packages must be boring on purpose. The first repository should contain only packages that define identity, trust, installability, and documented defaults.

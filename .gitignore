@@ -1,0 +1,26 @@
+# Build artifacts
+out/
+work/
+*.iso
+*.img
+*.qcow2
+*.raw
+
+# Arch package artifacts
+*.pkg.tar
+*.pkg.tar.*
+*.src.tar.gz
+*.sig
+pkg/
+src/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Local editor and OS metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

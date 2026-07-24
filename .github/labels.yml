@@ -1,0 +1,63 @@
+- name: area: architecture
+  color: "5319e7"
+  description: Architecture, ADRs, component boundaries, or long-term design.
+- name: area: documentation
+  color: "0075ca"
+  description: Project documentation, guides, references, or wording.
+- name: area: iso
+  color: "1d76db"
+  description: Live ISO, archiso profile, boot media, or VM boot behavior.
+- name: area: installer
+  color: "0e8a16"
+  description: Installer flow, partitioning, bootloader setup, or Calamares.
+- name: area: packaging
+  color: "fbca04"
+  description: PKGBUILDs, package policy, repository metadata, or signing.
+- name: area: security
+  color: "b60205"
+  description: Security model, package trust, privacy, telemetry, or verification.
+- name: area: gaming
+  color: "d93f0b"
+  description: Gaming packages, drivers, Proton-adjacent behavior, or benchmarks.
+- name: area: distrobox
+  color: "006b75"
+  description: Distrobox, Podman, foreign distro compatibility, or container exports.
+- name: area: flatpak
+  color: "0052cc"
+  description: Flatpak support, remotes, permissions, or portals.
+- name: area: aur
+  color: "bfdadc"
+  description: AUR policy, helper behavior, warnings, or user education.
+- name: type: bug
+  color: "d73a4a"
+  description: Reproducible defect.
+- name: type: feature
+  color: "a2eeef"
+  description: New capability or user-facing improvement.
+- name: type: decision
+  color: "7057ff"
+  description: Requires or changes an ADR.
+- name: type: task
+  color: "cfd3d7"
+  description: Maintainer task with clear scope.
+- name: priority: high
+  color: "b60205"
+  description: Important for the next milestone.
+- name: priority: normal
+  color: "fbca04"
+  description: Normal priority.
+- name: priority: low
+  color: "0e8a16"
+  description: Nice to have or later work.
+- name: status: blocked
+  color: "000000"
+  description: Cannot proceed without an external decision or dependency.
+- name: status: needs-research
+  color: "d4c5f9"
+  description: Requires evidence, upstream research, or testing before decision.
+- name: good first issue
+  color: "7057ff"
+  description: Suitable for a new contributor.
+- name: help wanted
+  color: "008672"
+  description: Maintainer would welcome outside help.

@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose a new SchweisOS capability or improvement.
+title: "feature: "
+labels:
+  - type: feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or maintainer problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the proposed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: What alternatives should be considered?
+    validations:
+      required: true
+  - type: textarea
+    id: maintenance
+    attributes:
+      label: Maintenance and security impact
+      description: Explain expected maintenance cost, risk, and trust boundary changes.
+    validations:
+      required: true

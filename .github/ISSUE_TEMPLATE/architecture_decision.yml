@@ -1,0 +1,35 @@
+name: Architecture decision
+description: Propose or revise an Architecture Decision Record.
+title: "adr: "
+labels:
+  - area: architecture
+  - type: decision
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What problem or tradeoff requires a decision?
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Proposed decision
+      description: What should SchweisOS decide?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: What alternatives were considered?
+    validations:
+      required: true
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Consequences
+      description: What gets better, what gets worse, and what must be maintained?
+    validations:
+      required: true

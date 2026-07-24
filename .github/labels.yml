@@ -16,6 +16,9 @@
 - name: area: security
   color: "b60205"
   description: Security model, package trust, privacy, telemetry, or verification.
+- name: area: governance
+  color: "5319e7"
+  description: Constitution, licensing, contribution policy, or project governance.
 - name: area: gaming
   color: "d93f0b"
   description: Gaming packages, drivers, Proton-adjacent behavior, or benchmarks.
@@ -40,6 +43,12 @@
 - name: type: task
   color: "cfd3d7"
   description: Maintainer task with clear scope.
+- name: type: security
+  color: "b60205"
+  description: Security-sensitive issue that must be handled carefully.
+- name: type: support
+  color: "ededed"
+  description: Support request or usage question.
 - name: priority: high
   color: "b60205"
   description: Important for the next milestone.
@@ -55,6 +64,9 @@
 - name: status: needs-research
   color: "d4c5f9"
   description: Requires evidence, upstream research, or testing before decision.
+- name: status: needs-decision
+  color: "fef2c0"
+  description: Requires maintainer or architecture decision before implementation.
 - name: good first issue
   color: "7057ff"
   description: Suitable for a new contributor.

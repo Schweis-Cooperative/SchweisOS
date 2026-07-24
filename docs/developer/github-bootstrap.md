@@ -14,6 +14,14 @@ Recommended repository description:
 Independent Arch-based Linux distribution focused on KDE Plasma, gaming readiness, privacy, security, and source-aware software integration.
 ```
 
+## Homepage
+
+Recommended repository homepage:
+
+```text
+https://github.com/Schweis-Cooperative/SchweisOS/tree/main/docs
+```
+
 ## Topics
 
 Recommended repository topics:
@@ -67,13 +75,13 @@ The canonical label set lives in [../../.github/labels.yml](../../.github/labels
 
 ## GitHub CLI Setup Commands
 
-Replace `OWNER` with the GitHub owner or organization. Use `--private` instead of `--public` if the repository should not be public yet.
+Use `--private` instead of `--public` if the repository should not be public yet.
 
 ```bash
 gh auth login -h github.com
-gh repo create OWNER/SchweisOS --source=. --public --remote=origin --push --description "Independent Arch-based Linux distribution focused on KDE Plasma, gaming readiness, privacy, security, and source-aware software integration."
-gh repo edit OWNER/SchweisOS --add-topic arch-linux --add-topic linux --add-topic linux-distribution --add-topic linux-desktop --add-topic kde-plasma --add-topic gaming-linux --add-topic privacy --add-topic security --add-topic open-source --add-topic pacman --add-topic archiso --add-topic calamares --add-topic flatpak --add-topic aur --add-topic distrobox --add-topic podman --add-topic uefi --add-topic systemd-boot
-gh api repos/OWNER/SchweisOS/milestones -f title="Alpha 0.1 - Documentation and ISO bootstrap" -f description="Establish the SchweisOS engineering documentation baseline, package/repository policy, initial signed repository design, and the first minimal KDE archiso boot target."
+gh repo create Schweis-Cooperative/SchweisOS --source=. --public --remote=origin --push --description "Independent Arch-based Linux distribution focused on KDE Plasma, gaming readiness, privacy, security, and source-aware software integration."
+gh repo edit Schweis-Cooperative/SchweisOS --homepage "https://github.com/Schweis-Cooperative/SchweisOS/tree/main/docs" --add-topic arch-linux --add-topic linux --add-topic linux-distribution --add-topic linux-desktop --add-topic kde-plasma --add-topic gaming-linux --add-topic privacy --add-topic security --add-topic open-source --add-topic pacman --add-topic archiso --add-topic calamares --add-topic flatpak --add-topic aur --add-topic distrobox --add-topic podman --add-topic uefi --add-topic systemd-boot
+gh api repos/Schweis-Cooperative/SchweisOS/milestones -f title="Alpha 0.1 - Documentation and ISO bootstrap" -f description="Establish the SchweisOS engineering documentation baseline, package/repository policy, initial signed repository design, and the first minimal KDE archiso boot target."
 ```
 
 GitHub's CLI does not natively sync labels from this YAML file without an extension or helper. Until a label sync tool is selected, create labels with `gh label create` or use a small maintainer script in a later documented step.

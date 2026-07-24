@@ -50,4 +50,10 @@ Documentation comes before implementation. Before adding an ISO profile, package
 
 ## License
 
-License selection is not finalized yet. No source release should be published as stable until the project license is explicitly chosen and documented.
+SchweisOS uses a separated licensing model:
+
+- Project-owned source code and code-like files: `GPL-3.0-or-later`
+- Project-owned documentation: `CC-BY-SA-4.0`
+- Branding and official marks: explicit per-file terms and future trademark policy
+
+See [LICENSE](LICENSE), [COPYING](COPYING), and [ADR-010 Licensing Policy](docs/adr/ADR-010-licensing-policy.md).

@@ -1,0 +1,43 @@
+# SchweisOS License Summary
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+SchweisOS uses a separated licensing model, as defined in
+[ADR-010 Licensing Policy](docs/adr/ADR-010-licensing-policy.md).
+
+## Source Code
+
+Project-owned source code, scripts, packaging helpers, build tooling, tests,
+CI configuration, and other executable or code-like files are licensed under:
+
+```text
+GPL-3.0-or-later
+```
+
+The full GPL-3.0 license text is provided in [COPYING](COPYING).
+
+## Documentation
+
+Project-owned documentation is licensed under:
+
+```text
+CC-BY-SA-4.0
+```
+
+Documentation files should include this SPDX identifier where practical.
+
+## Artwork and Branding
+
+Non-logo artwork and non-mark visual assets are licensed under
+`CC-BY-SA-4.0` by default unless a file states otherwise.
+
+Official names, logos, marks, slogans, and brand identifiers are not granted
+for unrestricted use by the software license. SchweisOS is not currently a
+registered trademark, but future trademark protection and a formal brand-use
+policy are expected before stable public branding.
+
+## Third-Party Material
+
+Third-party software, packages, assets, fonts, icons, documentation, and other
+materials remain under their upstream licenses. SchweisOS does not relicense
+upstream Arch packages or third-party components.

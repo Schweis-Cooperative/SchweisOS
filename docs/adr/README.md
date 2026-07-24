@@ -1,0 +1,18 @@
+# Architecture Decision Records
+
+Version: 0.1
+Status: Active
+Date: 2026-07-24
+
+ADRs record important SchweisOS technical decisions. Each ADR must include Context, Decision, Alternatives, Consequences, Status, Date, and Related ADRs.
+
+## Index
+
+- [ADR-001 Repository Strategy](ADR-001-repository-strategy.md)
+- [ADR-002 UEFI First](ADR-002-uefi-first.md)
+- [ADR-003 Package Sources](ADR-003-package-sources.md)
+- [ADR-004 Default Filesystem](ADR-004-default-filesystem.md)
+- [ADR-005 Gaming Philosophy](ADR-005-gaming-philosophy.md)
+- [ADR-006 Distrobox Strategy](ADR-006-distrobox-strategy.md)
+- [ADR-007 Update Philosophy](ADR-007-update-philosophy.md)
+- [ADR-008 Documentation First](ADR-008-documentation-first.md)

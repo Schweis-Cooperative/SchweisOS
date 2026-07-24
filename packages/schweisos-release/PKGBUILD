@@ -1,0 +1,39 @@
+# Maintainer: Schweis Project <maintainers@schweisos.org>
+
+pkgname=schweisos-release
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS distribution identity metadata'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('LicenseRef-SchweisOS-Undecided')
+depends=('filesystem')
+install=schweisos-release.install
+_filesdir="${PWD}/files"
+source=(
+  "os-release::file://${_filesdir}/usr/lib/schweisos-release/os-release"
+  "release.json::file://${_filesdir}/usr/lib/schweisos-release/release.json"
+  "branding-README.md::file://${_filesdir}/usr/share/schweisos/branding/README.md"
+  "logo-placeholder.svg::file://${_filesdir}/usr/share/schweisos/branding/logo-placeholder.svg"
+  "LICENSE::file://${_filesdir}/usr/share/licenses/schweisos-release/LICENSE"
+)
+sha256sums=('24106380c04d3168afed0d30b355dcf186651d48e16c47cd01ae8945c257683c'
+            'db267211e3c672ed5a2cbb2516d74b521d4b6b176859f4ea0e4c5be2ed407750'
+            '5e6aba6c7f96bb7646aad4bc40c6f38372e6a83d54d78c55e349ddf6777ef9c3'
+            '322a70feceb65a3c594aa7eac1d199d16251955d5a4b6e5abdcbcd9e3dd7f686'
+            '4f6828e9d447da4317014d23d52bd32d25519ad546c7b19cbd39bc52f100b804')
+
+package() {
+  install -Dm644 "${srcdir}/os-release" \
+    "${pkgdir}/usr/lib/schweisos-release/os-release"
+  install -Dm644 "${srcdir}/release.json" \
+    "${pkgdir}/usr/lib/schweisos-release/release.json"
+
+  install -Dm644 "${srcdir}/branding-README.md" \
+    "${pkgdir}/usr/share/schweisos/branding/README.md"
+  install -Dm644 "${srcdir}/logo-placeholder.svg" \
+    "${pkgdir}/usr/share/schweisos/branding/logo-placeholder.svg"
+
+  install -Dm644 "${srcdir}/LICENSE" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

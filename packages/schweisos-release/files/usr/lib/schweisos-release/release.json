@@ -1,0 +1,30 @@
+{
+  "schema": "org.schweisos.release.v1",
+  "id": "schweisos",
+  "name": "SchweisOS",
+  "phase": "bootstrap",
+  "release_channel": "bootstrap",
+  "base": {
+    "id": "arch",
+    "policy": "upstream-first"
+  },
+  "desktop": {
+    "primary": "kde-plasma",
+    "secondary": "gnome"
+  },
+  "boot": {
+    "default": "systemd-boot",
+    "alternative": "grub",
+    "first_release_target": "uefi"
+  },
+  "filesystem": {
+    "default": "ext4",
+    "optional": [
+      "btrfs"
+    ]
+  },
+  "privacy": {
+    "telemetry_default": false,
+    "bug_reports_require_explicit_consent": true
+  }
+}

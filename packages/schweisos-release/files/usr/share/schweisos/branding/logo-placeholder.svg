@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SchweisOS placeholder logo</title>
+  <desc id="desc">A simple placeholder mark used until official SchweisOS branding is approved.</desc>
+  <rect width="256" height="256" fill="#101820"/>
+  <circle cx="128" cy="128" r="82" fill="none" stroke="#00adb5" stroke-width="14"/>
+  <path d="M82 142c16 22 42 34 74 27 21-5 34-17 34-35 0-25-22-33-54-40-27-6-38-10-38-22 0-10 10-18 27-18 18 0 33 7 45 20l18-22c-16-17-37-26-63-26-34 0-58 19-58 48 0 31 27 39 59 46 25 5 33 10 33 21 0 12-12 20-31 20-22 0-40-9-53-25z" fill="#f5f7fa"/>
+</svg>

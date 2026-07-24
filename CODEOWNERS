@@ -3,8 +3,8 @@
 # The Schweis-Cooperative/maintainers team must exist on GitHub and have write
 # access before this file becomes active.
 
-* @Schweis-Cooperative/Maintainers
+* @Schweis-Cooperative/maintainers
 
-/docs/ @Schweis-Cooperative/Maintainers
-/packages/ @Schweis-Cooperative/Maintainers
-/.github/ @Schweis-Cooperative/Maintainers
+/docs/ @Schweis-Cooperative/maintainers
+/packages/ @Schweis-Cooperative/maintainers
+/.github/ @Schweis-Cooperative/maintainers

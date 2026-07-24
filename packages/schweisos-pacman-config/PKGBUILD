@@ -1,0 +1,19 @@
+# Maintainer: Schweis Project <maintainers@schweisos.org>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-pacman-config
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS pacman repository configuration snippets'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
+depends=('pacman' 'schweisos-keyring' 'schweisos-mirrorlist')
+backup=('etc/pacman.d/schweisos.conf')
+source=('schweisos.conf')
+sha256sums=('3b115b12b7c13e451c8e83432faf5911c7d09382f6afcfbd61e977655dd14d01')
+
+package() {
+  install -Dm644 "${srcdir}/schweisos.conf" \
+    "${pkgdir}/etc/pacman.d/schweisos.conf"
+}

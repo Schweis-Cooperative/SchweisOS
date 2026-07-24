@@ -118,6 +118,37 @@ Initial package categories:
 
 Package policy is defined in [Packaging Guide](../packaging/packaging-guide.md).
 
+## Package Repository Architecture
+
+SchweisOS maintains its own small signed package repository for SchweisOS-owned packages only. Arch `core`, `extra`, and `multilib` remain upstream Arch repositories and must not be redefined as SchweisOS repositories.
+
+The planned SchweisOS repository family is:
+
+- `schweisos`: stable SchweisOS packages, enabled by default for stable installations.
+- `schweisos-testing`: release candidate packages for testers and pre-release ISO work, disabled by default.
+- `schweisos-staging`: maintainer integration repository, internal by default.
+
+The package lifecycle is:
+
+```text
+Developer
+  -> PKGBUILD
+  -> makepkg
+  -> package validation
+  -> package signing
+  -> repository database
+  -> repository database signing
+  -> artifact publication
+  -> mirror synchronization
+  -> user installation through pacman
+```
+
+Trust begins with a verified ISO and `schweisos-keyring`. `schweisos-pacman-config` must enable only official SchweisOS repositories using trusted package signatures. Mirrors distribute artifacts; they are not trust anchors.
+
+Local development repository tooling may create an unsigned file-based repository under `out/local-repo/` for package bootstrap testing. This repository is a developer convenience only. It must not be treated as release infrastructure, artifact storage, mirror source, or part of the official SchweisOS trust model.
+
+Repository architecture is defined in [ADR-011 Repository Architecture](../adr/ADR-011-repository-architecture.md).
+
 ## ISO Architecture
 
 SchweisOS should build install media using Arch's archiso tooling. Archiso is the established Arch mechanism for building live ISO images and supports custom package lists and profile files. The SchweisOS ISO layer must remain a profile and configuration set, not a fork of Arch's build system.

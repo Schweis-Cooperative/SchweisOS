@@ -1,0 +1,26 @@
+# Maintainer: Schweis Project <admin@schweis.com.tr>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-keyring
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS package signing public keyring foundation'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
+depends=('pacman')
+source=(
+  'keyring-policy.md'
+  'future-keys.md'
+)
+sha256sums=('abe9ef4061bde08ea72fbe3b908253e6807dc5e36f2658b390bace50553b72b9'
+            'b54d30ee2442380859f040be15f79cf9dcc3d673fbc5b54aeda715ef2c199f37')
+
+package() {
+  install -dm755 "${pkgdir}/usr/share/pacman/keyrings"
+
+  install -Dm644 "${srcdir}/keyring-policy.md" \
+    "${pkgdir}/usr/share/doc/${pkgname}/keyring-policy.md"
+  install -Dm644 "${srcdir}/future-keys.md" \
+    "${pkgdir}/usr/share/doc/${pkgname}/future-keys.md"
+}

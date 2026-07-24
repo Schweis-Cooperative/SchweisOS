@@ -1,0 +1,29 @@
+################################################################################
+######################## SchweisOS Official Mirrorlist ##########################
+################################################################################
+
+# This file is owned by schweisos-mirrorlist.
+#
+# It is consumed by schweisos-pacman-config, which is responsible for adding
+# SchweisOS repositories to pacman.conf. This file does not enable repositories
+# by itself.
+#
+# Mirrors are distribution channels, not trust anchors. Package trust must come
+# from schweisos-keyring, package signatures, and repository signature policy.
+
+## Official SchweisOS repository endpoint
+##
+## Bootstrap status:
+## This is the canonical official endpoint reserved for the first SchweisOS
+## package repository. Public repository infrastructure is not implemented yet.
+##
+## Future official mirrors should be added below this section after the
+## canonical endpoint is operational and mirror policy is documented.
+
+Server = https://repo.schweisos.org/$repo/os/$arch
+
+## Future community mirrors
+##
+## Community mirrors must not be added to this package until SchweisOS has a
+## documented mirror policy, health-check process, and publication workflow.
+## Mirror operators do not become trust anchors.

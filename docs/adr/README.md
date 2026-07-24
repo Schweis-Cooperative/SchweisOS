@@ -18,3 +18,4 @@ ADRs record important SchweisOS technical decisions. Each ADR must include Conte
 - [ADR-008 Documentation First](ADR-008-documentation-first.md)
 - [ADR-009 Distribution Identity Packages](ADR-009-distribution-identity-packages.md)
 - [ADR-010 Licensing Policy](ADR-010-licensing-policy.md)
+- [ADR-011 Repository Architecture](ADR-011-repository-architecture.md)

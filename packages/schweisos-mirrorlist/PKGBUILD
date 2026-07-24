@@ -1,0 +1,18 @@
+# Maintainer: Schweis Project <maintainers@schweisos.org>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-mirrorlist
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS mirror list for pacman repository discovery'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
+backup=('etc/pacman.d/schweisos-mirrorlist')
+source=('schweisos-mirrorlist')
+sha256sums=('982bcd1fd8f65368299c32642e0f8d094c8e03019ed746af57457ce85bfa5cae')
+
+package() {
+  install -Dm644 "${srcdir}/schweisos-mirrorlist" \
+    "${pkgdir}/etc/pacman.d/schweisos-mirrorlist"
+}

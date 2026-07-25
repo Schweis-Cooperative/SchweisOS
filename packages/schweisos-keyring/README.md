@@ -3,16 +3,24 @@
 SPDX-License-Identifier: CC-BY-SA-4.0
 
 Version: 0.1
-Status: Initial trust-foundation package skeleton
-Date: 2026-07-24
+Status: Bootstrap package
+Date: 2026-07-25
 
-`schweisos-keyring` is the future trust-anchor package for official SchweisOS package signing keys.
+`schweisos-keyring` reserves the package structure that will eventually carry
+the public trust material for official SchweisOS package signatures.
 
-This initial implementation does not contain real GPG public keys, fake fingerprints, empty keyrings, or placeholder cryptographic material. It defines the package structure and documentation needed so real public keys can later be added without changing the package architecture.
+This bootstrap release is not a functional trust anchor. It contains no GPG
+public keys, fingerprints, generated keyring databases, signatures, or private
+signing material. Production public keys may be introduced only after the
+official SchweisOS release-signing policy is finalized and its key admission,
+verification, rotation, revocation, and recovery procedures are approved.
 
 ## Purpose
 
-`schweisos-keyring` will eventually install the public keys and trust metadata pacman needs to verify official SchweisOS packages.
+`schweisos-keyring` will eventually install the public keys and trust metadata
+pacman needs to verify official SchweisOS packages. The bootstrap package only
+installs policy documentation and reserves pacman's conventional keyring
+directory; installing it grants no trust by itself.
 
 It exists separately from `schweisos-release` because identity metadata and signing trust are different responsibilities:
 
@@ -29,15 +37,23 @@ SchweisOS only manages SchweisOS-owned signing keys. This package must never rep
 
 ## Relationship With pacman
 
-pacman verifies package signatures using configured keyrings and repository signature policy.
+pacman verifies package signatures using configured keyrings and repository
+signature policy. This package must never make an unsigned or untrusted package
+acceptable by weakening pacman's verification settings.
 
-Future SchweisOS pacman integration will come from `schweisos-pacman-config`, not from this package. This package only provides the SchweisOS keyring material that pacman can trust after it is properly populated.
+Future SchweisOS repository integration comes from
+`schweisos-pacman-config`, not from this package. This package does not edit
+`pacman.conf`, set `SigLevel`, initialize pacman's local keyring, locally sign
+keys, or run `pacman-key` from an install script.
 
 ## Relationship With Package Signing
 
-Official SchweisOS packages must eventually be signed by authorized SchweisOS signing keys.
+Official public SchweisOS packages must be signed by authorized SchweisOS
+signing keys as required by ADR-011.
 
-This package is where the public side of that trust relationship will live. It does not sign packages, configure repositories, create mirrors, or publish repository databases.
+This package is where the public side of that trust relationship will live. It
+must never contain private keys. It does not sign packages, configure
+repositories, create mirrors, or publish repository databases.
 
 ## Future Release Signing Workflow
 
@@ -54,7 +70,9 @@ validated package
 
 ## Future Maintainer Keys
 
-New maintainer keys should be added only after a documented release-engineering decision.
+Production public keys and future maintainer keys must not be added until the
+official release-signing policy is finalized. After that policy exists, a key
+may be admitted only through its documented approval process.
 
 The future process should include:
 
@@ -67,11 +85,12 @@ The future process should include:
 - signed release of a new `schweisos-keyring`
 - announcement when trust scope changes
 
-No real maintainer key is included yet.
+No production or maintainer key is included in this bootstrap package.
 
 ## Future Pacman Keyring Layout
 
-When real keys are approved, the expected installed files are:
+After the release-signing policy is finalized and production public keys are
+approved, the expected installed files are:
 
 ```text
 /usr/share/pacman/keyrings/schweisos.gpg
@@ -79,7 +98,9 @@ When real keys are approved, the expected installed files are:
 /usr/share/pacman/keyrings/schweisos-revoked
 ```
 
-The current package only creates `/usr/share/pacman/keyrings/` and installs documentation under `/usr/share/doc/schweisos-keyring/`.
+The current package only creates `/usr/share/pacman/keyrings/` and installs
+documentation under `/usr/share/doc/schweisos-keyring/`. The empty directory is
+not evidence of an initialized or trusted SchweisOS keyring.
 
 ## Source Layout
 
@@ -87,12 +108,10 @@ The current package only creates `/usr/share/pacman/keyrings/` and installs docu
 packages/schweisos-keyring/
   PKGBUILD
   README.md
+  future-keys.md
+  keyring-policy.md
   keys/
     README.md
-  files/
-    usr/share/doc/schweisos-keyring/
-      future-keys.md
-      keyring-policy.md
 ```
 
 ## Validation
@@ -101,10 +120,16 @@ From this directory:
 
 ```bash
 bash -n PKGBUILD
+makepkg --verifysource
 makepkg --printsrcinfo
 makepkg -f
 bsdtar -tf schweisos-keyring-0.1.0-1-any.pkg.tar.* | sort
+bsdtar -xOf schweisos-keyring-0.1.0-1-any.pkg.tar.* .PKGINFO
+find keys -type f ! -name README.md -print
+git diff --check
 ```
+
+The `find` command must produce no output during the bootstrap phase.
 
 Expected package contents at this stage:
 
@@ -118,9 +143,10 @@ usr/share/pacman/keyrings/
 
 - PKGBUILD syntax.
 - Package build succeeds.
-- No fake or empty cryptographic key material is shipped.
+- No real, fake, empty, or generated cryptographic key material is shipped.
 - The package owns only SchweisOS documentation and a future pacman keyring directory.
 - The package does not modify Arch keyrings.
+- The package does not weaken or configure pacman signature verification.
 - The package has no install script.
 
 ## What Cannot Be Validated Yet
@@ -132,14 +158,18 @@ usr/share/pacman/keyrings/
 - Key rotation.
 - Revocation recovery.
 
-These require real signing keys and a documented release signing process.
+These require production public keys and a finalized release-signing policy.
 
 ## Self Review
 
 Architectural risks:
 
-- The package creates the future keyring directory before real keys exist. This is acceptable for architecture preparation, but it must not be treated as a working trust anchor until real keys are added.
-- The exact maintainer-key approval process is not yet defined. It should be handled in a future release-engineering ADR or guide update.
+- The package name may imply operational trust even though this bootstrap
+  release contains no key material. Release and repository documentation must
+  not present it as production-ready.
+- The exact key admission and recovery processes are not yet defined. No
+  production public key may be added until the official release-signing policy
+  resolves them.
 
 Unnecessary complexity:
 
@@ -149,6 +179,8 @@ Unnecessary complexity:
 
 Future improvements:
 
-- Add real `schweisos.gpg`, `schweisos-trusted`, and `schweisos-revoked` files after key generation and fingerprint verification.
+- Add production `schweisos.gpg`, `schweisos-trusted`, and
+  `schweisos-revoked` files only after the release-signing policy is finalized,
+  key ownership is verified, and the admission process is reviewed.
 - Add validation that inspects fingerprints once real keys exist.
 - Add release-engineering documentation for emergency key revocation and rotation drills.

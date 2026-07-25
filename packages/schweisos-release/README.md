@@ -2,23 +2,41 @@
 
 Version: 0.1
 Status: Initial package implementation
-Date: 2026-07-24
+Date: 2026-07-25
 
 `schweisos-release` provides SchweisOS distribution identity metadata.
 
 It is intentionally small. It does not configure package repositories, install signing keys, configure mirrors, install desktop defaults, enable Flatpak, configure AUR helpers, configure Distrobox, build an ISO, or apply performance tuning.
 
+This package exists separately from the other Distribution Identity Layer packages because identifying the operating system is not the same responsibility as trusting packages, discovering mirrors, or configuring pacman repositories.
+
 ## Installed Layout
 
 - `/usr/lib/schweisos-release/os-release`
 - `/usr/lib/schweisos-release/release.json`
-- `/usr/share/schweisos/branding/README.md`
-- `/usr/share/schweisos/branding/logo-placeholder.svg`
-- `/usr/share/licenses/schweisos-release/LICENSE`
 
-The package install script points `/etc/os-release` to `/usr/lib/schweisos-release/os-release` only when `/etc/os-release` is missing or already points to a known Arch or SchweisOS os-release target. If `/etc/os-release` is a user-managed regular file or an unknown symlink, it is left unchanged.
+Source files:
 
-This avoids packaging a direct `/usr/lib/os-release` replacement, because Arch's `filesystem` package owns that file.
+- `os-release`
+- `release.json`
+- `PKGBUILD`
+
+The package does not install an `.install` script and does not modify `/etc/os-release`.
+
+The initial package stores SchweisOS identity data under `/usr/lib/schweisos-release/`. Direct ownership or replacement of `/usr/lib/os-release` is intentionally deferred until the installer and base-system ownership model can handle Arch's `filesystem` package cleanly. This avoids a bootstrap package silently replacing Arch-owned identity files on a development host.
+
+## Boundaries
+
+`schweisos-release` must not own:
+
+- package signing keys
+- mirror endpoints
+- pacman repository snippets
+- desktop or branding assets
+- installer configuration
+- update behavior
+- performance tuning
+- telemetry or bug-report automation
 
 ## Validation
 
@@ -26,20 +44,16 @@ From this directory:
 
 ```bash
 bash -n PKGBUILD
-bash -n schweisos-release.install
 makepkg --printsrcinfo
 makepkg -f
 bsdtar -tf schweisos-release-0.1.0-1-any.pkg.tar.* | sort
 ```
 
-Optional local install test in a disposable VM or container:
+Expected package payload:
 
-```bash
-sudo pacman -U schweisos-release-0.1.0-1-any.pkg.tar.*
-cat /etc/os-release
-cat /usr/lib/schweisos-release/release.json
-sudo pacman -R schweisos-release
-ls -l /etc/os-release
+```text
+usr/lib/schweisos-release/os-release
+usr/lib/schweisos-release/release.json
 ```
 
-Do not run install tests on a primary workstation unless you intentionally want `/etc/os-release` to identify the host as SchweisOS during the test.
+Optional local install testing should happen only in a disposable VM or container.

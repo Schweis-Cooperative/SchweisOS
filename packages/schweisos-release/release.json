@@ -1,0 +1,17 @@
+{
+  "schema": "org.schweisos.release.v1",
+  "id": "schweisos",
+  "name": "SchweisOS",
+  "phase": "bootstrap",
+  "release_channel": "bootstrap",
+  "base": {
+    "id": "arch",
+    "policy": "upstream-first"
+  },
+  "urls": {
+    "home": "https://github.com/Schweis-Cooperative/SchweisOS",
+    "documentation": "https://github.com/Schweis-Cooperative/SchweisOS/tree/main/docs",
+    "support": "https://github.com/Schweis-Cooperative/SchweisOS/issues",
+    "bug_report": "https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose"
+  }
+}

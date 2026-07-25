@@ -3,8 +3,8 @@
 SPDX-License-Identifier: CC-BY-SA-4.0
 
 Version: 0.1
-Status: Initial pacman configuration package implementation
-Date: 2026-07-24
+Status: Bootstrap repository configuration
+Date: 2026-07-25
 
 `schweisos-pacman-config` provides the pacman repository configuration snippet for SchweisOS-owned package repositories.
 
@@ -24,15 +24,22 @@ This file can be included from `/etc/pacman.conf`:
 Include = /etc/pacman.d/schweisos.conf
 ```
 
-The include action is intentionally not performed by this package. Installer logic, administrator action, or a future explicitly documented configuration step must decide when the snippet is included.
+The package does not edit `/etc/pacman.conf`; therefore installing it does not
+activate a repository. Installer logic, administrator action, or a future
+documented configuration owner must decide when to add the include.
 
 ## Repository Policy
 
-The snippet defines only SchweisOS-owned repositories:
+The bootstrap snippet defines only the future `[schweisos]` repository. It
+obtains endpoints through the separately owned include:
 
-- `[schweisos]` is enabled by default inside the snippet.
-- `[schweisos-testing]` exists but is commented out.
-- `[schweisos-staging]` exists but is commented out.
+```ini
+Include = /etc/pacman.d/schweisos-mirrorlist
+```
+
+The mirrorlist deliberately has no `Server` entries until production
+infrastructure exists. Testing and staging channels are defined by ADR-011 but
+are not needed in this minimal bootstrap package.
 
 Arch Linux repositories such as `[core]`, `[extra]`, and `[multilib]` remain owned by Arch configuration and must not be duplicated here.
 
@@ -41,25 +48,24 @@ Arch Linux repositories such as `[core]`, `[extra]`, and `[multilib]` remain own
 The current snippet uses:
 
 ```ini
-SigLevel = Required DatabaseOptional
+SigLevel = Required TrustedOnly
 ```
 
-This means package signatures are required. Repository database signatures are accepted when present but not required yet.
+This requires signatures for both packages and repository databases and accepts
+only fully trusted signing keys. The snippet does not inherit a weaker global
+database policy and never uses `Never`, `Optional`, or `TrustAll`.
 
-This matches the current bootstrap trust model in ADR-011:
-
-- package signatures are mandatory for official public packages
-- repository database signatures should be used once operational
-- unsigned repository databases remain a temporary bootstrap limitation
-- `TrustAll` must not be used
-
-Once SchweisOS repository database signing is operational, this policy should be revisited and tightened through a documented release-engineering decision.
+The bootstrap keyring contains no production key material and the mirrorlist
+contains no endpoint, so this configuration is not yet operational. It is
+designed to fail closed until the signing and publication foundations exist.
 
 ## Relationship With schweisos-keyring
 
 `schweisos-keyring` provides SchweisOS-owned public signing keys and trust metadata.
 
-This package depends on `schweisos-keyring` because pacman configuration should not enable SchweisOS repositories without the future trust material package being present.
+This package depends on `schweisos-keyring` so the package relationship is
+explicit. The current bootstrap keyring grants no trust; production public keys
+will be introduced only after the official release-signing policy is finalized.
 
 This package does not install, import, revoke, or generate keys.
 
@@ -96,22 +102,16 @@ From this directory:
 
 ```bash
 bash -n PKGBUILD
+makepkg --verifysource
 makepkg --printsrcinfo
-makepkg -f
-bsdtar -tf schweisos-pacman-config-0.1.0-1-any.pkg.tar.* | sort
+makepkg --nodeps -f
+bsdtar -tf schweisos-pacman-config-*.pkg.tar.* | sort
 ```
 
-Static pacman config parse check:
+Sprint A interaction validation is run from the repository root:
 
 ```bash
-tmpdir="$(mktemp -d)"
-mkdir -p "${tmpdir}/etc/pacman.d"
-sed "s|/etc/pacman.d/schweisos-mirrorlist|${tmpdir}/etc/pacman.d/schweisos-mirrorlist|" \
-  schweisos.conf > "${tmpdir}/etc/pacman.d/schweisos.conf"
-cp ../schweisos-mirrorlist/schweisos-mirrorlist "${tmpdir}/etc/pacman.d/schweisos-mirrorlist"
-printf '[options]\nRootDir = %s\nDBPath = %s/var/lib/pacman/\nCacheDir = %s/var/cache/pacman/pkg/\nArchitecture = auto\nInclude = %s/etc/pacman.d/schweisos.conf\n' "${tmpdir}" "${tmpdir}" "${tmpdir}" "${tmpdir}" > "${tmpdir}/pacman.conf"
-pacman-conf -c "${tmpdir}/pacman.conf" --repo-list
-rm -r "${tmpdir}"
+tests/validate-repository-bootstrap.sh
 ```
 
 ## What Can Be Validated Now
@@ -123,8 +123,8 @@ rm -r "${tmpdir}"
 - No install script exists.
 - `/etc/pacman.conf` is not modified by the package.
 - No Arch repository sections are duplicated.
-- `schweisos-testing` and `schweisos-staging` are present but disabled.
-- `TrustAll` is not used.
+- Package and database signatures are required with `TrustedOnly`.
+- `Never`, `Optional`, and `TrustAll` are not used.
 - The snippet can be parsed by `pacman-conf` with the local mirrorlist file.
 
 ## What Cannot Be Validated Yet
@@ -133,7 +133,7 @@ rm -r "${tmpdir}"
 - Real package signature verification.
 - Real repository database signature verification.
 - Interaction with a populated `schweisos-keyring`.
-- End-to-end installation from `repo.schweisos.org`.
+- End-to-end installation from the future official endpoint.
 - Mirror failover.
 
 These require official SchweisOS repository infrastructure and real signing keys.
@@ -142,8 +142,9 @@ These require official SchweisOS repository infrastructure and real signing keys
 
 Architectural risks:
 
-- `DatabaseOptional` is intentionally transitional. It should be tightened after repository database signing is operational.
-- If an installer includes this file before real signed packages exist, pacman operations against SchweisOS repositories will fail. That is correct failure behavior, but release notes must make it clear.
+- If an administrator includes this file before real signed infrastructure
+  exists, pacman operations against `[schweisos]` will fail because no server is
+  configured. This is the intended fail-closed bootstrap behavior.
 
 Unnecessary complexity:
 
@@ -154,6 +155,6 @@ Unnecessary complexity:
 
 Future improvements:
 
-- Tighten repository database signature policy when repo database signing exists.
 - Add installer documentation describing when `/etc/pacman.d/schweisos.conf` is included.
 - Add validation against a disposable pacman root after real keyring and repository infrastructure exist.
+- Add testing and staging snippets only when those channels become operational.

@@ -3,12 +3,16 @@
 SPDX-License-Identifier: CC-BY-SA-4.0
 
 Version: 0.1
-Status: Initial mirrorlist package implementation
-Date: 2026-07-24
+Status: Bootstrap ownership package
+Date: 2026-07-25
 
-`schweisos-mirrorlist` provides the pacman-compatible mirrorlist file used to discover official SchweisOS package repository endpoints.
+`schweisos-mirrorlist` defines ownership of the pacman-compatible mirror file
+that will eventually list official SchweisOS repository endpoints.
 
-It does not create repositories, sign packages, configure pacman repositories, rank mirrors, integrate with reflector, or modify Arch Linux mirrors.
+No production SchweisOS repository or mirror exists yet. The installed file is
+therefore an intentionally endpoints-free placeholder: it contains comments but
+no active `Server` line and does not pretend that future infrastructure is
+already available.
 
 ## Purpose
 
@@ -18,15 +22,9 @@ The package installs:
 /etc/pacman.d/schweisos-mirrorlist
 ```
 
-This file contains SchweisOS repository `Server = .../$repo/os/$arch` entries in the format pacman expects.
-
-At this stage, the mirrorlist contains a single canonical official endpoint:
-
-```text
-https://repo.schweisos.org/$repo/os/$arch
-```
-
-The endpoint is reserved for future official repository publication. A real public repository is not implemented by this package.
+The package does not create repositories, sign packages, configure pacman
+repository sections, rank mirrors, contact network services, modify Arch Linux
+mirrorlists, or edit `/etc/pacman.conf`. It has no install script.
 
 ## Relationship With schweisos-keyring
 
@@ -36,7 +34,8 @@ The endpoint is reserved for future official repository publication. A real publ
 
 ## Relationship With schweisos-pacman-config
 
-`schweisos-pacman-config` will eventually add SchweisOS repository sections to pacman configuration and include this mirrorlist.
+`schweisos-pacman-config` owns the SchweisOS repository section and includes
+this mirrorlist.
 
 This package intentionally does not duplicate pacman configuration. It does not create `[schweisos]`, `[schweisos-testing]`, or `[schweisos-staging]` repository sections.
 
@@ -56,13 +55,13 @@ This means future mirror operators should not need to be trusted with package in
 
 ## Future Mirror Expansion
 
-Mirror expansion should happen in stages:
+Mirror publication should happen in stages:
 
-1. Publish the canonical official endpoint.
-2. Validate package and repository signature workflows.
-3. Document mirror eligibility and synchronization rules.
-4. Add official mirrors after they sync from SchweisOS artifact storage.
-5. Consider community mirrors only after health checks and policy exist.
+1. Finalize signing and publication policy.
+2. Operate the canonical repository and validate its signed artifacts.
+3. Add its real endpoint through a reviewed package update.
+4. Document mirror eligibility and synchronization rules.
+5. Add official or community mirrors only after those rules are operational.
 
 Future mirror entries should remain simple `Server = .../$repo/os/$arch` lines. Automatic ranking and reflector integration require separate design.
 
@@ -89,16 +88,16 @@ From this directory:
 
 ```bash
 bash -n PKGBUILD
+makepkg --verifysource
 makepkg --printsrcinfo
 makepkg -f
-bsdtar -tf schweisos-mirrorlist-0.1.0-1-any.pkg.tar.* | sort
+bsdtar -tf schweisos-mirrorlist-*.pkg.tar.* | sort
 ```
 
-Mirrorlist format checks:
+Sprint A interaction validation is run from the repository root:
 
 ```bash
-grep -n '^Server = ' schweisos-mirrorlist
-awk '/^Server = / && $0 !~ /\$repo\/os\/\$arch$/ { bad=1; print } END { exit bad }' schweisos-mirrorlist
+tests/validate-repository-bootstrap.sh
 ```
 
 ## What Can Be Validated Now
@@ -107,6 +106,7 @@ awk '/^Server = / && $0 !~ /\$repo\/os\/\$arch$/ { bad=1; print } END { exit bad
 - Stable `.SRCINFO` output without absolute local paths.
 - Package build succeeds.
 - Package contains only `/etc/pacman.d/schweisos-mirrorlist`.
+- Mirrorlist contains no active endpoint or invented production URL.
 - Mirrorlist contains no Arch mirror entries.
 - Mirrorlist contains no ranking or reflector integration.
 - Mirrorlist contains no pacman repository sections.
@@ -126,8 +126,11 @@ These require real SchweisOS repository infrastructure.
 
 Architectural risks:
 
-- The canonical endpoint is present before public repository infrastructure exists. This is acceptable only because `schweisos-pacman-config` is not implemented yet and this package does not enable repositories by itself.
-- If the endpoint domain changes later, the package must update users cleanly through pacman backup behavior.
+- An included `[schweisos]` repository has no usable server until production
+  infrastructure exists. This deliberate failure state prevents accidental use
+  of invented bootstrap infrastructure.
+- A future endpoint update must preserve the file's narrow ownership and pacman
+  backup semantics.
 
 Unnecessary complexity:
 
@@ -138,6 +141,8 @@ Unnecessary complexity:
 
 Future improvements:
 
+- Add the canonical endpoint only after signing, publication, and ownership are
+  operational.
 - Add official mirrors after mirror policy and synchronization are documented.
 - Add health-check metadata only after a mirror maintenance process exists.
 - Add community mirror sections only after trust and support boundaries are documented.

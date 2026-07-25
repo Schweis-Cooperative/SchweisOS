@@ -72,11 +72,13 @@ tools/repo/publish-local-packages.sh
 tests/install-local-bootstrap-packages.sh
 ```
 
-The test defines no repository endpoint. It uses direct package files from the
-local database directory and confines pacman root, database, cache, hooks, log,
-and GPG paths to a temporary directory. Unsigned developer artifacts are
-accepted only through the disposable config's `LocalFileSigLevel`; official
-repository policy remains `Required TrustedOnly`.
+The test installs the SchweisOS-owned repository snippet and local development
+endpoint into the disposable root, then verifies that pacman can parse them. It
+still installs package artifacts through direct package files from the local
+database directory and confines pacman root, database, cache, hooks, log, and
+GPG paths to a temporary directory. Unsigned developer artifacts are accepted
+only through the disposable config's `LocalFileSigLevel`; official repository
+policy remains `Required TrustedOnly`.
 
 The test uses pacman's `--assume-installed` facility for the external Arch
 `filesystem` and `pacman` dependencies. It is a SchweisOS package-set test, not

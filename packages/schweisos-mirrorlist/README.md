@@ -9,10 +9,16 @@ Date: 2026-07-25
 `schweisos-mirrorlist` defines ownership of the pacman-compatible mirror file
 that will eventually list official SchweisOS repository endpoints.
 
-No production SchweisOS repository or mirror exists yet. The installed file is
-therefore an intentionally endpoints-free placeholder: it contains comments but
-no active `Server` line and does not pretend that future infrastructure is
-already available.
+No production SchweisOS repository or mirror exists yet. The installed file
+therefore uses a local development bootstrap endpoint:
+
+```ini
+Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch
+```
+
+This endpoint is not a production mirror, public publication endpoint, or trust
+anchor. It exists so pacman can parse and validate the SchweisOS repository
+integration on a build host without inventing public infrastructure.
 
 ## Purpose
 
@@ -25,6 +31,10 @@ The package installs:
 The package does not create repositories, sign packages, configure pacman
 repository sections, rank mirrors, contact network services, modify Arch Linux
 mirrorlists, or edit `/etc/pacman.conf`. It has no install script.
+
+The local development endpoint remains unusable for official installation until
+the path contains already-signed SchweisOS packages, signed repository
+databases, and public keys accepted by `schweisos-keyring`.
 
 ## Relationship With schweisos-keyring
 
@@ -106,7 +116,8 @@ tests/validate-repository-bootstrap.sh
 - Stable `.SRCINFO` output without absolute local paths.
 - Package build succeeds.
 - Package contains only `/etc/pacman.d/schweisos-mirrorlist`.
-- Mirrorlist contains no active endpoint or invented production URL.
+- Mirrorlist contains exactly one local development bootstrap endpoint and no
+  invented production URL.
 - Mirrorlist contains no Arch mirror entries.
 - Mirrorlist contains no ranking or reflector integration.
 - Mirrorlist contains no pacman repository sections.
@@ -126,9 +137,10 @@ These require real SchweisOS repository infrastructure.
 
 Architectural risks:
 
-- An included `[schweisos]` repository has no usable server until production
-  infrastructure exists. This deliberate failure state prevents accidental use
-  of invented bootstrap infrastructure.
+- An included `[schweisos]` repository has a local development endpoint but no
+  usable trust path until signed artifacts and approved public keys exist. This
+  deliberate failure state prevents accidental use of unsigned bootstrap
+  infrastructure.
 - A future endpoint update must preserve the file's narrow ownership and pacman
   backup semantics.
 
@@ -141,8 +153,8 @@ Unnecessary complexity:
 
 Future improvements:
 
-- Add the canonical endpoint only after signing, publication, and ownership are
-  operational.
+- Replace or supplement the local development endpoint with the canonical
+  endpoint only after signing, publication, and ownership are operational.
 - Add official mirrors after mirror policy and synchronization are documented.
 - Add health-check metadata only after a mirror maintenance process exists.
 - Add community mirror sections only after trust and support boundaries are documented.

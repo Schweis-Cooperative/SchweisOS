@@ -51,7 +51,7 @@ Reference metadata:
 | Required command availability | Dependency issue | `mkarchiso`, `mkfs.erofs`, `mksquashfs`, `pacstrap`, and `xorriso` are absent because `archiso` and parts of its upstream dependency chain are absent. | No | Satisfy the direct manifest through official Arch packages; verify that upstream dependencies provide the commands. | No | Build host |
 | Full-upgrade state | Host issue | `pacman -Quq`, using the host's existing synchronization databases, reports 174 pending updates. The validator intentionally does not refresh databases. | No | Synchronize and fully upgrade the canonical host, then run the validator again. | No | Build host |
 | Readiness document layout | Repository issue | During implementation, the environment validator correctly reported this required document as missing. This deliverable resolves the repository defect. | Completed in this sprint | No | No | Developer |
-| SchweisOS repository integration | Expected temporary blocker | `schweisos-keyring`, `schweisos-mirrorlist`, and `schweisos-pacman-config` are not installed on the host. More importantly, production trust material and a signed publication source do not yet exist. Local unsigned bootstrap artifacts cannot satisfy a release build. | No validator change | Install approved integration packages only after the trust bootstrap exists. | Yes: real public keys, signed packages and database, and an approved publication source are required. | Infrastructure, then build host |
+| SchweisOS repository integration | Host issue, then infrastructure issue | The build host must have `schweisos-keyring`, `schweisos-mirrorlist`, and `schweisos-pacman-config` installed so pacman can resolve the SchweisOS repository include. The bootstrap mirrorlist provides only a local development endpoint. Production trust material and a signed publication source still do not exist. | Package infrastructure now provides the required snippet and endpoint. | Install the approved integration packages on the build host. | Yes: real public keys, signed packages and database, and an approved publication source are required before repository installation can succeed. | Developer for package infrastructure; infrastructure, then build host for release use |
 
 There is no observed standalone policy failure. The current host's pacman
 configuration passes the required trusted-signature check, project paths and
@@ -72,8 +72,9 @@ found. Those passing checks remain mandatory.
 - Provides canonical Arch Linux x86_64.
 - Provides an up-to-date system and the exact manifest packages.
 - Provides every expected command from its canonical Arch package owner.
-- Installs approved SchweisOS integration packages after infrastructure is
-  available.
+- Installs approved SchweisOS integration packages before ISO validation.
+- Ensures any local development endpoint used for repository integration points
+  only at signed, reviewed SchweisOS artifacts.
 
 ### Infrastructure
 

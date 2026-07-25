@@ -191,3 +191,17 @@ is `local-bootstrap`; it has no production channel name or network endpoint.
 The local layout and its direct package-file installation test do not validate
 package signing, repository signing, publication, mirrors, or production client
 trust. No local result may be promoted by relabeling it as an official artifact.
+
+The installed bootstrap mirrorlist also contains a separate local development
+endpoint:
+
+```ini
+Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch
+```
+
+That endpoint exists only so build hosts can parse and validate SchweisOS
+repository integration through pacman. It is not backed by the unsigned
+`out/local-repo/` package-file test layout and must not be used as an official
+source. Under the required trusted package and database signature policy, it
+cannot satisfy repository installation until signed artifacts and approved
+public keys exist.

@@ -14,6 +14,13 @@ This workflow is deliberately separate from the canonical publication flow in
 does not sign packages, sign repository databases, publish artifacts, simulate
 mirrors, create network endpoints, or modify host pacman configuration.
 
+The installed `schweisos-mirrorlist` package contains a separate local
+development endpoint under `/var/lib/schweisos/local-repo/$repo/os/$arch` so
+pacman can parse SchweisOS repository integration on a build host. This tools
+directory does not populate that endpoint. The local `out/local-repo/` workflow
+remains an unsigned package-file compatibility test, not a pacman repository
+trust path.
+
 ## Supported Packages
 
 - `schweisos-release`
@@ -101,10 +108,12 @@ tests/install-local-bootstrap-packages.sh
 
 The test requires the `local-bootstrap` database and fails with a diagnostic if
 publication has not happened. It installs the four unsigned local package files
-as one transaction into a temporary pacman root. The disposable configuration:
+as one transaction into a temporary pacman root, then verifies that the installed
+SchweisOS pacman snippet and mirrorlist parse through `pacman-conf`. The
+disposable configuration:
 
 - sets repository signature policy to `Required TrustedOnly`
-- defines no repository endpoint or repository section
+- defines no repository section outside the installed SchweisOS-owned snippet
 - permits unsigned local package files through `LocalFileSigLevel = Optional`
 - uses temporary database, cache, hook, log, and GPG directories
 - never reads or writes host pacman configuration or keyrings

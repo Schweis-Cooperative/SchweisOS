@@ -3,7 +3,7 @@
 
 pkgname=schweisos-pacman-config
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc='Conservative pacman snippet for the future SchweisOS repository'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
@@ -11,7 +11,7 @@ license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
 depends=('pacman' 'schweisos-keyring' 'schweisos-mirrorlist')
 backup=('etc/pacman.d/schweisos.conf')
 source=('schweisos.conf')
-sha256sums=('dd32fdbf02b497a1a6145a10d2354a7ec54c9cde37de01b945cf8c8dfa44ae1a')
+sha256sums=('c792ba0dfbb921267200faf76c3cde15ab1a445b92d0b8a02756d8c2078a9e5e')
 
 package() {
   install -Dm644 "${srcdir}/schweisos.conf" \

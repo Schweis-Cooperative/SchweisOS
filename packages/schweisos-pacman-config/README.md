@@ -37,9 +37,11 @@ obtains endpoints through the separately owned include:
 Include = /etc/pacman.d/schweisos-mirrorlist
 ```
 
-The mirrorlist deliberately has no `Server` entries until production
-infrastructure exists. Testing and staging channels are defined by ADR-011 but
-are not needed in this minimal bootstrap package.
+The mirrorlist provides a local development bootstrap `Server` entry. It is
+not a production mirror and does not weaken trust: this package still requires
+trusted signatures for packages and repository databases. Testing and staging
+channels are defined by ADR-011 but are not needed in this minimal bootstrap
+package.
 
 Arch Linux repositories such as `[core]`, `[extra]`, and `[multilib]` remain owned by Arch configuration and must not be duplicated here.
 
@@ -55,9 +57,9 @@ This requires signatures for both packages and repository databases and accepts
 only fully trusted signing keys. The snippet does not inherit a weaker global
 database policy and never uses `Never`, `Optional`, or `TrustAll`.
 
-The bootstrap keyring contains no production key material and the mirrorlist
-contains no endpoint, so this configuration is not yet operational. It is
-designed to fail closed until the signing and publication foundations exist.
+The bootstrap keyring contains no production key material, so this configuration
+is not yet operational for repository installation. It is designed to fail
+closed until signed repository artifacts and approved public keys exist.
 
 ## Relationship With schweisos-keyring
 
@@ -143,8 +145,9 @@ These require official SchweisOS repository infrastructure and real signing keys
 Architectural risks:
 
 - If an administrator includes this file before real signed infrastructure
-  exists, pacman operations against `[schweisos]` will fail because no server is
-  configured. This is the intended fail-closed bootstrap behavior.
+  exists, pacman operations against `[schweisos]` will fail because the
+  development endpoint does not provide a trusted signed repository. This is
+  the intended fail-closed bootstrap behavior.
 
 Unnecessary complexity:
 

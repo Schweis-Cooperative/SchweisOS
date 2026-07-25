@@ -3,14 +3,14 @@
 
 pkgname=schweisos-mirrorlist
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc='Bootstrap ownership file for future SchweisOS pacman mirrors'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
 license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
 backup=('etc/pacman.d/schweisos-mirrorlist')
 source=('schweisos-mirrorlist')
-sha256sums=('7632acf11b8625362999a46f2e057f0c382632d88900b559881b6d21fac48604')
+sha256sums=('7507b51309ae5e33bbcdd52208cabfa6b4d0223c2e0bdb7a51893e8d6c01451a')
 
 package() {
   install -Dm644 "${srcdir}/schweisos-mirrorlist" \

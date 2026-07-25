@@ -57,7 +57,7 @@ require_tool() {
   command -v "$1" >/dev/null 2>&1 || fail "required tool not found: $1"
 }
 
-for tool in awk bsdtar cmp git mktemp pacman sed sort; do
+for tool in awk bsdtar cmp git mktemp pacman pacman-conf sed sort; do
   require_tool "${tool}"
 done
 
@@ -174,8 +174,43 @@ for payload_path in "${expected_payload[@]}"; do
     fail "expected installed payload is missing: ${payload_path}"
 done
 
+{
+  printf '[options]\n'
+  printf 'Architecture = auto\n'
+  printf 'SigLevel = Required TrustedOnly\n'
+  printf 'Include = /etc/pacman.d/schweisos.conf\n'
+} > "${root_dir}/etc/pacman.conf"
+
+mapfile -t parsed_repositories < <(
+  pacman-conf --sysroot "${root_dir}" --config /etc/pacman.conf --repo-list
+)
+[[ "${parsed_repositories[*]}" == 'schweisos' ]] || \
+  fail "installed pacman snippet did not define exactly [schweisos]"
+
+mapfile -t parsed_siglevel < <(
+  pacman-conf --sysroot "${root_dir}" --config /etc/pacman.conf --repo schweisos SigLevel
+)
+parsed_siglevel_text=" ${parsed_siglevel[*]} "
+for required_policy in PackageRequired PackageTrustedOnly DatabaseRequired DatabaseTrustedOnly; do
+  [[ "${parsed_siglevel_text}" == *" ${required_policy} "* ]] || \
+    fail "installed SchweisOS repository policy is missing ${required_policy}"
+done
+if [[ "${parsed_siglevel_text}" == *' Never '* \
+  || "${parsed_siglevel_text}" == *' TrustAll '* ]]; then
+  fail 'installed SchweisOS repository policy weakens signature verification'
+fi
+
+mapfile -t parsed_servers < <(
+  pacman-conf --sysroot "${root_dir}" --config /etc/pacman.conf --repo schweisos Server
+)
+expected_server="file://${root_dir}/var/lib/schweisos/local-repo/schweisos/os/x86_64"
+[[ "${#parsed_servers[@]}" -eq 1 \
+  && "${parsed_servers[0]}" == "${expected_server}" ]] || \
+  fail 'installed SchweisOS repository endpoint did not resolve as expected'
+
 printf 'Disposable bootstrap package installation passed.\n'
 printf '  root: %s (removed automatically)\n' "${root_dir}"
 printf '  packages: %s\n' "${expected_packages[*]}"
+printf '  repository endpoint: %s\n' "${parsed_servers[0]}"
 printf '  host pacman configuration and keyrings were not used.\n'
 printf '  signed repository installation remains a future release gate.\n'

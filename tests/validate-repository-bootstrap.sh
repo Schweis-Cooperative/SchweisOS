@@ -37,16 +37,23 @@ bash -n \
   "${pacman_dir}/PKGBUILD" \
   "${BASH_SOURCE[0]}"
 
-if grep -Eq '^[[:space:]]*Server[[:space:]]*=' "${mirror_file}"; then
-  fail 'bootstrap mirrorlist must not contain an active Server entry'
+expected_development_endpoint='Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch'
+mapfile -t active_servers < <(
+  sed -n 's/^[[:space:]]*\(Server[[:space:]]*=[[:space:]]*.*\)$/\1/p' \
+    "${mirror_file}"
+)
+[[ "${#active_servers[@]}" -eq 1 ]] || \
+  fail 'bootstrap mirrorlist must contain exactly one active Server entry'
+[[ "${active_servers[0]}" == "${expected_development_endpoint}" ]] || \
+  fail 'bootstrap mirrorlist must use the canonical local development endpoint'
+
+if grep -Eq 'https?://' "${mirror_file}"; then
+  fail 'bootstrap mirrorlist must not contain a network endpoint URL'
 fi
 
-if grep -Eq 'https?://|file://' "${mirror_file}"; then
-  fail 'bootstrap mirrorlist must not contain an endpoint URL'
-fi
-
-if grep -Eq '^[[:space:]]*([^#[:space:]].*)$' "${mirror_file}"; then
-  fail 'bootstrap mirrorlist must contain comments and blank lines only'
+if grep -Evq '^[[:space:]]*($|#|Server[[:space:]]*=[[:space:]]*file:///var/lib/schweisos/local-repo/\$repo/os/\$arch[[:space:]]*$)' \
+    "${mirror_file}"; then
+  fail 'bootstrap mirrorlist contains unsupported active content'
 fi
 
 if grep -Eq '^[[:space:]]*Server[[:space:]]*=' "${pacman_file}"; then
@@ -169,6 +176,14 @@ sed "s|/etc/pacman.d/schweisos-mirrorlist|${tmp_dir}/pacman.d/schweisos-mirrorli
 [[ "$(pacman-conf -c "${tmp_dir}/pacman.conf" --repo-list)" == 'schweisos' ]] || \
   fail 'pacman-conf did not recognize exactly the [schweisos] repository'
 
+mapfile -t parsed_servers < <(
+  pacman-conf -c "${tmp_dir}/pacman.conf" --repo schweisos Server
+)
+
+[[ "${#parsed_servers[@]}" -eq 1 \
+  && "${parsed_servers[0]}" == 'file:///var/lib/schweisos/local-repo/schweisos/os/x86_64' ]] || \
+  fail 'pacman-conf did not resolve the canonical local development endpoint'
+
 mapfile -t parsed_siglevel < <(
   pacman-conf -c "${tmp_dir}/pacman.conf" --repo schweisos SigLevel
 )
@@ -187,5 +202,5 @@ git -C "${project_root}" diff --check
 printf 'Repository Bootstrap Sprint A validation passed.\n'
 printf '  mirrorlist payload: %s\n' "$(<"${tmp_dir}/mirror.payload")"
 printf '  pacman-config payload: %s\n' "$(<"${tmp_dir}/pacman.payload")"
-printf '  repository: schweisos (no bootstrap Server endpoint)\n'
+printf '  repository: schweisos (local development endpoint)\n'
 printf '  signature policy: Required TrustedOnly\n'

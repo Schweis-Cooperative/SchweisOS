@@ -1,12 +1,18 @@
 # This file is owned by schweisos-mirrorlist.
 #
 # Bootstrap status: no production SchweisOS repository or mirror exists yet.
-# This file therefore contains no Server entries.
+# The active entry below is a local development bootstrap endpoint. It is not a
+# production mirror, public publication endpoint, or trust anchor.
 #
-# Production Server entries may be added only after official infrastructure,
-# synchronization ownership, and publication policy are operational. They must
-# use pacman's $repo and $arch variables and must distribute already-signed
-# artifacts. Mirrors are distribution channels, not trust anchors.
+# To use it, a developer or build host must explicitly stage an already-signed
+# SchweisOS repository at:
+#
+#   /var/lib/schweisos/local-repo/$repo/os/$arch
+#
+# Until signed packages, signed repository databases, and approved public keys
+# exist, this endpoint remains fail-closed under Required TrustedOnly policy.
 #
 # Arch Linux mirror entries belong to Arch's mirrorlist and must never be added
 # here. Community mirrors require a separately documented admission policy.
+
+Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch

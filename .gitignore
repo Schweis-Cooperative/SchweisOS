@@ -28,3 +28,4 @@ src/
 Thumbs.db
 .vscode/
 .idea/
+*.kate-swp

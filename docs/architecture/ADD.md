@@ -150,7 +150,18 @@ database signing uses separately authorized operational keys on a restricted
 signing host; developer machines and build workers do not own production
 signing authority.
 
-Local development repository tooling may create an unsigned file-based repository under `out/local-repo/` for package bootstrap testing. This repository is a developer convenience only. It must not be treated as release infrastructure, artifact storage, mirror source, or part of the official SchweisOS trust model.
+Local development repository tooling may create an unsigned file-based
+repository under `out/local-repo/` for package bootstrap testing. This
+repository is a developer convenience only. It must not be treated as release
+infrastructure, artifact storage, mirror source, or part of the official
+SchweisOS trust model.
+
+The bootstrap mirrorlist may also provide a local file-based development
+endpoint under `/var/lib/schweisos/local-repo/$repo/os/$arch` so pacman can
+parse repository integration on a build host. This endpoint is not a production
+mirror, canonical endpoint, or trust anchor. It remains fail-closed under
+trusted package and repository database signature policy until signed artifacts
+and approved public keys exist.
 
 Repository architecture is defined in
 [ADR-011 Repository Architecture](../adr/ADR-011-repository-architecture.md).

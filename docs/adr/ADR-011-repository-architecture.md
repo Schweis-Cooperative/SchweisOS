@@ -281,6 +281,16 @@ Package signing:
 
 Package signatures are mandatory for official public repositories. Local unsigned builds are developer artifacts only.
 
+Bootstrap development endpoint:
+
+`schweisos-mirrorlist` may ship a local file-based development endpoint under
+`/var/lib/schweisos/local-repo/$repo/os/$arch` before public infrastructure
+exists. This endpoint exists to make pacman repository integration parseable and
+testable on a build host. It is not the canonical endpoint, a public mirror, a
+publication source, or a trust anchor. Because SchweisOS repository policy
+requires trusted package and repository database signatures, the endpoint
+remains fail-closed until signed artifacts and approved public keys exist.
+
 Key compromise recovery:
 
 If a signing key is compromised, SchweisOS must revoke the affected key, publish an incident notice, ship an updated `schweisos-keyring`, stop publishing packages signed only by the compromised key, and provide user recovery instructions.

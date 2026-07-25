@@ -15,6 +15,12 @@ signing material. Production public keys may be introduced only after the
 official SchweisOS release-signing policy is finalized and its key admission,
 verification, rotation, revocation, and recovery procedures are approved.
 
+During development, SchweisOS may install repository configuration that points
+to a local file-based bootstrap endpoint. This package does not make that
+endpoint trusted. The endpoint remains fail-closed under pacman's
+`Required TrustedOnly` policy until approved public keys and signed repository
+artifacts exist.
+
 ## Purpose
 
 `schweisos-keyring` will eventually install the public keys and trust metadata

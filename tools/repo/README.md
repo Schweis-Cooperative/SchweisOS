@@ -76,6 +76,10 @@ The command uses `makepkg --nodeps` because SchweisOS bootstrap dependencies may
 not yet be installed on the developer host. This exception is local only;
 release builds require clean dependency-resolved environments.
 
+Only each package's primary artifact is selected for the local repository
+database. If makepkg reports a matching `*-debug-*.pkg.tar.*` path, the publish
+script does not require or publish it.
+
 To rebuild the database from artifacts already present in `packages/`:
 
 ```bash

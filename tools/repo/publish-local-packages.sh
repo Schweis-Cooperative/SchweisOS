@@ -64,7 +64,7 @@ require_tool() {
   }
 }
 
-for tool in cp git makepkg mktemp repo-add; do
+for tool in cp git makepkg mktemp repo-add sort; do
   require_tool "${tool}"
 done
 
@@ -108,17 +108,36 @@ for package_name in "${identity_packages[@]}"; do
     )
   fi
 
-  mapfile -t package_artifacts < <(
+  mapfile -t declared_artifacts < <(
     cd "${package_dir}"
-    PKGDEST="${package_store}" makepkg --packagelist | sed '/^$/d'
+    PKGDEST="${package_store}" makepkg --packagelist | sed '/^$/d' | sort
   )
 
-  [[ "${#package_artifacts[@]}" -gt 0 ]] || {
+  primary_artifacts=()
+  for package_artifact in "${declared_artifacts[@]}"; do
+    package_filename="${package_artifact##*/}"
+    case "${package_filename}" in
+      "${package_name}-debug-"*.pkg.tar.*)
+        continue
+        ;;
+      *)
+        primary_artifacts+=("${package_artifact}")
+        ;;
+    esac
+  done
+
+  [[ "${#primary_artifacts[@]}" -gt 0 ]] || {
     printf 'No package artifact declared for %s\n' "${package_name}" >&2
     exit 1
   }
+  [[ "${#primary_artifacts[@]}" -eq 1 ]] || {
+    printf 'Expected exactly one primary artifact for %s, found %s\n' \
+      "${package_name}" "${#primary_artifacts[@]}" >&2
+    printf '%s\n' "${primary_artifacts[@]}" | sed 's/^/  /' >&2
+    exit 1
+  }
 
-  for package_artifact in "${package_artifacts[@]}"; do
+  for package_artifact in "${primary_artifacts[@]}"; do
     [[ -f "${package_artifact}" ]] || {
       printf 'Expected local artifact is missing: %s\n' "${package_artifact}" >&2
       printf 'Run without --no-build to create it.\n' >&2

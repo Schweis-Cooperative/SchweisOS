@@ -109,6 +109,23 @@ gates pass:
 ./scripts/build-iso.sh --clean
 ```
 
+The build-local pacman configuration is generated under `work/iso/kde/` from
+the profile input and the installed SchweisOS repository snippet. The default
+mode is `SCHWEISOS_ISO_BUILD_MODE=development`. Development ISO builds keep
+trusted package signatures required, but allow an unsigned local repository
+database with:
+
+```ini
+SigLevel = PackageRequired PackageTrustedOnly DatabaseOptional DatabaseTrustedOnly
+```
+
+The source package configuration remains stricter for future release use:
+`schweisos-pacman-config` continues to ship `SigLevel = Required TrustedOnly`.
+Setting `SCHWEISOS_ISO_BUILD_MODE=release` preserves that stricter repository
+database signature policy in the generated build-local configuration. This
+distinction lets local Archiso builds consume the unsigned bootstrap
+`schweisos.db` without changing release or runtime trust policy.
+
 The wrapper never cleans ISO output. An existing ISO or ISO checksum must be
 archived or removed explicitly before another build so stale output cannot be
 mistaken for newly generated evidence.

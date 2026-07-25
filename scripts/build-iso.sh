@@ -45,6 +45,16 @@ work_dir="${repo_root}/work/iso/kde"
 out_dir="${repo_root}/out/iso"
 cache_dir="${repo_root}/cache/pacman"
 log_dir="${repo_root}/logs/iso"
+iso_build_mode="${SCHWEISOS_ISO_BUILD_MODE:-development}"
+
+case "$iso_build_mode" in
+    development|release) ;;
+    *)
+        printf 'ERROR: Invalid SCHWEISOS_ISO_BUILD_MODE: %s\n' "$iso_build_mode" >&2
+        printf 'ERROR: Expected development or release.\n' >&2
+        exit 2
+        ;;
+esac
 
 generated_dirs=("$work_dir" "$out_dir" "$cache_dir" "$log_dir")
 bootstrap_commands=(date flock mkdir mktemp realpath tee)
@@ -505,7 +515,22 @@ if ! pacman_conf_tmp="$(mktemp --tmpdir="$work_dir" .pacman.conf.XXXXXX)"; then
     exit 1
 fi
 temporary_files+=("$pacman_conf_tmp")
-if ! awk -v cache_dir="$cache_dir" '
+if ! awk -v cache_dir="$cache_dir" \
+    -v iso_build_mode="$iso_build_mode" \
+    -v schweisos_conf="/etc/pacman.d/schweisos.conf" '
+    function emit_schweisos_build_conf(line) {
+        while ((getline line < schweisos_conf) > 0) {
+            if (iso_build_mode == "development" && line ~ /^[[:space:]]*SigLevel[[:space:]]*=[[:space:]]*Required[[:space:]]+TrustedOnly[[:space:]]*$/) {
+                print "SigLevel = PackageRequired PackageTrustedOnly DatabaseOptional DatabaseTrustedOnly"
+            } else {
+                print line
+            }
+        }
+        if (close(schweisos_conf) != 0) {
+            exit 1
+        }
+        schweisos_inserted = 1
+    }
     /^[[:space:]]*CacheDir[[:space:]]*=/ { next }
     /^\[options\][[:space:]]*$/ {
         print
@@ -513,8 +538,12 @@ if ! awk -v cache_dir="$cache_dir" '
         cache_inserted = 1
         next
     }
+    /^[[:space:]]*Include[[:space:]]*=[[:space:]]*\/etc\/pacman\.d\/schweisos\.conf[[:space:]]*$/ {
+        emit_schweisos_build_conf()
+        next
+    }
     { print }
-    END { if (!cache_inserted) exit 1 }
+    END { if (!cache_inserted || !schweisos_inserted) exit 1 }
 ' "${profile_dir}/pacman.conf" >"$pacman_conf_tmp"; then
     failure_code=build_config_generation_failed
     error 'Unable to generate the build-local pacman configuration.'

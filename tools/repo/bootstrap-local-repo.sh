@@ -3,40 +3,27 @@
 
 set -euo pipefail
 
-repo_name="${SCHWEISOS_REPO_NAME:-schweisos}"
-repo_arch="${SCHWEISOS_REPO_ARCH:-x86_64}"
 repo_root="${SCHWEISOS_LOCAL_REPO_ROOT:-out/local-repo}"
 
 usage() {
   cat <<'EOF'
 Usage: bootstrap-local-repo.sh [options]
 
-Create the local SchweisOS development repository directory.
+Create the local-only SchweisOS repository bootstrap layout.
 
 Options:
-  --repo-name NAME   Repository name. Default: schweisos
-  --arch ARCH        Repository architecture. Default: x86_64
   --repo-root PATH   Repository root. Default: out/local-repo
   -h, --help         Show this help.
 
-Environment overrides:
-  SCHWEISOS_REPO_NAME
-  SCHWEISOS_REPO_ARCH
+Environment override:
   SCHWEISOS_LOCAL_REPO_ROOT
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --repo-name)
-      repo_name="$2"
-      shift 2
-      ;;
-    --arch)
-      repo_arch="$2"
-      shift 2
-      ;;
     --repo-root)
+      [[ $# -ge 2 ]] || { printf 'Missing value for --repo-root\n' >&2; exit 2; }
       repo_root="$2"
       shift 2
       ;;
@@ -52,22 +39,31 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -z "${project_root}" ]]; then
-  script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-  project_root="$(cd -- "${script_dir}/../.." && pwd)"
-fi
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+project_root="$(git -C "${script_dir}" rev-parse --show-toplevel)"
 
 case "${repo_root}" in
   /*) repo_base="${repo_root}" ;;
   *) repo_base="${project_root}/${repo_root}" ;;
 esac
 
-repo_dir="${repo_base}/${repo_arch}/${repo_name}"
+if [[ -d "${repo_base}" ]]; then
+  unexpected_entry="$(
+    find "${repo_base}" -mindepth 1 -maxdepth 1 \
+      ! -name README.md ! -name packages ! -name database -print -quit
+  )"
+  if [[ -n "${unexpected_entry}" ]]; then
+    printf 'Refusing mixed local repository layouts. Unexpected entry: %s\n' \
+      "${unexpected_entry}" >&2
+    printf 'Move or remove the legacy local output before continuing.\n' >&2
+    exit 1
+  fi
+fi
 
-mkdir -p "${repo_dir}"
+mkdir -p "${repo_base}/packages" "${repo_base}/database"
+install -Dm644 "${script_dir}/local-repo.README.md" "${repo_base}/README.md"
 
-printf 'Local SchweisOS repository directory ready:\n'
-printf '  %s\n' "${repo_dir}"
-printf '\nExpected database path after publication:\n'
-printf '  %s/%s.db.tar.gz\n' "${repo_dir}" "${repo_name}"
+printf 'Local bootstrap repository layout ready:\n'
+printf '  root:     %s\n' "${repo_base}"
+printf '  packages: %s/packages\n' "${repo_base}"
+printf '  database: %s/database\n' "${repo_base}"

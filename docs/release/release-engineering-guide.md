@@ -1,12 +1,16 @@
 # SchweisOS Release Engineering Guide
 
-Version: 0.1
+Version: 0.2
 Status: Draft
-Date: 2026-07-24
+Date: 2026-07-25
 
 ## Goal
 
 Release engineering must make SchweisOS builds repeatable, signed, and understandable. The first objective is a small, reliable alpha ISO, not a complex release factory.
+
+Canonical repository lifecycle: [Package Repository Workflow](repository-workflow.md).
+
+Signing architecture: [Release Signing Workflow](release-signing-workflow.md).
 
 ## Release Artifacts
 

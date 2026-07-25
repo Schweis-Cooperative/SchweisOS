@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.1
+Version: 0.2
 Status: Draft, bootstrap baseline
-Date: 2026-07-24
+Date: 2026-07-25
 
 ## Scope
 
@@ -145,26 +145,68 @@ Developer
 
 Trust begins with a verified ISO and `schweisos-keyring`. `schweisos-pacman-config` must enable only official SchweisOS repositories using trusted package signatures. Mirrors distribute artifacts; they are not trust anchors.
 
+The long-lived master trust key remains offline. Routine package and repository
+database signing uses separately authorized operational keys on a restricted
+signing host; developer machines and build workers do not own production
+signing authority.
+
 Local development repository tooling may create an unsigned file-based repository under `out/local-repo/` for package bootstrap testing. This repository is a developer convenience only. It must not be treated as release infrastructure, artifact storage, mirror source, or part of the official SchweisOS trust model.
 
-Repository architecture is defined in [ADR-011 Repository Architecture](../adr/ADR-011-repository-architecture.md).
+Repository architecture is defined in
+[ADR-011 Repository Architecture](../adr/ADR-011-repository-architecture.md).
+The canonical lifecycle and signing boundaries are documented in
+[Package Repository Workflow](../release/repository-workflow.md) and
+[Release Signing Workflow](../release/release-signing-workflow.md).
 
 ## ISO Architecture
 
-SchweisOS should build install media using Arch's archiso tooling. Archiso is the established Arch mechanism for building live ISO images and supports custom package lists and profile files. The SchweisOS ISO layer must remain a profile and configuration set, not a fork of Arch's build system.
+SchweisOS builds live and installation media with the upstream `archiso` package. The project owns a small archiso profile; it does not fork archiso or maintain a custom image-building framework.
+
+The ISO is a downstream consumer of validated Arch and SchweisOS package repositories. ISO assembly must not implicitly build SchweisOS packages or become an alternative package publication path.
+
+The future profile is expected under `iso/profiles/kde/` and separates these concerns:
+
+| Concern | Architectural owner |
+| --- | --- |
+| Image metadata, boot modes, package composition | `profiledef.sh` and `packages.x86_64` |
+| Build-time package resolution | Profile-local `pacman.conf` |
+| Exceptional live-only filesystem content | Minimal `airootfs/` overlay |
+| Live-medium UEFI boot configuration | `efiboot/` following supported archiso interfaces |
+| Reusable system behavior and persistent configuration | SchweisOS packages under `packages/` |
+| Source artwork and brand policy | `branding/` |
+| Canonical documentation | `docs/`, packaged when offline media access is required |
+
+Persistent, reusable, security-relevant, or updateable configuration belongs in packages rather than `airootfs/`. This provides pacman ownership, signatures, versioned upgrades, removal behavior, and independent validation. The overlay remains an exception for archiso-native or genuinely ephemeral live-session files.
+
+Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, properly licensed branding, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Exact contents require their own package design; the profile should only list the resulting package names.
 
 The ISO must eventually provide:
 
-- UEFI boot path.
-- KDE live session.
-- Installer launcher.
-- Network tools needed for installation.
-- SchweisOS repository configuration.
-- Documentation links and first-run warnings.
+- A UEFI-first boot path using archiso-supported defaults where practical.
+- A functional KDE Plasma live session.
+- Networking required for installation and support.
+- A clear installer launcher.
+- Offline access to essential installation and troubleshooting documentation.
+- A compact set of storage, networking, log, hardware, and boot troubleshooting tools.
 
-BIOS support is not required for the first release. Secure Boot is not a first-release goal.
+The live-media boot path is separate from installed-system boot policy. systemd-boot remains the installed-system default on UEFI systems, while archiso owns how the medium boots. A `syslinux/` profile area is relevant only if legacy BIOS support is approved later. BIOS support and Secure Boot are not first-release requirements.
 
-Reference: [Archiso - ArchWiki](https://wiki.archlinux.org/title/Archiso).
+Related decision: [ADR-012 ISO Build Architecture](../adr/ADR-012-iso-build-architecture.md).
+
+## ISO Build Workflow
+
+SchweisOS ISO builds use upstream `mkarchiso` on an Arch Linux build host. The build workflow is separate from the ISO profile: the profile declares image composition, while build tooling prepares directories, validates inputs, records logs, and invokes archiso with explicit paths.
+
+Generated ISO state must stay outside the profile source:
+
+- `work/` for temporary archiso state.
+- `out/` for generated ISO artifacts.
+- `cache/` for local package cache state.
+- `logs/` for build and validation records.
+
+The build workflow consumes already-built Arch and SchweisOS packages. It must not build packages, sign artifacts, publish repositories, synchronize mirrors, modify global pacman configuration, or hide release actions inside ISO assembly.
+
+Related decision: [ADR-013 ISO Build Workflow](../adr/ADR-013-iso-build-workflow.md).
 
 ## Boot Architecture
 

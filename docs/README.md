@@ -1,23 +1,27 @@
 # SchweisOS Documentation Index
 
-Version: 0.1
+Version: 0.3
 Status: Active
-Date: 2026-07-24
+Date: 2026-07-25
 
 This directory is the source of truth for SchweisOS engineering decisions. Important decisions must not remain only in chat history; they must be written into the relevant document and, when architectural, recorded as an ADR.
 
 ## Required Reading Order
 
-1. [Product Vision](vision/product-vision.md)
+1. [Project Vision](../VISION.md)
 2. [Architecture Design Document](architecture/ADD.md)
 3. [Architecture Decision Records](adr/README.md)
 4. [Security Model](security/security-model.md)
 5. [Packaging Guide](packaging/packaging-guide.md)
-6. [Release Engineering Guide](release/release-engineering-guide.md)
-7. [Testing Strategy](testing/testing-strategy.md)
-8. [Developer Handbook](developer/developer-handbook.md)
-9. [Product Roadmap](roadmap/product-roadmap.md)
-10. [GitHub Repository Bootstrap](developer/github-bootstrap.md)
+6. [Package Repository Workflow](release/repository-workflow.md)
+7. [Release Signing Workflow](release/release-signing-workflow.md)
+8. [Release Engineering Guide](release/release-engineering-guide.md)
+9. [ISO Build Workflow](build/README.md)
+10. [Build Environment Readiness](build/environment-readiness.md)
+11. [Testing Strategy](testing/testing-strategy.md)
+12. [Developer Handbook](developer/developer-handbook.md)
+13. [Product Roadmap](roadmap/product-roadmap.md)
+14. [GitHub Repository Bootstrap](developer/github-bootstrap.md)
 
 ## Documentation Rules
 
@@ -32,6 +36,7 @@ This directory is the source of truth for SchweisOS engineering decisions. Impor
 ## Monorepo Layout
 
 - `docs/`: living engineering documentation
+- `build/`: machine-readable build policy inputs
 - `iso/`: future archiso profile and live media configuration
 - `packages/`: future SchweisOS PKGBUILD sources
 - `tools/`: future maintainer-facing tools

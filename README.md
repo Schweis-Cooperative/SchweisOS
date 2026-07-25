@@ -28,9 +28,9 @@ It currently contains engineering documentation only. It intentionally does not 
 
 ## Documentation
 
+- [Project Vision](VISION.md)
 - [Architecture Design Document](docs/architecture/ADD.md)
 - [Architecture Decision Records](docs/adr/README.md)
-- [Product Vision](docs/vision/product-vision.md)
 - [Product Roadmap](docs/roadmap/product-roadmap.md)
 - [Developer Handbook](docs/developer/developer-handbook.md)
 - [Packaging Guide](docs/packaging/packaging-guide.md)

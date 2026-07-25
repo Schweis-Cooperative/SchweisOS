@@ -1,6 +1,6 @@
 # ADR-011 Repository Architecture
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-24
+2026-07-25
 
 ## Related ADRs
 
@@ -296,6 +296,19 @@ Mirrors are distribution channels, not trust anchors. Users must not need to tru
 Signing separation:
 
 Build machines may be compromised by package build workloads. Signing keys should not live on general build workers once infrastructure matures.
+
+Signing key hierarchy:
+
+SchweisOS will keep the long-lived master trust key offline and outside routine
+development, build, and publication environments. Routine package and
+repository database signing will use separately authorized operational keys on
+a restricted signing host. Production public keys must not enter
+`schweisos-keyring` until the release-signing policy and key admission process
+are finalized.
+
+The operational boundaries, bootstrap trust model, rotation, and revocation
+strategy are defined in the
+[Release Signing Workflow](../release/release-signing-workflow.md).
 
 Rollback and downgrade risk:
 

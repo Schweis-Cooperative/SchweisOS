@@ -42,6 +42,8 @@ These packages form the minimum host-level identity and trust foundation require
 
 It owns distribution identity metadata such as release name, version metadata, project URLs, and `/etc/os-release` integration where applicable. It must not configure repositories, install defaults, modify package trust, or apply desktop behavior.
 
+During bootstrap, `schweisos-release` may install SchweisOS identity metadata under a project-owned path such as `/usr/lib/schweisos-release/`. It must not use an install script to rewrite `/etc/os-release`, and it must not directly replace `/usr/lib/os-release` until the installer and base-system ownership model can handle Arch's `filesystem` package cleanly. This keeps the package auditable and avoids surprising changes on development hosts.
+
 `schweisos-keyring` owns SchweisOS package signing trust material.
 
 It installs and updates the public keys required to verify packages from official SchweisOS repositories. It must not disable pacman signature verification, weaken Arch trust settings, or trust third-party package sources.

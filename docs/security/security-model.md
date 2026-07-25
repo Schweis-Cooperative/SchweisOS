@@ -1,8 +1,8 @@
 # SchweisOS Security Model
 
-Version: 0.1
+Version: 0.2
 Status: Draft
-Date: 2026-07-24
+Date: 2026-07-25
 
 ## Security Position
 
@@ -22,6 +22,11 @@ SchweisOS security starts with honest boundaries. The project must not claim pro
 SchweisOS packages must be signed and installed through pacman trust mechanisms. A dedicated keyring package will be required before a public binary repository is treated as official.
 
 Pacman uses OpenPGP-based package signing and repository trust configuration. SchweisOS must not use `TrustAll` for official user-facing repositories.
+
+The long-lived master trust key remains offline and separate from developer
+machines and build workers. Operational package and repository database signing
+uses restricted signing roles. Bootstrap trust, rotation, and revocation are
+defined in the [Release Signing Workflow](../release/release-signing-workflow.md).
 
 Reference: [pacman package signing - ArchWiki](https://wiki.archlinux.org/title/Pacman/Package_signing).
 

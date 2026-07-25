@@ -1,8 +1,8 @@
 # SchweisOS Testing Strategy
 
-Version: 0.1
+Version: 0.2
 Status: Draft
-Date: 2026-07-24
+Date: 2026-07-25
 
 ## Goal
 
@@ -25,6 +25,22 @@ Testing must be realistic for a one-developer distribution. The first test suite
 - UEFI VM, GRUB alternative once implemented.
 
 Legacy BIOS is not required for the first release.
+
+## Repository Bootstrap Tests
+
+Repository bootstrap validation has three deliberately separate levels:
+
+- static package-boundary validation checks PKGBUILDs, payload ownership,
+  pacman snippets, and signature policy
+- local repository validation checks the generated `local-bootstrap` layout,
+  exact package membership, and `repo-add` database references
+- disposable-root validation installs the four local package files in one
+  isolated pacman transaction without using host configuration or keyrings
+
+The disposable local-file test proves package compatibility, not production
+trust. Installation through a signed repository remains a release gate after
+real signing policy, approved public keys, and signed repository databases
+exist.
 
 ## Manual Test Evidence
 

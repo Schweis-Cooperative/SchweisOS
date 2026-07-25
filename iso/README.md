@@ -1,9 +1,85 @@
-# ISO Directory
+# SchweisOS ISO Profiles
 
-Version: 0.1
-Status: Reserved
-Date: 2026-07-24
+This directory owns the SchweisOS archiso profiles used to assemble live and
+installation media. The profiles consume upstream Arch packages and published
+SchweisOS packages; they do not build packages or define a separate ISO build
+system.
 
-This directory is reserved for the future SchweisOS archiso profile. No ISO profile is implemented yet.
+The architecture and ownership rules are defined by
+[ADR-012](../docs/adr/ADR-012-iso-build-architecture.md).
 
-Design reference: [docs/architecture/ADD.md](../docs/architecture/ADD.md).
+## Ownership Boundaries
+
+- `iso/profiles/` owns image metadata, package composition, build-time pacman
+  configuration, boot-loader inputs, and exceptional live-only overlay files.
+- `packages/` owns reusable SchweisOS software and configuration. Files that
+  need pacman ownership, updates, removal, or reuse outside the live image must
+  be packaged there.
+- `branding/` owns source artwork. No branding asset belongs directly in an ISO
+  profile.
+- `docs/` owns project documentation. Documentation intended for the live
+  system should eventually be delivered by a package.
+
+Each file has one canonical owner. An ISO profile must not copy package
+payloads, project configuration, branding, or documentation from another
+canonical location.
+
+## Initial KDE Profile
+
+`profiles/kde/` is the only profile currently defined. It is intentionally a
+small upstream-compatible profile:
+
+- `profiledef.sh` declares image metadata and UEFI systemd-boot policy.
+- `packages.x86_64` lists the minimum Arch and SchweisOS packages for the
+  planned KDE live environment.
+- `pacman.conf` is used only while resolving packages for image assembly.
+- `efiboot/` contains the minimum systemd-boot loader configuration required by
+  the selected upstream boot mode.
+- `airootfs/` contains only the declarative plumbing required for an ephemeral
+  KDE live account, SDDM autologin, and NetworkManager startup.
+
+The profile selects the upstream `uefi.systemd-boot` boot mode. Its
+`efiboot/loader/` files are a minimal adaptation of the current upstream
+archiso templates and use only archiso-supported template identifiers.
+
+Installer integration, KDE defaults, branding, and boot artwork are
+intentionally absent. The live-only overlay and its removal condition are
+documented in `profiles/kde/README.md`; documentation is kept outside
+`airootfs/` so it is not copied into the live root filesystem.
+
+## Repository Integration
+
+The profile's `pacman.conf` uses Arch's normal mirrorlist for upstream
+repositories and includes `/etc/pacman.d/schweisos.conf` for SchweisOS-owned
+repositories. That include file is owned by `schweisos-pacman-config`; its
+dependencies provide the SchweisOS keyring and mirrorlist.
+
+A future build host must install `schweisos-pacman-config` before running
+`mkarchiso`. Its dependencies install `schweisos-keyring` and
+`schweisos-mirrorlist`. The profile then resolves all four identity packages,
+including `schweisos-release`, from the configured SchweisOS repository into
+the image.
+
+The profile does not embed a repository URL, mirrorlist, signing key, or a copy
+of the packaged repository snippet.
+
+## Static Validation
+
+From the repository root:
+
+```sh
+tests/validate-iso-profile.sh
+git diff --check
+```
+
+The dedicated validator owns the complete profile contract, including package
+ordering, permissions, UEFI and mkinitcpio inputs, airootfs minimality,
+host-independent pacman parsing, symlink targets, and secret scanning.
+
+The profile contract is complete, but a real build still requires an Arch build
+host with current archiso tooling and a reachable SchweisOS package repository.
+The repository must provide the four identity packages under the signature
+policy selected by `schweisos-pacman-config`. Until real signing keys and the
+official repository exist, an official repository-backed build is not
+possible. ISO construction and boot testing remain separate release-engineering
+work.

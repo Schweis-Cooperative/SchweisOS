@@ -318,9 +318,14 @@ required_executables=(
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
     tests/validate-repository-bootstrap.sh
+    tests/validate-signing-tooling.sh
     tools/repo/bootstrap-local-repo.sh
     tools/repo/publish-local-packages.sh
     tools/repo/validate-local-repo.sh
+    tools/signing/create-offline-release-key.sh
+    tools/signing/export-operational-subkeys.sh
+    tools/signing/sign-artifact.sh
+    tools/signing/validate-public-bundle.sh
 )
 
 input_manifest="$(mktemp /tmp/schweisos-build-inputs.XXXXXX 2>/dev/null || true)"

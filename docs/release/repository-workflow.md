@@ -1,8 +1,8 @@
 # SchweisOS Canonical Package Repository Workflow
 
-Version: 1.0
+Version: 1.1
 Status: Canonical
-Date: 2026-07-25
+Date: 2026-07-26
 
 ## Purpose
 
@@ -67,6 +67,12 @@ Only the exact validated package artifact may be signed. Official repository
 packages require detached signatures made by an authorized operational signing
 key on a restricted signing host.
 
+The signing host must invoke `tools/signing/sign-artifact.sh --role package`.
+The tool selects the exact package-signing subkey from the reviewed public key
+inventory and immediately verifies the detached signature before exposing it
+at the requested path. Generic GnuPG default-key selection is not an official
+publication workflow.
+
 Developer workstations and general build workers must not hold the offline
 master key. Mirrors never sign packages. The signing workflow is defined in
 [Release Signing Workflow](release-signing-workflow.md).
@@ -97,6 +103,11 @@ The completed repository database must be signed after `repo-add` finishes and
 before publication. A database change invalidates the previous database
 signature and requires a new signing operation.
 
+The finalized database is signed with
+`tools/signing/sign-artifact.sh --role database`; package and database roles
+must not be interchanged. Publication verifies the detached database signature
+against the admitted `schweisos.gpg` public bundle.
+
 Official repository policy requires trusted signatures for both packages and
 repository databases. An unsigned local bootstrap database is a developer test
 artifact only and cannot be promoted into public infrastructure.
@@ -111,6 +122,7 @@ Publication is a release-engineering operation. It must:
 
 - verify that every database entry has its referenced package and signature
 - verify repository database signatures
+- reject signatures made by a fingerprint not assigned to the artifact role
 - record a manifest or equivalent release evidence
 - stage changes before making them visible
 - avoid partial publication states

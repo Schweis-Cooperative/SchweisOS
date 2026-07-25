@@ -1,8 +1,8 @@
 # Tests Directory
 
-Version: 0.4
+Version: 0.5
 Status: Active
-Date: 2026-07-25
+Date: 2026-07-26
 
 This directory owns repository-level validation that crosses package boundaries.
 
@@ -94,6 +94,20 @@ The test uses pacman's `--assume-installed` facility for the external Arch
 an Arch base-system installation test.
 
 Strategy reference: [docs/testing/testing-strategy.md](../docs/testing/testing-strategy.md).
+
+`validate-signing-tooling.sh` checks the production signing policy and its
+repository-side enforcement without generating a key:
+
+```bash
+tests/validate-signing-tooling.sh
+```
+
+It validates script syntax and permissions, offline ceremony guards, absence
+of unattended passphrase handling, LUKS-backed primary and operational-subkey
+custody, exact signing-subkey selection, immediate signature verification,
+private-material exclusion, and required rotation policy. After the reviewed
+offline ceremony admits a public bundle, the same test also invokes
+`tools/signing/validate-public-bundle.sh`.
 
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:

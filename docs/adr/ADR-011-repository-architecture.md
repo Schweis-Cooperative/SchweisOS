@@ -1,6 +1,6 @@
 # ADR-011 Repository Architecture
 
-Version: 1.1
+Version: 1.2
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-25
+2026-07-26
 
 ## Related ADRs
 
@@ -78,7 +78,7 @@ Every package published to an official SchweisOS repository must have a detached
 
 Repository database:
 
-Repository databases are produced with `repo-add`. The repository database must be regenerated or updated only from validated packages. Repository database signatures should be used for public repositories once the signing process is operational.
+Repository databases are produced with `repo-add`. The repository database must be regenerated or updated only from validated packages. Repository database signatures are mandatory for official public repositories.
 
 Mirror synchronization:
 
@@ -192,7 +192,9 @@ Every public repository package must be signed. Pacman must require trusted pack
 
 Repository signatures:
 
-Repository database signatures should be used for public repositories. During bootstrap, package signatures are the minimum hard requirement; unsigned repository databases must be treated as a temporary limitation and documented before any public alpha.
+Repository database signatures are mandatory for official public repositories.
+An unsigned repository database is permitted only inside the explicitly local
+development workflow and cannot be promoted or relabeled as release state.
 
 SigLevel:
 
@@ -273,7 +275,8 @@ Artifact storage:
 
 Stores signed packages, signatures, repository databases, repository database signatures, build logs, manifests, and release evidence. Mirrors synchronize from artifact storage, not from developer machines.
 
-For the one-maintainer phase, these roles may be performed manually on one controlled machine, but the process must remain documented as separate trust responsibilities.
+For the one-maintainer phase, one person may perform the roles, but build and
+signing state must remain on separate hosts with distinct trust boundaries.
 
 ## Security Considerations
 
@@ -301,7 +304,9 @@ Key rotation must overlap old and new keys long enough for users to receive `sch
 
 Mirror trust:
 
-Mirrors are distribution channels, not trust anchors. Users must not need to trust mirror operators because pacman verifies package signatures and, when enabled, repository database signatures.
+Mirrors are distribution channels, not trust anchors. Users must not need to
+trust mirror operators because pacman verifies both package and repository
+database signatures.
 
 Signing separation:
 
@@ -309,12 +314,17 @@ Build machines may be compromised by package build workloads. Signing keys shoul
 
 Signing key hierarchy:
 
-SchweisOS will keep the long-lived master trust key offline and outside routine
-development, build, and publication environments. Routine package and
-repository database signing will use separately authorized operational keys on
-a restricted signing host. Production public keys must not enter
-`schweisos-keyring` until the release-signing policy and key admission process
-are finalized.
+SchweisOS uses a ten-year, certification-only Ed25519 primary key as its offline
+release trust root. It authorizes separate one-year Ed25519 signing subkeys for
+packages and repository databases. The primary private key remains on two
+independently stored LUKS2-encrypted offline media sets and never enters a
+developer machine, build worker, signing host, mirror, VPS, or source repository.
+
+Operational signing tooling must select the exact role subkey fingerprint and
+must verify each detached signature before publication. `schweisos-keyring`
+distributes only the approved public certificate, pacman ownertrust metadata,
+and revocation metadata. A host-local pacman master key and any development key
+are explicitly outside the SchweisOS release trust domain.
 
 The operational boundaries, bootstrap trust model, rotation, and revocation
 strategy are defined in the

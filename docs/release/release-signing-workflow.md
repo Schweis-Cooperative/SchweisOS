@@ -1,186 +1,262 @@
 # SchweisOS Release Signing Workflow
 
-Version: 1.0
-Status: Architecture
-Date: 2026-07-25
+Version: 2.0
+Status: Accepted
+Date: 2026-07-26
 
 ## Purpose
 
-This document defines the future trust and operational boundaries for signing
-SchweisOS package repository artifacts. It contains no keys, fingerprints,
-signatures, commands that generate keys, or temporary trust material.
+This document defines the production trust root and the operational workflow
+for signing SchweisOS packages and repository databases. The policy applies to
+all official SchweisOS repositories. Development keys and host-local pacman
+keys are not release-signing authorities.
 
-Production public keys must not be added to `schweisos-keyring` until this
-policy is completed with an approved operational procedure and a reviewed key
-ceremony.
+## Key Hierarchy
 
-## Trust Roles
+SchweisOS uses one OpenPGP certificate with three deliberately separate key
+roles:
 
-The signing architecture separates four roles even when one maintainer performs
-them initially:
+| Role | Algorithm | Capability | Lifetime | Location |
+| --- | --- | --- | --- | --- |
+| Offline release primary | Ed25519 | Certification only | 10 years | Offline encrypted media only |
+| Package signing subkey | Ed25519 | Signing only | 1 year | Restricted signing host or approved hardware token |
+| Repository database signing subkey | Ed25519 | Signing only | 1 year | Restricted signing host or approved hardware token |
 
-- the offline master key establishes and recovers SchweisOS signing authority
-- operational signing keys sign approved package and repository artifacts
-- the release-signing host performs controlled signing operations
-- `schweisos-keyring` distributes approved public trust material to clients
+The primary identity is:
 
-Role separation is a security boundary, not an organizational claim. A
-one-maintainer project may perform the steps manually, but it must keep the
-artifacts, credentials, and decisions distinguishable.
+```text
+SchweisOS Release Authority <release@schweisos.org>
+```
 
-## Offline Master Key Philosophy
+The primary key never signs packages or repository databases. Operational
+scripts must select the exact authorized subkey fingerprint, including GnuPG's
+`!` suffix, so GnuPG cannot silently choose another signing-capable key.
 
-The long-lived master key should be kept offline and used only for narrowly
-defined trust-management operations such as authorizing or revoking operational
-signing keys and recovering from key compromise.
+The two operational roles may initially be held on one restricted signing host,
+but they remain separate subkeys and separate authorization records. A future
+team may move them to separate devices without changing the client trust root.
 
-It must not be used for routine package builds, daily repository updates, CI,
-developer authentication, or general workstation activity. Its private material
-must not exist on developer machines, build workers, mirrors, public artifact
-storage, or in the source repository.
+## Offline Key Ceremony
 
-Before production use, release engineering must define protected offline
-storage, independently recoverable backups, access records, and revocation
-material. This document deliberately does not select a hardware token, storage
-vendor, or exact key algorithm before an operational threat review.
+The production primary key is generated only during a reviewed ceremony on a
+dedicated Arch Linux system that has no configured network route, no global
+network address, and no active non-loopback network interface. Removing a
+browser window or disabling one application does not make a host offline.
 
-## Operational Signing Keys
+The ceremony uses `tools/signing/create-offline-release-key.sh`. The script:
 
-Routine signing should use delegated operational keys with a narrower lifetime
-and authority than the offline master key. Their scope must be documented so a
-package signer, repository database signer, and any future release-artifact
-signer are not assumed to be interchangeable without review.
+- refuses to run as root
+- refuses to place the GnuPG home inside the source repository
+- refuses an existing or non-empty GnuPG home
+- requires the private GnuPG home to be on a LUKS-backed block-device chain
+- fails when an active network path is visible
+- never accepts a passphrase through arguments, files, or environment variables
+- asks GnuPG and pinentry to collect a new passphrase interactively
+- creates the certification-only primary and two signing subkeys
+- verifies that GnuPG created primary-key revocation material
+- exports only the public certificate and public role metadata
+- produces checksums for every exported public artifact
 
-Operational private keys belong only on the restricted signing host or approved
-hardware-backed signing device. Public counterparts and trust metadata belong
-in `schweisos-keyring` after approval.
+Two project representatives should read the fingerprints from the offline host
+and compare them with the exported public bundle. With one maintainer, the same
+person may perform both readings at separate times, but the record must say so.
 
-## Developer and Build Separation
+Key generation must not occur on a VPS, CI worker, daily workstation, build
+host, or inside a temporary directory. A sandboxed process on a networked host
+is not an offline key ceremony.
 
-Developer machines produce source changes and local artifacts. Clean build
-workers produce release candidate package archives and `.BUILDINFO` evidence.
-Neither role authorizes publication and neither should hold long-lived
-production private keys.
+## Private-Key Storage
 
-The signing host accepts only immutable artifacts that have passed validation.
-It must not execute PKGBUILDs, fetch arbitrary package sources, browse mirrors,
-or act as a general development workstation. Signing must never mutate the
-artifact it authorizes.
+The authoritative offline GnuPG home is stored on a LUKS2-encrypted removable
+device. A second LUKS2-encrypted backup is created during the same ceremony and
+stored in a separate physical location. Both devices use strong, unique
+passphrases that are not reused for SSH, user accounts, Git hosting, or disk
+login.
 
-## Package and Database Signing
+The private primary key must never be exported to the source repository,
+password manager attachments, cloud storage, build host, signing host, mirror,
+or project website. The encrypted offline GnuPG home is the canonical private
+record. File-level encryption is not a substitute for encrypted-media custody.
+
+The automatically generated primary revocation certificate is copied to both
+encrypted offline devices and to a third sealed offline recovery medium. It is
+not committed or uploaded. Every access to an offline device is recorded with
+date, purpose, operator, and outcome; private paths and passphrases are never
+recorded.
+
+After the backup is verified, the ceremony host is shut down. If it used an
+internal writable disk, that disk must be securely erased or retained as an
+offline signing asset. The host must not reconnect to a network while the
+offline GnuPG home is mounted.
+
+## Operational Signing Material
+
+Only the operational signing subkeys may be transferred to the restricted
+signing host. The exported secret-subkey bundle is transported on encrypted
+removable media and deleted from the transfer medium after an independent
+import and signing test succeeds. The offline primary remains a stub on the
+signing host and cannot certify, rotate, or revoke keys.
+
+`tools/signing/export-operational-subkeys.sh` performs that export on the
+offline host. It creates separate role files with GnuPG's
+`--export-secret-subkeys` operation, refuses SSH, networking, virtualization,
+repository-local output, and non-LUKS-backed storage. The signing-host import is
+accepted only when both exact role fingerprints match the reviewed public
+inventory and no usable certification primary is present.
+
+The signing host must:
+
+- be dedicated to release signing rather than builds or development
+- receive immutable validated artifacts and their digests
+- have no general web-browsing or source-build role
+- require interactive authorization for each signing batch
+- select the exact role fingerprint recorded by the public key inventory
+- preserve a signing record containing artifact digest, role, key fingerprint,
+  validation reference, timestamp, and operator
+- return detached signatures without modifying the signed artifact
+
+CI, developer machines, build workers, mirrors, and repository web servers do
+not receive operational private keys.
+
+## Public Bundle and Key Inventory
+
+The ceremony exports a public bundle containing:
+
+```text
+schweisos.gpg
+schweisos-release.asc
+schweisos-trusted
+schweisos-revoked
+release-key-metadata.tsv
+SHA256SUMS
+```
+
+`schweisos.gpg` is the minimal binary OpenPGP public certificate used by
+pacman. `schweisos-trusted` contains only the full primary fingerprint using
+the ownertrust format expected by `pacman-key`. `schweisos-revoked` is initially
+empty and receives full revoked primary fingerprints only after an approved
+revocation decision.
+
+`release-key-metadata.tsv` binds the primary, package-signing, and
+database-signing fingerprints to their exact roles. It contains no executable
+shell syntax and must never be sourced. `SHA256SUMS` covers every other public
+bundle file; it cannot recursively cover itself.
+
+The armored public certificate and all three fingerprints are published through
+at least two independently controlled project channels. Transport security is
+useful but does not replace fingerprint comparison.
+
+## `schweisos-keyring` Admission
+
+Only a bundle that passes `tools/signing/validate-public-bundle.sh` may enter
+`packages/schweisos-keyring/keys/`. Admission requires:
+
+1. two recorded fingerprint comparisons against the offline display
+2. exactly one certification-only Ed25519 primary
+3. exactly two authorized Ed25519 signing subkeys
+4. no secret-key packets
+5. exact role metadata and public-bundle checksums
+6. an accepted package review
+
+The complete package transition and bootstrap acceptance gates are defined in
+[Production Keyring Admission](keyring-admission.md).
+
+The package installs:
+
+```text
+/usr/share/pacman/keyrings/schweisos.gpg
+/usr/share/pacman/keyrings/schweisos-trusted
+/usr/share/pacman/keyrings/schweisos-revoked
+```
+
+An install script follows the upstream keyring-package pattern: if pacman's
+keyring already exists, `pacman-key --populate schweisos` imports and locally
+signs the approved trust root. It does not initialize pacman, fetch network
+keys, modify Arch keyring files, or weaken `SigLevel`.
+
+The initial keyring package cannot authenticate itself. Its first admission
+therefore requires an independently verified installation medium or a manually
+verified bootstrap package whose checksum and primary fingerprint are published
+through separate project channels. Once installed, future keyring updates are
+authenticated by the existing trusted operational key.
+
+Arch trust remains exclusively provided by `archlinux-keyring`.
+
+## Package and Repository Signing
 
 The release sequence is:
 
 ```text
-validated package archive
-  -> detached package signature
-  -> repo-add database built from approved signed packages
-  -> detached repository database signature
-  -> publication gate
+clean package build
+  -> package validation and immutable SHA256 record
+  -> package-signing subkey creates detached signature
+  -> signature verified against committed schweisos.gpg
+  -> repo-add builds the final repository database
+  -> repository-database subkey creates detached database signature
+  -> complete repository validation
+  -> atomic publication
 ```
 
-The digest and identity of every artifact presented for signing must match the
-validation record. Repository database signing occurs only after the package set
-is final. Any database modification requires revalidation of the repository set
-and a new database signature.
+`tools/signing/sign-artifact.sh` is the only project-provided generic signing
+entry point. It requires an explicit `package` or `database` role, reads the
+authorized subkey from `release-key-metadata.tsv`, selects that fingerprint
+exactly, refuses to overwrite a signature, and verifies the detached signature
+before publishing it to the requested output path.
 
-Mirrors distribute these artifacts unchanged. They never receive signing
-authority.
-
-## Trust Establishment
-
-Transport security and domain ownership do not establish package trust. Clients
-trust SchweisOS packages only when pacman verifies them against public keys
-delivered through an independently trusted bootstrap path.
-
-The intended path is:
-
-```text
-independently verified SchweisOS installation medium or bootstrap artifact
-  -> schweisos-keyring
-  -> approved public operational keys
-  -> signed repository databases and packages
-```
-
-Arch trust remains provided by `archlinux-keyring`. SchweisOS public keys must
-not be inserted into, replace, or weaken Arch's trust domain.
-
-## Bootstrap Trust
-
-The first production keyring creates a bootstrapping problem: clients cannot
-learn the initial SchweisOS key solely from an artifact whose authenticity
-depends on that same key.
-
-Before a public repository is enabled, release engineering must provide an
-independent verification path for the initial keyring and publish verification
-instructions through separately controlled project channels. A verified
-installation medium may carry the initial public keyring, but that medium must
-have its own documented authenticity path.
-
-Until this process exists, the bootstrap `schweisos-keyring` package remains
-non-operational and local repositories remain untrusted developer artifacts.
-
-No fingerprint is defined by this document. Fingerprints must be derived from
-approved production public keys and verified during the future key ceremony;
-they must never be invented to complete documentation.
+Package and database signatures are mandatory. A failed signature or trust
+check stops publication. Local development repositories remain outside this
+workflow and must never be relabeled as release repositories.
 
 ## Rotation
 
-Operational signing keys must have planned lifetimes. Normal rotation should:
+Operational signing subkeys rotate annually. Rotation begins at least 90 days
+before expiry:
 
-1. authorize the new public key through the offline trust process
-2. ship the new key in `schweisos-keyring` while the old key is still valid
-3. allow enough overlap for supported clients to update their keyring
-4. begin signing new artifacts with the new operational key
-5. retire the old key only after the documented migration window
-6. retain auditable records of the transition
+1. create the replacement subkey on the offline host
+2. update and verify the public bundle
+3. publish a signed `schweisos-keyring` update while the old subkey is valid
+4. keep both subkeys accepted for at least two normal full-system update cycles
+   and no less than 30 days
+5. switch signing tooling to the new role fingerprint
+6. stop using the old subkey before expiry
+7. retain the expired public record for historical verification
 
-Rotation must not require disabling signature checks or using `TrustAll`.
+The offline primary is reviewed one year before expiry. Replacing it is a new
+trust-root ceremony, not routine operational rotation.
 
 ## Revocation and Compromise Recovery
 
-The release policy must prepare revocation material and recovery instructions
-before a production key is used.
+If an operational subkey may be compromised, publication stops immediately.
+The offline primary revokes the affected subkey, a new public bundle and
+keyring package are produced through a still-trusted path, affected publication
+windows are identified, and repository state is re-signed as required.
 
-If an operational key is suspected or confirmed compromised, SchweisOS must:
+If the offline primary may be compromised, all SchweisOS signing is suspended.
+A new trust root requires a separately reviewed recovery ceremony and explicit
+user-facing bootstrap instructions. Users must never be told to use `TrustAll`,
+`SigLevel = Never`, or unsigned replacement packages.
 
-1. stop signing and publication with the affected key
-2. preserve evidence and identify the affected publication interval
-3. revoke the key through the established trust path
-4. publish an incident notice through independently controlled channels
-5. deliver an updated `schweisos-keyring` through a still-valid trust path
-6. rebuild or re-sign affected repository state as policy requires
-7. provide explicit client recovery instructions
+## Audit Records
 
-Compromise of the offline master key is a trust-root incident. Recovery cannot
-be reduced to routine key rotation and requires a separately reviewed trust
-re-establishment plan.
+Public inventory records contain fingerprints, roles, creation and expiry
+times, rotation state, and revocation state. They never contain private-key
+paths, device serial numbers, passphrases, usernames, hostnames, machine IDs, or
+network identifiers.
 
-Expired, revoked, or compromised keys must not remain trusted merely to keep an
-old client working. Recovery procedures must fail closed rather than advise
-users to disable verification.
+Signing records are release evidence and contain artifact name, artifact
+digest, signing role, signing fingerprint, validation result, UTC timestamp,
+and release authorization. They contain no user telemetry.
 
-## Audit and Ownership Records
+The ceremony's public audit record uses
+`docs/release/key-ceremony-record-template.md`. It deliberately excludes
+private storage paths and device identifiers.
 
-Before production signing begins, the project must maintain an auditable key
-inventory containing public key identity, approved owner or role, permitted use,
-creation and expiry dates, rotation state, and revocation state. Private key
-locations must not be published in that inventory.
+## Explicit Prohibitions
 
-Signing records should associate each signature with the artifact digest,
-validation evidence, repository channel, authorization, and timestamp. These
-records are release evidence, not telemetry about users.
-
-## Deferred Operational Decisions
-
-Sprint B does not decide or implement:
-
-- concrete keys, fingerprints, algorithms, or expiry dates
-- key generation commands or a key ceremony checklist
-- hardware token or offline storage products
-- signing automation, remote signing, or CI integration
-- public key distribution or repository publication
-- ISO or Secure Boot signing
-
-These decisions require a future release-engineering review before production
-trust is established.
+- No temporary development key may sign an official artifact.
+- No host pacman master key may act as a SchweisOS release key.
+- No private key or revocation certificate may enter Git.
+- No signing key may be generated by CI or on a VPS.
+- No passphrase may be supplied on a command line or in an environment variable.
+- No build or publication failure may be bypassed by weakening pacman policy.
+- Mirrors distribute signed state; they never create or replace signatures.

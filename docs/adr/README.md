@@ -1,8 +1,8 @@
 # Architecture Decision Records
 
-Version: 0.2
+Version: 0.3
 Status: Active
-Date: 2026-07-25
+Date: 2026-07-26
 
 ADRs record important SchweisOS technical decisions. Each ADR must include Context, Decision, Alternatives, Consequences, Status, Date, and Related ADRs.
 

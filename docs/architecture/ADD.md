@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.2
+Version: 0.3
 Status: Draft, bootstrap baseline
-Date: 2026-07-25
+Date: 2026-07-26
 
 ## Scope
 
@@ -156,6 +156,14 @@ The long-lived master trust key remains offline. Routine package and repository
 database signing uses separately authorized operational keys on a restricted
 signing host; developer machines and build workers do not own production
 signing authority.
+
+The production hierarchy uses one certification-only Ed25519 primary with a
+ten-year lifetime and separate one-year Ed25519 signing subkeys for packages
+and repository databases. Private primary material remains on independently
+stored encrypted offline media. Clients receive only the reviewed public
+certificate, trust metadata, and revocation metadata through
+`schweisos-keyring`. Signing tooling binds every operation to the exact
+role-specific subkey fingerprint and verifies its output before publication.
 
 Local development repository tooling may create an unsigned file-based
 repository under `out/local-repo/` for package bootstrap testing. This

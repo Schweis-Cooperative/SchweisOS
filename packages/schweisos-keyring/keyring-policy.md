@@ -6,8 +6,8 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 signing public keys and their trust or revocation metadata.
 
 The bootstrap package contains no key material and establishes no production
-trust. Production public keys may be introduced only after the official
-SchweisOS release-signing policy is finalized.
+trust. The production policy is finalized, but public keys may be introduced
+only after its offline ceremony and admission gates complete.
 
 It must not:
 
@@ -19,7 +19,7 @@ It must not:
 - trust third-party package sources
 - configure SchweisOS repositories
 - contain private signing keys
-- invoke `pacman-key` from package installation hooks
+- initialize pacman's keyring or fetch keys from installation hooks
 - sign packages
 - create repository databases
 
@@ -31,5 +31,7 @@ Mirrors and repository locations are distribution channels, not trust anchors.
 Possession of this package without approved public keys does not make a
 repository or package trusted.
 
-This package is intentionally non-operational until the release-signing policy
-and production public keys exist.
+This package is intentionally non-operational until the reviewed production
+public bundle exists. Once admitted, its install script may use only the
+upstream `pacman-key --populate schweisos` pattern against an already initialized
+pacman keyring.

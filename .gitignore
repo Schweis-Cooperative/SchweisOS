@@ -18,6 +18,15 @@
 pkg/
 src/
 
+# Private OpenPGP state must never enter the repository
+private-keys-v1.d/
+openpgp-revocs.d/
+secring.gpg
+S.gpg-agent*
+offline-signing/
+package-signing-subkey.asc
+database-signing-subkey.asc
+
 # Logs and temporary files
 *.log
 *.tmp

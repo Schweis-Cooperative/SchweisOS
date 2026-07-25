@@ -3,7 +3,7 @@
 
 pkgname=schweisos-keyring
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='Bootstrap structure for the future SchweisOS package signing keyring'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
@@ -13,12 +13,12 @@ source=(
   'keyring-policy.md'
   'future-keys.md'
 )
-sha256sums=('803f9364c9683c692aa66b538680c961908b729b83a4440c8e615516cd2baf19'
-            'c8eb7afc310b73f25b512944a95484d06af0b1ce95fc8203d55170025ac62f71')
+sha256sums=('c4d4c383023bbede32d475a5a4a86854b4b1a45ef2e06fc083d65173bfec4724'
+            'ab9525300030b5d0236cb2afe69981e9fa35ade88e85695f9ca6c6bd07c787e3')
 
 package() {
-  # The directory is intentionally empty until the release-signing policy is
-  # finalized and production public keys have completed the approval process.
+  # The directory remains empty until the production offline-key ceremony and
+  # public-bundle admission process have completed.
   install -dm755 "${pkgdir}/usr/share/pacman/keyrings"
 
   install -Dm644 "${srcdir}/keyring-policy.md" \

@@ -5,13 +5,13 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 No SchweisOS signing keys or other cryptographic material are included in this
 bootstrap package.
 
-Production public keys must not be added until the official SchweisOS
-release-signing policy is finalized. That policy must define key ownership,
-admission, authenticated fingerprint verification, signing authority, rotation,
-revocation, compromise recovery, and how a keyring update is delivered safely.
+The canonical release-signing policy is finalized in
+`docs/release/release-signing-workflow.md`. Production public keys must not be
+added until its physical offline ceremony, independent fingerprint comparison,
+public-bundle validation, and package review gates have all succeeded.
 
-After that policy is finalized and the production public keys are approved, the
-expected installed pacman keyring files are:
+After the production public bundle is approved, the expected installed pacman
+keyring files are:
 
 ```text
 /usr/share/pacman/keyrings/schweisos.gpg

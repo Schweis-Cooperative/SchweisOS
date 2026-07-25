@@ -2,18 +2,21 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.1
+Version: 0.2
 Status: Bootstrap package
-Date: 2026-07-25
+Date: 2026-07-26
 
 `schweisos-keyring` reserves the package structure that will eventually carry
 the public trust material for official SchweisOS package signatures.
 
 This bootstrap release is not a functional trust anchor. It contains no GPG
 public keys, fingerprints, generated keyring databases, signatures, or private
-signing material. Production public keys may be introduced only after the
-official SchweisOS release-signing policy is finalized and its key admission,
-verification, rotation, revocation, and recovery procedures are approved.
+signing material. The production policy is now defined by the canonical
+[Release Signing Workflow](../../docs/release/release-signing-workflow.md).
+The physical offline key ceremony has not yet occurred, so no production public
+key is admitted and the package remains intentionally non-operational.
+The public-only package transition is defined by
+[Production Keyring Admission](../../docs/release/keyring-admission.md).
 
 During development, SchweisOS may install repository configuration that points
 to a local file-based bootstrap endpoint. This package does not make that
@@ -49,8 +52,12 @@ acceptable by weakening pacman's verification settings.
 
 Future SchweisOS repository integration comes from
 `schweisos-pacman-config`, not from this package. This package does not edit
-`pacman.conf`, set `SigLevel`, initialize pacman's local keyring, locally sign
-keys, or run `pacman-key` from an install script.
+`pacman.conf` or set `SigLevel`. During bootstrap it does not initialize
+pacman's local keyring or run `pacman-key`. After the reviewed production public
+bundle is admitted, its install script will use the upstream keyring-package
+pattern to invoke `pacman-key --populate schweisos` only when pacman's keyring
+already exists. It will not fetch keys, initialize pacman, or touch Arch
+keyring files.
 
 ## Relationship With Package Signing
 
@@ -76,9 +83,10 @@ validated package
 
 ## Future Maintainer Keys
 
-Production public keys and future maintainer keys must not be added until the
-official release-signing policy is finalized. After that policy exists, a key
-may be admitted only through its documented approval process.
+Production public keys and future maintainer keys may be added only through the
+accepted release-signing policy's documented admission process. The initial
+production key additionally requires the physical offline ceremony and two
+recorded fingerprint comparisons.
 
 The future process should include:
 
@@ -95,8 +103,8 @@ No production or maintainer key is included in this bootstrap package.
 
 ## Future Pacman Keyring Layout
 
-After the release-signing policy is finalized and production public keys are
-approved, the expected installed files are:
+After the production public bundle completes ceremony and package admission,
+the expected installed files are:
 
 ```text
 /usr/share/pacman/keyrings/schweisos.gpg
@@ -135,7 +143,8 @@ find keys -type f ! -name README.md -print
 git diff --check
 ```
 
-The `find` command must produce no output during the bootstrap phase.
+The `find` command must produce no output until the production ceremony bundle
+has been admitted.
 
 Expected package contents at this stage:
 
@@ -164,7 +173,7 @@ usr/share/pacman/keyrings/
 - Key rotation.
 - Revocation recovery.
 
-These require production public keys and a finalized release-signing policy.
+These require completion and admission of the production offline-key ceremony.
 
 ## Self Review
 
@@ -173,9 +182,9 @@ Architectural risks:
 - The package name may imply operational trust even though this bootstrap
   release contains no key material. Release and repository documentation must
   not present it as production-ready.
-- The exact key admission and recovery processes are not yet defined. No
-  production public key may be added until the official release-signing policy
-  resolves them.
+- The policy is defined, but its trust anchor does not exist until the offline
+  ceremony is completed. The package must remain visibly non-operational until
+  the public bundle is admitted.
 
 Unnecessary complexity:
 
@@ -186,7 +195,7 @@ Unnecessary complexity:
 Future improvements:
 
 - Add production `schweisos.gpg`, `schweisos-trusted`, and
-  `schweisos-revoked` files only after the release-signing policy is finalized,
-  key ownership is verified, and the admission process is reviewed.
+  `schweisos-revoked` files only after the offline ceremony, independent
+  fingerprint comparison, bundle validation, and package review succeed.
 - Add validation that inspects fingerprints once real keys exist.
 - Add release-engineering documentation for emergency key revocation and rotation drills.

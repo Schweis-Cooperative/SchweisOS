@@ -15,13 +15,14 @@ This directory is the source of truth for SchweisOS engineering decisions. Impor
 5. [Packaging Guide](packaging/packaging-guide.md)
 6. [Package Repository Workflow](release/repository-workflow.md)
 7. [Release Signing Workflow](release/release-signing-workflow.md)
-8. [Release Engineering Guide](release/release-engineering-guide.md)
-9. [ISO Build Workflow](build/README.md)
-10. [Build Environment Readiness](build/environment-readiness.md)
-11. [Testing Strategy](testing/testing-strategy.md)
-12. [Developer Handbook](developer/developer-handbook.md)
-13. [Product Roadmap](roadmap/product-roadmap.md)
-14. [GitHub Repository Bootstrap](developer/github-bootstrap.md)
+8. [Release Artifact Pipeline](release/release-artifact-pipeline.md)
+9. [Release Engineering Guide](release/release-engineering-guide.md)
+10. [ISO Build Workflow](build/README.md)
+11. [Build Environment Readiness](build/environment-readiness.md)
+12. [Testing Strategy](testing/testing-strategy.md)
+13. [Developer Handbook](developer/developer-handbook.md)
+14. [Product Roadmap](roadmap/product-roadmap.md)
+15. [GitHub Repository Bootstrap](developer/github-bootstrap.md)
 
 ## Documentation Rules
 
@@ -41,6 +42,7 @@ This directory is the source of truth for SchweisOS engineering decisions. Impor
 - `packages/`: future SchweisOS PKGBUILD sources
 - `tools/`: future maintainer-facing tools
 - `scripts/`: future small automation scripts
+- `release/`: local staged release artifacts, not a publication endpoint
 - `branding/`: future visual identity assets
 - `website/`: future project website source
 - `.github/`: future CI and GitHub metadata

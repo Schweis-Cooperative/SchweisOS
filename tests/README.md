@@ -83,3 +83,27 @@ The test uses pacman's `--assume-installed` facility for the external Arch
 an Arch base-system installation test.
 
 Strategy reference: [docs/testing/testing-strategy.md](../docs/testing/testing-strategy.md).
+
+`validate-release-artifacts.sh` validates one prepared release artifact
+directory without building, signing, publishing, or touching host configuration:
+
+```bash
+tests/validate-release-artifacts.sh release/YYYY.MM
+```
+
+It checks the canonical release layout, exactly one ISO, mandatory SHA256
+verification, optional BLAKE2b-512 verification, manifest consistency, release
+notes, unexpected files, permissions, symlink attacks, path traversal, and
+private-information patterns.
+
+`test-release-artifacts.sh` runs disposable release artifact scenarios using
+temporary fixture files:
+
+```bash
+tests/test-release-artifacts.sh
+```
+
+It covers successful validation, missing checksums, invalid checksums, empty
+ISO fixtures, duplicate ISOs, corrupt manifests, unexpected files, symlink
+attacks, path traversal, permission violations, JSON validation, and atomic
+duplicate-output rejection. It never invokes `mkarchiso`.

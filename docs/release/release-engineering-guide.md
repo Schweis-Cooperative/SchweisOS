@@ -12,6 +12,8 @@ Canonical repository lifecycle: [Package Repository Workflow](repository-workflo
 
 Signing architecture: [Release Signing Workflow](release-signing-workflow.md).
 
+Release artifact pipeline: [Release Artifact Pipeline](release-artifact-pipeline.md).
+
 ## Release Artifacts
 
 Future releases should publish:
@@ -22,6 +24,12 @@ Future releases should publish:
 - Release notes.
 - Known issues.
 - Package repository snapshot or manifest.
+
+Repository-local release artifacts are prepared under `release/YYYY.MM/` only
+after a successful ISO build. The artifact pipeline validates exactly one ISO,
+generates and verifies mandatory SHA256 checksums, generates minimal release
+notes, writes a JSON manifest, and refuses to overwrite an existing release
+directory. It does not sign, upload, publish, or relax any trust policy.
 
 ## ISO Build Direction
 

@@ -132,6 +132,7 @@ required_directories=(
     packages/schweisos-mirrorlist
     packages/schweisos-pacman-config
     packages/schweisos-release
+    release
     scripts
     tests
     tools/repo
@@ -146,13 +147,17 @@ required_files=(
     docs/adr/ADR-012-iso-build-architecture.md
     docs/adr/ADR-013-iso-build-workflow.md
     docs/build/environment-readiness.md
+    docs/release/release-artifact-pipeline.md
     iso/profiles/kde/profiledef.sh
     iso/profiles/kde/packages.x86_64
     iso/profiles/kde/pacman.conf
+    release/README.md
     scripts/build-iso.sh
+    scripts/create-release-artifacts.sh
     tests/validate-build-dependencies.sh
     tests/validate-build-environment.sh
     tests/validate-iso-profile.sh
+    tests/validate-release-artifacts.sh
 )
 layout_failures=()
 
@@ -287,10 +292,13 @@ fi
 permission_failures=()
 required_executables=(
     scripts/build-iso.sh
+    scripts/create-release-artifacts.sh
     tests/install-local-bootstrap-packages.sh
+    tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh
     tests/validate-build-environment.sh
     tests/validate-iso-profile.sh
+    tests/validate-release-artifacts.sh
     tests/validate-repository-bootstrap.sh
     tools/repo/bootstrap-local-repo.sh
     tools/repo/publish-local-packages.sh

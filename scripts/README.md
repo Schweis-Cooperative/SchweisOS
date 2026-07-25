@@ -47,3 +47,21 @@ The script does not build packages, weaken pacman signature policy, sign or
 publish artifacts, or modify host pacman configuration. See
 [`docs/build/README.md`](../docs/build/README.md) and ADR-013 for the required
 host and repository prerequisites.
+
+## Release Artifacts
+
+`create-release-artifacts.sh` owns post-build release artifact staging. It
+requires an existing successful ISO build output and build manifest, then
+creates a new immutable `release/YYYY.MM/` directory with checksums, manifests,
+notes, and validation evidence.
+
+From the repository root:
+
+```sh
+./scripts/create-release-artifacts.sh \
+  --release-id YYYY.MM \
+  --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
+  --build-manifest logs/iso/build-manifest.json
+```
+
+The script does not build, sign, upload, publish, or modify trust policy.

@@ -217,6 +217,20 @@ A successful future build produces:
 - `logs/iso/build-<id>.json`
 - `logs/iso/build-manifest.json`
 
+Release-ready artifact staging is a separate post-build step:
+
+```sh
+scripts/create-release-artifacts.sh \
+  --release-id YYYY.MM \
+  --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
+  --build-manifest logs/iso/build-manifest.json
+```
+
+The release artifact step is intentionally not invoked when build validation
+fails and never calls `mkarchiso` itself. It creates `release/YYYY.MM/`
+atomically, validates the staged directory, and refuses to overwrite existing
+release evidence.
+
 After `mkarchiso`, exactly one `.iso` must exist in `out/iso/`. It must have the
 profile-derived name, be a regular non-symlink file, and have a positive byte
 size. No arbitrary minimum size is asserted before real artifacts have been

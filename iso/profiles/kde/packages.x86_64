@@ -1,0 +1,19 @@
+# Archiso runtime
+base
+linux
+linux-firmware
+mkinitcpio
+mkinitcpio-archiso
+
+# Minimal KDE Plasma session
+networkmanager
+plasma-desktop
+plasma-nm
+sddm
+ttf-dejavu
+
+# SchweisOS distribution identity
+schweisos-keyring
+schweisos-mirrorlist
+schweisos-pacman-config
+schweisos-release

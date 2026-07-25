@@ -1,4 +1,4 @@
-NAME=SchweisOS
+NAME="SchweisOS"
 PRETTY_NAME="SchweisOS Development"
 ID=schweisos
 ID_LIKE=arch

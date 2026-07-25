@@ -155,6 +155,7 @@ required_files=(
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
     tests/validate-build-dependencies.sh
+    tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
@@ -296,6 +297,7 @@ required_executables=(
     tests/install-local-bootstrap-packages.sh
     tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh
+    tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
@@ -529,6 +531,12 @@ bootstrap_host_packages=(
     schweisos-pacman-config
 )
 missing_bootstrap_packages=()
+identity_packages=(
+    schweisos-keyring
+    schweisos-mirrorlist
+    schweisos-pacman-config
+    schweisos-release
+)
 
 if ! type -P pacman >/dev/null 2>&1 || ! type -P pacman-conf >/dev/null 2>&1; then
     repository_ready=0
@@ -543,6 +551,43 @@ else
     elif ! pacman-conf --config "${profile_dir}/pacman.conf" >/dev/null 2>&1; then
         repository_ready=0
         repository_failure='build-time pacman configuration is not resolvable'
+    fi
+fi
+
+if (( repository_ready )); then
+    repository_version_failures=()
+    for package in "${identity_packages[@]}"; do
+        package_dir="${project_root}/packages/${package}"
+        if ! source_info="$(cd -- "$package_dir" && makepkg --printsrcinfo 2>/dev/null)"; then
+            repository_version_failures+=("${package}:source-metadata-unavailable")
+            continue
+        fi
+        source_pkgver="$(awk '$1 == "pkgver" && $2 == "=" { print $3; exit }' <<<"$source_info")"
+        source_pkgrel="$(awk '$1 == "pkgrel" && $2 == "=" { print $3; exit }' <<<"$source_info")"
+        source_epoch="$(awk '$1 == "epoch" && $2 == "=" { print $3; exit }' <<<"$source_info")"
+        if [[ -z "$source_pkgver" || -z "$source_pkgrel" ]]; then
+            repository_version_failures+=("${package}:source-version-invalid")
+            continue
+        fi
+        expected_version="${source_pkgver}-${source_pkgrel}"
+        [[ -z "$source_epoch" ]] || expected_version="${source_epoch}:${expected_version}"
+
+        if ! repository_info="$(pacman --config "${profile_dir}/pacman.conf" -Si -- "$package" 2>/dev/null)"; then
+            repository_version_failures+=("${package}:repository-metadata-unavailable")
+            continue
+        fi
+        repository_name="$(awk '$1 == "Repository" && $2 == ":" { print $3; exit }' <<<"$repository_info")"
+        repository_version="$(awk '$1 == "Version" && $2 == ":" { print $3; exit }' <<<"$repository_info")"
+        if [[ "$repository_name" != schweisos || "$repository_version" != "$expected_version" ]]; then
+            repository_version_failures+=(
+                "${package}:expected-${expected_version}:found-${repository_name:-none}/${repository_version:-none}"
+            )
+        fi
+    done
+
+    if (( ${#repository_version_failures[@]} > 0 )); then
+        repository_ready=0
+        repository_failure="repository package/source mismatch $(join_by_space "${repository_version_failures[@]}")"
     fi
 fi
 

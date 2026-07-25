@@ -13,7 +13,7 @@ source=(
   'os-release'
   'release.json'
 )
-sha256sums=('7f0590ea809559178b4901901d3ad9b7cc1516d628540ce64bac19b882fae1a5'
+sha256sums=('aead22c20f9497dcf6b8c11e4926affaeb0c8c5acdb68b373e5692efc9db240f'
             'f191e2042f685db100e998aaa34857eda2a010b47264dd0ac14b7997fcf6a6f2')
 
 package() {

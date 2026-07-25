@@ -26,6 +26,14 @@ synchronization databases. It does not refresh those databases because
 validation must remain network-free and must not mutate host state. The
 operator is responsible for synchronizing and fully upgrading the host first.
 
+The same gate compares every SchweisOS identity package version declared by
+its repository PKGBUILD with the version visible through the build host's
+configured `schweisos` synchronization database. A missing or stale package
+fails before profile validation and `mkarchiso`. This prevents an ISO from
+silently embedding an older identity package than the source tree being built.
+Refreshing or publishing repository metadata remains an explicit repository
+operation outside the ISO wrapper.
+
 The initial space policy requires at least 20 GiB free on the filesystems
 backing the generated locations. This is a conservative engineering threshold,
 not an estimate of the final ISO size. The validator checks available blocks,

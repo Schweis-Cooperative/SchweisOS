@@ -1,6 +1,8 @@
 # Build artifacts
-out/
-work/
+/out/
+/work/
+/cache/
+/logs/
 *.iso
 *.img
 *.qcow2

@@ -1,0 +1,6 @@
+archiso
+bash
+git
+pacman
+sudo
+util-linux

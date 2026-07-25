@@ -1,0 +1,8 @@
+schema_version	1
+uid	SchweisOS Release Authority <release@schweisos.org>
+primary_algorithm	ed25519
+primary_capability	cert
+primary_validity	10y
+operational_algorithm	ed25519
+operational_capability	sign
+operational_validity	1y

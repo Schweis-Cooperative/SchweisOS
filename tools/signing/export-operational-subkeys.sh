@@ -97,7 +97,7 @@ done
 [[ -z "${SSH_CONNECTION-}${SSH_CLIENT-}${SSH_TTY-}" ]] || \
   fail 'operational subkey export must not run through SSH'
 
-for tool in awk find findmnt git gpg grep ip lsblk mkdir mktemp realpath rm sort systemd-detect-virt; do
+for tool in awk find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath rm sort systemd-detect-virt; do
   require_tool "$tool"
 done
 
@@ -115,6 +115,14 @@ systemd-detect-virt --quiet && \
   fail 'a default network route is active'
 [[ -z "$(ip -o address show scope global)" ]] || \
   fail 'a global network address is configured'
+networkctl_state="$(networkctl --no-pager --no-legend list 2>/dev/null)" || \
+  fail 'networkctl could not verify the host network state'
+mapfile -t networkctl_online_links < <(
+  awk '$2 != "lo" && $4 ~ /^(carrier|degraded|degraded-carrier|enslaved|routable)$/ { print $2 ":" $4 }' \
+    <<<"$networkctl_state" | sort -u
+)
+(( ${#networkctl_online_links[@]} == 0 )) || \
+  fail "networkctl reports an online non-loopback link: ${networkctl_online_links[*]}"
 mapfile -t active_interfaces < <(
   ip -o link show up | awk -F': ' '$2 != "lo" {sub(/@.*/, "", $2); print $2}' | sort -u
 )

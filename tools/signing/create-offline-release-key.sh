@@ -5,9 +5,13 @@ set -euo pipefail
 
 export LC_ALL=C
 
-release_uid='SchweisOS Release Authority <release@schweisos.org>'
-primary_validity='10y'
-operational_validity='1y'
+release_uid=''
+primary_algorithm=''
+primary_capability=''
+primary_validity=''
+operational_algorithm=''
+operational_capability=''
+operational_validity=''
 gnupg_home=''
 public_output=''
 airgap_acknowledged=false
@@ -73,7 +77,7 @@ done
 [[ -z "${SSH_CONNECTION-}${SSH_CLIENT-}${SSH_TTY-}" ]] || \
   fail 'the offline key ceremony must not run through SSH'
 
-for tool in awk date find findmnt git gpg grep ip lsblk mkdir mktemp realpath sha256sum sort stat systemd-detect-virt; do
+for tool in awk date find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath sha256sum sort stat systemd-detect-virt; do
   require_tool "$tool"
 done
 
@@ -95,6 +99,16 @@ fi
 if [[ -n "$(ip -o address show scope global)" ]]; then
   fail 'a global network address is configured'
 fi
+
+networkctl_state="$(networkctl --no-pager --no-legend list 2>/dev/null)" || \
+  fail 'networkctl could not verify the host network state'
+mapfile -t networkctl_online_links < <(
+  awk '$2 != "lo" && $4 ~ /^(carrier|degraded|degraded-carrier|enslaved|routable)$/ { print $2 ":" $4 }' \
+    <<<"$networkctl_state" | sort -u
+)
+(( ${#networkctl_online_links[@]} == 0 )) || \
+  fail "networkctl reports an online non-loopback link: ${networkctl_online_links[*]}"
+
 mapfile -t active_interfaces < <(
   ip -o link show up | awk -F': ' '$2 != "lo" {sub(/@.*/, "", $2); print $2}' | sort -u
 )
@@ -103,6 +117,35 @@ mapfile -t active_interfaces < <(
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
+policy_file="${script_dir}/release-policy.tsv"
+[[ -f "$policy_file" && ! -L "$policy_file" ]] || fail 'release policy source is missing or unsafe'
+[[ "$(stat -c '%a' "$policy_file")" == 644 ]] || fail 'release policy source mode must be 0644'
+
+policy_value() {
+  local key="$1"
+  local count value
+  count="$(awk -F '\t' -v key="$key" '$1 == key { count++ } END { print count + 0 }' "$policy_file")"
+  [[ "$count" == 1 ]] || fail "release policy key must appear exactly once: $key"
+  value="$(awk -F '\t' -v key="$key" '$1 == key { sub(/^[^\t]*\t/, ""); print }' "$policy_file")"
+  [[ -n "$value" ]] || fail "release policy value is empty: $key"
+  printf '%s\n' "$value"
+}
+
+[[ "$(policy_value schema_version)" == 1 ]] || fail 'unsupported release policy schema'
+release_uid="$(policy_value uid)"
+primary_algorithm="$(policy_value primary_algorithm)"
+primary_capability="$(policy_value primary_capability)"
+primary_validity="$(policy_value primary_validity)"
+operational_algorithm="$(policy_value operational_algorithm)"
+operational_capability="$(policy_value operational_capability)"
+operational_validity="$(policy_value operational_validity)"
+[[ "$primary_algorithm" == ed25519 ]] || fail 'unsupported primary algorithm policy'
+[[ "$primary_capability" == cert ]] || fail 'unsupported primary capability policy'
+[[ "$primary_validity" == 10y ]] || fail 'unsupported primary validity policy'
+[[ "$operational_algorithm" == ed25519 ]] || fail 'unsupported operational algorithm policy'
+[[ "$operational_capability" == sign ]] || fail 'unsupported operational capability policy'
+[[ "$operational_validity" == 1y ]] || fail 'unsupported operational validity policy'
+
 gnupg_home="$(realpath -m -- "$gnupg_home")"
 public_output="$(realpath -m -- "$public_output")"
 
@@ -144,7 +187,7 @@ fi
 
 printf 'Creating certification-only offline primary. Pinentry will request a new passphrase.\n'
 gpg --homedir "$gnupg_home" \
-  --quick-generate-key "$release_uid" ed25519 cert "$primary_validity"
+  --quick-generate-key "$release_uid" "$primary_algorithm" "$primary_capability" "$primary_validity"
 
 primary_fingerprint="$({
   gpg --homedir "$gnupg_home" --batch --with-colons --list-keys "$release_uid"
@@ -154,10 +197,10 @@ primary_fingerprint="$({
 
 printf 'Creating package-signing operational subkey.\n'
 gpg --homedir "$gnupg_home" \
-  --quick-add-key "$primary_fingerprint" ed25519 sign "$operational_validity"
+  --quick-add-key "$primary_fingerprint" "$operational_algorithm" "$operational_capability" "$operational_validity"
 printf 'Creating repository-database-signing operational subkey.\n'
 gpg --homedir "$gnupg_home" \
-  --quick-add-key "$primary_fingerprint" ed25519 sign "$operational_validity"
+  --quick-add-key "$primary_fingerprint" "$operational_algorithm" "$operational_capability" "$operational_validity"
 
 mapfile -t subkey_fingerprints < <(
   gpg --homedir "$gnupg_home" --batch --with-colons --list-keys "$primary_fingerprint" |

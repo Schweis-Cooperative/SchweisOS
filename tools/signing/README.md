@@ -6,6 +6,11 @@ This directory owns fail-closed tooling for the SchweisOS production signing
 boundary. It does not contain keys, fingerprints, signatures, private paths, or
 passphrases.
 
+`release-policy.tsv` is the single machine-readable source for the canonical
+release UID, algorithms, capabilities, and validity periods. It is data, not
+shell code; both key creation and public-bundle validation read it without
+sourcing it.
+
 The canonical policy is
 [Release Signing Workflow](../../docs/release/release-signing-workflow.md).
 

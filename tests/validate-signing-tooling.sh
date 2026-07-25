@@ -25,6 +25,7 @@ admission_policy="${project_root}/docs/release/keyring-admission.md"
 
 required_files=(
   "${signing_dir}/README.md"
+  "${signing_dir}/release-policy.tsv"
   "${signing_dir}/create-offline-release-key.sh"
   "${signing_dir}/export-operational-subkeys.sh"
   "${signing_dir}/sign-artifact.sh"
@@ -35,6 +36,20 @@ required_files=(
 for required_file in "${required_files[@]}"; do
   [[ -f "$required_file" && ! -L "$required_file" ]] || \
     fail "missing or unsafe signing infrastructure file: $required_file"
+done
+
+[[ "$(stat -c '%a' "${signing_dir}/release-policy.tsv")" == 644 ]] || \
+  fail 'release policy source mode must be 0644'
+uid_literal_sources="$({
+  grep -RIl -- 'SchweisOS Release Authority <' "$signing_dir" || true
+})"
+[[ "$uid_literal_sources" == "${signing_dir}/release-policy.tsv" ]] || \
+  fail 'release UID must have exactly one machine-readable policy source'
+for policy_consumer in \
+  "${signing_dir}/create-offline-release-key.sh" \
+  "${signing_dir}/validate-public-bundle.sh"; do
+  grep -Fq -- 'release-policy.tsv' "$policy_consumer" || \
+    fail "signing policy consumer does not use the shared source: $policy_consumer"
 done
 
 for admission_text in \
@@ -101,6 +116,8 @@ for required_guard in \
   'systemd-detect-virt --quiet' \
   'ip -o -4 route show default' \
   'ip -o address show scope global' \
+  'networkctl --no-pager --no-legend list' \
+  'degraded-carrier' \
   'acknowledge-airgapped' \
   'LUKS-backed filesystem' \
   'outside the repository'; do
@@ -113,6 +130,8 @@ for required_guard in \
   'EUID != 0' \
   'SSH_CONNECTION' \
   'systemd-detect-virt --quiet' \
+  'networkctl --no-pager --no-legend list' \
+  'degraded-carrier' \
   'acknowledge-encrypted-media' \
   'require_luks_backing' \
   'outside the source repository' \

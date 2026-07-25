@@ -21,6 +21,35 @@ for tool in awk find gpg grep mktemp readlink sha256sum sort stat; do
   require_tool "$tool"
 done
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+policy_file="${script_dir}/release-policy.tsv"
+[[ -f "$policy_file" && ! -L "$policy_file" ]] || fail 'release policy source is missing or unsafe'
+[[ "$(stat -c '%a' "$policy_file")" == 644 ]] || fail 'release policy source mode must be 0644'
+
+policy_value() {
+  local key="$1"
+  local count value
+  count="$(awk -F '\t' -v key="$key" '$1 == key { count++ } END { print count + 0 }' "$policy_file")"
+  [[ "$count" == 1 ]] || fail "release policy key must appear exactly once: $key"
+  value="$(awk -F '\t' -v key="$key" '$1 == key { sub(/^[^\t]*\t/, ""); print }' "$policy_file")"
+  [[ -n "$value" ]] || fail "release policy value is empty: $key"
+  printf '%s\n' "$value"
+}
+
+[[ "$(policy_value schema_version)" == 1 ]] || fail 'unsupported release policy schema'
+expected_uid="$(policy_value uid)"
+expected_primary_algorithm="$(policy_value primary_algorithm)"
+expected_primary_capability="$(policy_value primary_capability)"
+expected_primary_validity="$(policy_value primary_validity)"
+expected_operational_algorithm="$(policy_value operational_algorithm)"
+expected_operational_capability="$(policy_value operational_capability)"
+expected_operational_validity="$(policy_value operational_validity)"
+
+[[ "$expected_primary_algorithm" == ed25519 ]] || fail 'unsupported primary algorithm policy'
+[[ "$expected_primary_capability" == cert ]] || fail 'unsupported primary capability policy'
+[[ "$expected_operational_algorithm" == ed25519 ]] || fail 'unsupported operational algorithm policy'
+[[ "$expected_operational_capability" == sign ]] || fail 'unsupported operational capability policy'
+
 [[ -d "$bundle_dir" && ! -L "$bundle_dir" ]] || \
   fail 'public bundle must be a real directory'
 bundle_dir="$(readlink -f -- "$bundle_dir")"
@@ -78,10 +107,11 @@ metadata_value() {
 }
 
 [[ "$(metadata_value schema_version)" == 1 ]] || fail 'unsupported public bundle schema'
-expected_uid='SchweisOS Release Authority <release@schweisos.org>'
 [[ "$(metadata_value uid)" == "$expected_uid" ]] || fail 'unexpected release key UID'
-[[ "$(metadata_value primary_validity)" == 10y ]] || fail 'unexpected primary validity policy'
-[[ "$(metadata_value operational_validity)" == 1y ]] || fail 'unexpected operational validity policy'
+[[ "$(metadata_value primary_validity)" == "$expected_primary_validity" ]] || \
+  fail 'unexpected primary validity policy'
+[[ "$(metadata_value operational_validity)" == "$expected_operational_validity" ]] || \
+  fail 'unexpected operational validity policy'
 
 metadata_keys="$({ awk -F '\t' '{ print $1 }' "${bundle_dir}/release-key-metadata.tsv"; } | sort)"
 expected_metadata_keys="$({

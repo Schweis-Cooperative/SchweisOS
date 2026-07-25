@@ -6,6 +6,15 @@ Date: 2026-07-25
 
 This directory owns repository-level validation that crosses package boundaries.
 
+`validate-distribution-identity.sh` builds and inspects `schweisos-release`,
+validates the standard `os-release` fields and project URLs, verifies the
+relative `/etc/os-release` ownership link, and checks the JSON metadata. It
+does not install the package on the host:
+
+```bash
+tests/validate-distribution-identity.sh
+```
+
 `validate-build-dependencies.sh` is the read-only dependency-policy and host
 toolchain validator:
 

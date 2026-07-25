@@ -164,6 +164,7 @@ cmp -s "${tmp_dir}/expected.sorted" "${tmp_dir}/installed.sorted" || {
 }
 
 expected_payload=(
+  etc/os-release
   usr/lib/schweisos-release/os-release
   usr/lib/schweisos-release/release.json
   usr/share/doc/schweisos-keyring/future-keys.md

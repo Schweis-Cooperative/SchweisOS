@@ -1,7 +1,7 @@
 # schweisos-release
 
-Version: 0.1
-Status: Initial package implementation
+Version: 0.2
+Status: Development identity implementation
 Date: 2026-07-25
 
 `schweisos-release` provides SchweisOS distribution identity metadata.
@@ -14,6 +14,7 @@ This package exists separately from the other Distribution Identity Layer packag
 
 - `/usr/lib/schweisos-release/os-release`
 - `/usr/lib/schweisos-release/release.json`
+- `/etc/os-release` -> `../usr/lib/schweisos-release/os-release`
 
 Source files:
 
@@ -21,9 +22,15 @@ Source files:
 - `release.json`
 - `PKGBUILD`
 
-The package does not install an `.install` script and does not modify `/etc/os-release`.
+The package does not install an `.install` script and does not rewrite files at
+installation time. It owns a relative `/etc/os-release` symlink to its canonical
+metadata. The standard `os-release` lookup gives `/etc/os-release` precedence,
+so systemd, KDE, and other consumers identify the system as SchweisOS.
 
-The initial package stores SchweisOS identity data under `/usr/lib/schweisos-release/`. Direct ownership or replacement of `/usr/lib/os-release` is intentionally deferred until the installer and base-system ownership model can handle Arch's `filesystem` package cleanly. This avoids a bootstrap package silently replacing Arch-owned identity files on a development host.
+Arch's `filesystem` package continues to own `/usr/lib/os-release` as the
+upstream fallback. SchweisOS does not replace or fork that package. During an
+Archiso build, upstream `mkarchiso` resolves `/etc/os-release` and appends the
+profile-derived `IMAGE_ID` and `IMAGE_VERSION` to the SchweisOS-owned metadata.
 
 ## Boundaries
 
@@ -46,12 +53,13 @@ From this directory:
 bash -n PKGBUILD
 makepkg --printsrcinfo
 makepkg -f
-bsdtar -tf schweisos-release-0.1.0-1-any.pkg.tar.* | sort
+bsdtar -tf schweisos-release-0.2.0-1-any.pkg.tar.* | sort
 ```
 
 Expected package payload:
 
 ```text
+etc/os-release
 usr/lib/schweisos-release/os-release
 usr/lib/schweisos-release/release.json
 ```

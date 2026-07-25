@@ -43,6 +43,7 @@ required_files=(
   "$pacman_config"
   "${profile_dir}/efiboot/loader/loader.conf"
   "${entry_dir}/01-schweisos-linux.conf"
+  "${airootfs_dir}/etc/hostname"
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset"
   "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf"
@@ -327,6 +328,7 @@ bash -c '
 
 expected_overlay_paths=(
   etc
+  etc/hostname
   etc/mkinitcpio.conf.d
   etc/mkinitcpio.conf.d/archiso.conf
   etc/mkinitcpio.d
@@ -361,6 +363,8 @@ network_manager_link="${airootfs_dir}/etc/systemd/system/multi-user.target.wants
 sysusers_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf")"
 tmpfiles_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf")"
 sddm_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf")"
+live_hostname="$(<"${airootfs_dir}/etc/hostname")"
+[[ "$live_hostname" == schweisos ]] || fail 'unexpected live hostname'
 [[ "$sysusers_line" == 'u live 1000 "SchweisOS Live User" /home/live /usr/bin/bash' ]] || \
   fail 'unexpected live sysusers declaration'
 [[ "$tmpfiles_line" == 'd /home/live 0750 live live -' ]] || fail 'unexpected live home declaration'

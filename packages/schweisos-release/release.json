@@ -2,8 +2,13 @@
   "schema": "org.schweisos.release.v1",
   "id": "schweisos",
   "name": "SchweisOS",
-  "phase": "bootstrap",
-  "release_channel": "bootstrap",
+  "version": {
+    "name": "Development",
+    "id": "development",
+    "build_id": "development"
+  },
+  "phase": "development",
+  "release_channel": "development",
   "base": {
     "id": "arch",
     "policy": "upstream-first"
@@ -12,6 +17,7 @@
     "home": "https://github.com/Schweis-Cooperative/SchweisOS",
     "documentation": "https://github.com/Schweis-Cooperative/SchweisOS/tree/main/docs",
     "support": "https://github.com/Schweis-Cooperative/SchweisOS/issues",
-    "bug_report": "https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose"
+    "bug_report": "https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose",
+    "privacy_policy": "https://github.com/Schweis-Cooperative/SchweisOS/blob/main/docs/security/security-model.md"
   }
 }

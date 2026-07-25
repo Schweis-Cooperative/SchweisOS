@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 pkgname=schweisos-release
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='SchweisOS distribution identity metadata'
 arch=('any')
@@ -13,12 +13,16 @@ source=(
   'os-release'
   'release.json'
 )
-sha256sums=('24106380c04d3168afed0d30b355dcf186651d48e16c47cd01ae8945c257683c'
-            'bdd503e1b74db948904f95d7308106b61460734f4d7908093054d61092f8a5fe')
+sha256sums=('7f0590ea809559178b4901901d3ad9b7cc1516d628540ce64bac19b882fae1a5'
+            'f191e2042f685db100e998aaa34857eda2a010b47264dd0ac14b7997fcf6a6f2')
 
 package() {
   install -Dm644 "${srcdir}/os-release" \
     "${pkgdir}/usr/lib/schweisos-release/os-release"
   install -Dm644 "${srcdir}/release.json" \
     "${pkgdir}/usr/lib/schweisos-release/release.json"
+
+  install -d "${pkgdir}/etc"
+  ln -s ../usr/lib/schweisos-release/os-release \
+    "${pkgdir}/etc/os-release"
 }

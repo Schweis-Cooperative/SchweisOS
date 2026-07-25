@@ -96,6 +96,13 @@ These packages sit between upstream Arch and higher-level SchweisOS features. Th
 
 This split keeps the first distribution package set auditable. Identity can be inspected without reading repository configuration; trust material can be updated without changing release metadata; mirror changes can be shipped without changing pacman policy.
 
+`schweisos-release` owns the canonical metadata at
+`/usr/lib/schweisos-release/os-release` and a relative `/etc/os-release` link to
+it. Standard consumers therefore see SchweisOS while Arch's `filesystem`
+package continues to own `/usr/lib/os-release` as an upstream fallback. The
+package uses no install-time rewrite. Archiso adds live-image `IMAGE_ID` and
+`IMAGE_VERSION` fields by resolving the same link during image construction.
+
 The layer must preserve Arch package semantics. It integrates SchweisOS repositories into pacman; it does not replace pacman, hide package sources, or redefine the update model.
 
 Related decision: [ADR-009 Distribution Identity Packages](../adr/ADR-009-distribution-identity-packages.md).

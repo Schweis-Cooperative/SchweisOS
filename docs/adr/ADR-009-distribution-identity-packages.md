@@ -1,6 +1,6 @@
 # ADR-009 Distribution Identity Packages
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -42,7 +42,16 @@ These packages form the minimum host-level identity and trust foundation require
 
 It owns distribution identity metadata such as release name, version metadata, project URLs, and `/etc/os-release` integration where applicable. It must not configure repositories, install defaults, modify package trust, or apply desktop behavior.
 
-During bootstrap, `schweisos-release` may install SchweisOS identity metadata under a project-owned path such as `/usr/lib/schweisos-release/`. It must not use an install script to rewrite `/etc/os-release`, and it must not directly replace `/usr/lib/os-release` until the installer and base-system ownership model can handle Arch's `filesystem` package cleanly. This keeps the package auditable and avoids surprising changes on development hosts.
+`schweisos-release` installs its canonical identity metadata under
+`/usr/lib/schweisos-release/` and owns a relative `/etc/os-release` symlink to
+that metadata. This uses the standard `os-release` precedence model without an
+install script, runtime rewrite, or fork of Arch's `filesystem` package.
+
+Arch's `filesystem` package remains the owner of `/usr/lib/os-release`, which is
+the upstream fallback. On live media, upstream `mkarchiso` resolves the
+`/etc/os-release` link and adds profile-derived `IMAGE_ID` and `IMAGE_VERSION`
+to the SchweisOS-owned file. Installed-system release metadata remains entirely
+package-owned and does not depend on ISO overlays.
 
 `schweisos-keyring` owns SchweisOS package signing trust material.
 

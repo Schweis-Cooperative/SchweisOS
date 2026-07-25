@@ -12,6 +12,8 @@ The following files are temporary live-media exceptions:
   the initramfs can locate and mount the live root filesystem.
 - `/etc/mkinitcpio.d/linux.preset` generates the initramfs path referenced by
   the UEFI loader entry.
+- `/etc/hostname` gives the ephemeral live system the portable hostname
+  `schweisos`; installed-system hostnames remain an installer and user choice.
 - `/etc/sysusers.d/schweisos-live.conf` declares the ephemeral `live` account
   without embedding a password or password hash.
 - `/etc/tmpfiles.d/schweisos-live.conf` creates `/home/live` after the account
@@ -24,9 +26,10 @@ The following files are temporary live-media exceptions:
 
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction or create a passwordless automatic
-live session. The mkinitcpio files must exist before the kernel package creates
-the image. The remaining files should move to a narrowly scoped, live-only
-package if one is designed and approved later.
+live session, or define the live medium's ephemeral hostname. The mkinitcpio
+files must exist before the kernel package creates the image. The remaining
+files should move to a narrowly scoped, live-only package if one is designed
+and approved later.
 
 All executable behavior remains in upstream packages. The overlay contains no
 scripts, binaries, package archives, branding, installer payload, or secrets.

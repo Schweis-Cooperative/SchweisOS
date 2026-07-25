@@ -4,7 +4,8 @@
 set -euo pipefail
 
 repo_root="${SCHWEISOS_LOCAL_REPO_ROOT:-out/local-repo}"
-database_name='local-bootstrap'
+repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
+database_name='schweisos'
 
 expected_packages=(
   schweisos-keyring
@@ -23,6 +24,9 @@ disposable pacman root.
 Options:
   --repo-root PATH   Repository root. Default: out/local-repo
   -h, --help         Show this help.
+
+Environment override:
+  SCHWEISOS_LOCAL_REPO_ARCH
 
 The test never edits host pacman configuration or keyrings and never installs
 to /. It does not claim to validate the future signed repository trust path.
@@ -69,7 +73,7 @@ case "${repo_root}" in
   *) repo_base="${project_root}/${repo_root}" ;;
 esac
 
-database_dir="${repo_base}/database"
+database_dir="${repo_base}/${database_name}/os/${repo_arch}"
 repository_database="${database_dir}/${database_name}.db"
 
 [[ -e "${repository_database}" ]] || {

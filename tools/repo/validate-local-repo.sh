@@ -4,7 +4,8 @@
 set -euo pipefail
 
 repo_root="${SCHWEISOS_LOCAL_REPO_ROOT:-out/local-repo}"
-database_name='local-bootstrap'
+repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
+database_name='schweisos'
 
 expected_packages=(
   schweisos-keyring
@@ -23,6 +24,9 @@ repo-add database without configuring pacman or contacting a network service.
 Options:
   --repo-root PATH   Repository root. Default: out/local-repo
   -h, --help         Show this help.
+
+Environment override:
+  SCHWEISOS_LOCAL_REPO_ARCH
 EOF
 }
 
@@ -65,12 +69,12 @@ case "${repo_root}" in
 esac
 
 package_store="${repo_base}/packages"
-database_dir="${repo_base}/database"
+database_dir="${repo_base}/${database_name}/os/${repo_arch}"
 repository_database="${database_dir}/${database_name}.db"
 
 unexpected_entry="$(
   find "${repo_base}" -mindepth 1 -maxdepth 1 \
-    ! -name README.md ! -name packages ! -name database -print -quit 2>/dev/null || true
+    ! -name README.md ! -name packages ! -name "${database_name}" -print -quit 2>/dev/null || true
 )"
 [[ -z "${unexpected_entry}" ]] || {
   printf 'Unexpected local repository entry: %s\n' "${unexpected_entry}" >&2

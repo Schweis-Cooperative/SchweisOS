@@ -32,7 +32,7 @@ Repository bootstrap validation has three deliberately separate levels:
 
 - static package-boundary validation checks PKGBUILDs, payload ownership,
   pacman snippets, and signature policy
-- local repository validation checks the generated `local-bootstrap` layout,
+- local repository validation checks the generated local `schweisos` layout,
   exact package membership, and `repo-add` database references
 - disposable-root validation installs the four local package files in one
   isolated pacman transaction without using host configuration or keyrings

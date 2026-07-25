@@ -186,11 +186,21 @@ review, compromise recovery, and future delegation harder.
 
 The tooling under `tools/repo/` may create an unsigned, mutable repository under
 `out/local-repo/` for local package compatibility tests. Its fixed database name
-is `local-bootstrap`; it has no production channel name or network endpoint.
+is `schweisos` so the repo-add output matches the configured `[schweisos]`
+pacman repository name. This name alignment is required for Archiso and pacman
+to consume the repository without manual copy steps or compatibility symlinks.
 
 The local layout and its direct package-file installation test do not validate
 package signing, repository signing, publication, mirrors, or production client
 trust. No local result may be promoted by relabeling it as an official artifact.
+The generated directory shape is:
+
+```text
+out/local-repo/schweisos/os/x86_64/schweisos.db
+```
+
+This mirrors pacman's `$repo/os/$arch` expansion for the local development
+endpoint without inventing a public endpoint.
 
 The installed bootstrap mirrorlist also contains a separate local development
 endpoint:
@@ -199,9 +209,8 @@ endpoint:
 Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch
 ```
 
-That endpoint exists only so build hosts can parse and validate SchweisOS
-repository integration through pacman. It is not backed by the unsigned
-`out/local-repo/` package-file test layout and must not be used as an official
-source. Under the required trusted package and database signature policy, it
-cannot satisfy repository installation until signed artifacts and approved
-public keys exist.
+That endpoint exists so build hosts can parse and validate SchweisOS repository
+integration through pacman and, during local development, consume a repository
+whose database basename matches `[schweisos]`. It must not be used as an
+official source. Under the required trusted package and database signature
+policy, release use still requires signed artifacts and approved public keys.

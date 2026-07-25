@@ -65,7 +65,7 @@ tests/validate-repository-bootstrap.sh
 
 `install-local-bootstrap-packages.sh` validates that the four locally published
 identity packages can coexist in one isolated pacman database and filesystem
-root. It requires a previously created `local-bootstrap` repository:
+root. It requires a previously created local `schweisos` repository:
 
 ```bash
 tools/repo/publish-local-packages.sh

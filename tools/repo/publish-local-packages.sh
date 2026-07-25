@@ -4,8 +4,9 @@
 set -euo pipefail
 
 repo_root="${SCHWEISOS_LOCAL_REPO_ROOT:-out/local-repo}"
+repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
 build_packages=true
-database_name='local-bootstrap'
+database_name='schweisos'
 
 identity_packages=(
   schweisos-release
@@ -28,6 +29,7 @@ Options:
 
 Environment override:
   SCHWEISOS_LOCAL_REPO_ROOT
+  SCHWEISOS_LOCAL_REPO_ARCH
 
 This workflow does not sign or publish artifacts and must not be used as a
 production repository workflow.
@@ -79,7 +81,7 @@ esac
 "${script_dir}/bootstrap-local-repo.sh" --repo-root "${repo_base}"
 
 package_store="${repo_base}/packages"
-database_dir="${repo_base}/database"
+database_dir="${repo_base}/${database_name}/os/${repo_arch}"
 build_root="$(mktemp -d)"
 trap 'rm -rf -- "${build_root}"' EXIT
 

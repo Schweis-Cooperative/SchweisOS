@@ -89,7 +89,7 @@ unset dependency_output
 if type -P pacman >/dev/null 2>&1; then
     pending_updates="$(pacman -Quq 2>/dev/null)"
     pending_status=$?
-    if (( pending_status != 0 )); then
+    if (( pending_status > 1 )); then
         record_fail 'upgrade state: pacman query failed'
     elif [[ -n "$pending_updates" ]]; then
         pending_count="$(wc -l <<<"$pending_updates")"

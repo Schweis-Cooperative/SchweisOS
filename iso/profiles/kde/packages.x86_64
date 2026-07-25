@@ -5,7 +5,11 @@ linux-firmware
 mkinitcpio
 mkinitcpio-archiso
 
-# Minimal KDE Plasma session
+# Minimal KDE live desktop
+dolphin
+firefox
+kate
+konsole
 networkmanager
 plasma-desktop
 plasma-nm

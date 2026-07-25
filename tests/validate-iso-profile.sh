@@ -168,6 +168,10 @@ fi
 
 required_packages=(
   base
+  dolphin
+  firefox
+  kate
+  konsole
   linux
   linux-firmware
   mkinitcpio

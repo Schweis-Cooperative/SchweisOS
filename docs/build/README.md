@@ -173,6 +173,11 @@ prints one concise PASS/FAIL summary covering:
 - Credential patterns and private signing-key material in Git-visible inputs.
 - Installed SchweisOS host integration, a configured publication source,
   and conservative repository signature policy.
+- SchweisOS identity package versions in the configured repository. In
+  `SCHWEISOS_ISO_BUILD_MODE=development`, source/repository version drift is
+  reported as a warning so local identity work can build against the current
+  trusted bootstrap repository. In `SCHWEISOS_ISO_BUILD_MODE=release`, the same
+  drift is fatal.
 
 The validator does not run `sudo`, refresh databases, install packages, access
 the network, invoke the profile validator, invoke `mkarchiso`, inspect user

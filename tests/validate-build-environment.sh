@@ -27,14 +27,21 @@ if ! git_root="$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null)" 
 fi
 profile_dir="${project_root}/iso/profiles/kde"
 dependency_validator="${project_root}/tests/validate-build-dependencies.sh"
+iso_build_mode="${SCHWEISOS_ISO_BUILD_MODE:-development}"
 
 pass_count=0
+warn_count=0
 fail_count=0
 results=()
 
 record_pass() {
     (( pass_count += 1 ))
     results+=("PASS|$*")
+}
+
+record_warn() {
+    (( warn_count += 1 ))
+    results+=("WARN|$*")
 }
 
 record_fail() {
@@ -46,6 +53,15 @@ join_by_space() {
     local IFS=' '
     printf '%s' "$*"
 }
+
+case "$iso_build_mode" in
+    development|release)
+        record_pass "build mode: ${iso_build_mode}"
+        ;;
+    *)
+        record_fail "build mode: invalid SCHWEISOS_ISO_BUILD_MODE ${iso_build_mode}"
+        ;;
+esac
 
 os_release=/etc/os-release
 [[ -r "$os_release" ]] || os_release=/usr/lib/os-release
@@ -586,8 +602,13 @@ if (( repository_ready )); then
     done
 
     if (( ${#repository_version_failures[@]} > 0 )); then
-        repository_ready=0
-        repository_failure="repository package/source mismatch $(join_by_space "${repository_version_failures[@]}")"
+        repository_version_failure="repository package/source mismatch $(join_by_space "${repository_version_failures[@]}")"
+        if [[ "$iso_build_mode" == release ]]; then
+            repository_ready=0
+            repository_failure="$repository_version_failure"
+        else
+            record_warn "repository integration: ${repository_version_failure}"
+        fi
     fi
 fi
 
@@ -633,9 +654,20 @@ else
 fi
 
 if (( fail_count == 0 )); then
-    printf 'Build environment validation: PASS (%d checks)\n' "$pass_count"
+    if (( warn_count == 0 )); then
+        printf 'Build environment validation: PASS (%d checks)\n' "$pass_count"
+    else
+        printf 'Build environment validation: PASS (%d checks, %d warnings)\n' \
+            "$pass_count" "$warn_count"
+    fi
 else
-    printf 'Build environment validation: FAIL (%d passed, %d failed)\n' "$pass_count" "$fail_count"
+    if (( warn_count == 0 )); then
+        printf 'Build environment validation: FAIL (%d passed, %d failed)\n' \
+            "$pass_count" "$fail_count"
+    else
+        printf 'Build environment validation: FAIL (%d passed, %d warnings, %d failed)\n' \
+            "$pass_count" "$warn_count" "$fail_count"
+    fi
 fi
 
 for result in "${results[@]}"; do

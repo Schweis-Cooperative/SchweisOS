@@ -97,7 +97,7 @@ done
 [[ -z "${SSH_CONNECTION-}${SSH_CLIENT-}${SSH_TTY-}" ]] || \
   fail 'operational subkey export must not run through SSH'
 
-for tool in awk find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath rm sort systemd-detect-virt; do
+for tool in awk chmod find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath rm sort systemd-detect-virt; do
   require_tool "$tool"
 done
 
@@ -194,21 +194,39 @@ done
 verify_exported_role() {
   local exported_file="$1"
   local expected_fingerprint="$2"
-  local verification_home
-  local -a secret_subkeys
+  (
+    local verification_home
+    local -a secret_records
+    local primary_kind exported_primary primary_storage
+    local subkey_kind exported_subkey subkey_storage
 
-  verification_home="$(mktemp -d --tmpdir="$output_dir" .verify-export.XXXXXX)"
-  chmod 0700 -- "$verification_home"
-  gpg --batch --homedir "$verification_home" --quiet --import "$exported_file"
-  mapfile -t secret_subkeys < <(
-    gpg --batch --homedir "$verification_home" --with-colons --list-secret-keys |
-      awk -F: '$1 == "ssb" { want = 1; next } want && $1 == "fpr" { print $10; want = 0 }'
+    verification_home="$(mktemp -d --tmpdir="$output_dir" .verify-export.XXXXXX)"
+    trap 'rm -rf -- "$verification_home"' EXIT
+    chmod 0700 -- "$verification_home"
+    gpg --batch --homedir "$verification_home" --quiet --import "$exported_file"
+    mapfile -t secret_records < <(
+      gpg --batch --homedir "$verification_home" --with-colons --list-secret-keys |
+        awk -F: '
+          $1 == "sec" || $1 == "ssb" {
+            kind = $1; storage = $15; want = 1; next
+          }
+          want && $1 == "fpr" {
+            print kind "|" $10 "|" storage
+            want = 0
+          }
+        '
+    )
+    (( ${#secret_records[@]} == 2 )) || \
+      fail 'operational export must contain one primary stub and one secret subkey'
+    IFS='|' read -r primary_kind exported_primary primary_storage <<<"${secret_records[0]}"
+    IFS='|' read -r subkey_kind exported_subkey subkey_storage <<<"${secret_records[1]}"
+    [[ "$primary_kind" == sec && "$exported_primary" == "$primary_fingerprint" \
+      && "$primary_storage" == '#' ]] || \
+      fail 'operational export contains usable offline primary material'
+    [[ "$subkey_kind" == ssb && "$exported_subkey" == "$expected_fingerprint" \
+      && -n "$subkey_storage" && "$subkey_storage" != '#' ]] || \
+      fail 'operational export contains the wrong or unavailable secret subkey'
   )
-  rm -rf -- "$verification_home"
-  (( ${#secret_subkeys[@]} == 1 )) || \
-    fail 'operational export must contain exactly one secret subkey'
-  [[ "${secret_subkeys[0]}" == "$expected_fingerprint" ]] || \
-    fail 'operational export contains the wrong secret subkey'
 }
 
 verify_exported_role \
@@ -220,4 +238,5 @@ printf 'Operational subkey exports created on encrypted transfer media.\n'
 printf '  package role:  %s\n' "$package_fingerprint"
 printf '  database role: %s\n' "$database_fingerprint"
 printf 'Import each file only into the restricted signing home, verify both roles,\n'
-printf 'then securely erase the transfer copies. Never transfer the offline primary.\n'
+printf 'then unmount and return the encrypted medium to offline custody without reuse.\n'
+printf 'Never transfer the offline primary.\n'

@@ -1,0 +1,52 @@
+# Maintainer: Schweis Project <admin@schweis.com.tr>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-keyring
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='SchweisOS package signing trust anchor'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
+depends=('pacman' 'archlinux-keyring')
+install=schweisos-keyring.install
+source=(
+  'schweisos.gpg'
+  'schweisos-trusted'
+  'schweisos-revoked'
+  'schweisos-release.asc'
+  'release-key-metadata.tsv'
+  'SHA256SUMS'
+  'keyring-policy.md'
+  'future-keys.md'
+)
+sha256sums=(
+  '@SCHWEISOS_GPG_SHA256@'
+  '@SCHWEISOS_TRUSTED_SHA256@'
+  '@SCHWEISOS_REVOKED_SHA256@'
+  '@SCHWEISOS_RELEASE_ASC_SHA256@'
+  '@RELEASE_KEY_METADATA_SHA256@'
+  '@PUBLIC_BUNDLE_SHA256SUMS_SHA256@'
+  '@KEYRING_POLICY_SHA256@'
+  '@FUTURE_KEYS_SHA256@'
+)
+
+package() {
+  install -Dm644 "${srcdir}/schweisos.gpg" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos.gpg"
+  install -Dm644 "${srcdir}/schweisos-trusted" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos-trusted"
+  install -Dm644 "${srcdir}/schweisos-revoked" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos-revoked"
+
+  install -Dm644 "${srcdir}/schweisos-release.asc" \
+    "${pkgdir}/usr/share/doc/${pkgname}/schweisos-release.asc"
+  install -Dm644 "${srcdir}/release-key-metadata.tsv" \
+    "${pkgdir}/usr/share/doc/${pkgname}/release-key-metadata.tsv"
+  install -Dm644 "${srcdir}/SHA256SUMS" \
+    "${pkgdir}/usr/share/doc/${pkgname}/public-bundle-SHA256SUMS"
+  install -Dm644 "${srcdir}/keyring-policy.md" \
+    "${pkgdir}/usr/share/doc/${pkgname}/keyring-policy.md"
+  install -Dm644 "${srcdir}/future-keys.md" \
+    "${pkgdir}/usr/share/doc/${pkgname}/future-keys.md"
+}

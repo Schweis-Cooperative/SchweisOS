@@ -15,6 +15,7 @@ operational_validity=''
 gnupg_home=''
 public_output=''
 airgap_acknowledged=false
+clock_acknowledged=false
 
 usage() {
   cat <<'EOF'
@@ -28,6 +29,7 @@ Required options:
   --gnupg-home PATH          New private GnuPG home on encrypted offline media
   --public-output PATH       New directory for public-only ceremony output
   --acknowledge-airgapped    Confirm physical network isolation was reviewed
+  --acknowledge-clock-verified Confirm UTC clock was independently verified
   -h, --help                 Show this help
 
 The command intentionally has no passphrase option. GnuPG uses pinentry.
@@ -59,6 +61,10 @@ while (( $# > 0 )); do
       airgap_acknowledged=true
       shift
       ;;
+    --acknowledge-clock-verified)
+      clock_acknowledged=true
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -73,11 +79,13 @@ done
 [[ -n "$public_output" ]] || fail '--public-output is required'
 [[ "$airgap_acknowledged" == true ]] || \
   fail '--acknowledge-airgapped is required after physical isolation review'
+[[ "$clock_acknowledged" == true ]] || \
+  fail '--acknowledge-clock-verified is required after independent UTC clock review'
 (( EUID != 0 )) || fail 'the offline key ceremony must not run as root'
 [[ -z "${SSH_CONNECTION-}${SSH_CLIENT-}${SSH_TTY-}" ]] || \
   fail 'the offline key ceremony must not run through SSH'
 
-for tool in awk date find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath sha256sum sort stat systemd-detect-virt; do
+for tool in awk chmod date find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath sha256sum sort stat systemd-detect-virt; do
   require_tool "$tool"
 done
 
@@ -175,6 +183,7 @@ else
 fi
 
 chmod 0700 -- "$gnupg_home"
+chmod 0755 -- "$public_output"
 umask 077
 
 private_mount_source="$(findmnt -n -o SOURCE -T "$gnupg_home")"

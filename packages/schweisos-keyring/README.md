@@ -121,9 +121,14 @@ not evidence of an initialized or trusted SchweisOS keyring.
 ```text
 packages/schweisos-keyring/
   PKGBUILD
+  PKGBUILD.production.in
   README.md
+  README.production.md
   future-keys.md
+  future-keys.production.md
   keyring-policy.md
+  keyring-policy.production.md
+  schweisos-keyring.install
   keys/
     README.md
 ```
@@ -137,8 +142,8 @@ bash -n PKGBUILD
 makepkg --verifysource
 makepkg --printsrcinfo
 makepkg -f
-bsdtar -tf schweisos-keyring-0.1.0-1-any.pkg.tar.* | sort
-bsdtar -xOf schweisos-keyring-0.1.0-1-any.pkg.tar.* .PKGINFO
+bsdtar -tf schweisos-keyring-0.1.0-2-any.pkg.tar.* | sort
+bsdtar -xOf schweisos-keyring-0.1.0-2-any.pkg.tar.* .PKGINFO
 find keys -type f ! -name README.md -print
 git diff --check
 ```
@@ -162,7 +167,11 @@ usr/share/pacman/keyrings/
 - The package owns only SchweisOS documentation and a future pacman keyring directory.
 - The package does not modify Arch keyrings.
 - The package does not weaken or configure pacman signature verification.
-- The package has no install script.
+- The bootstrap package does not activate an install script.
+
+The tracked install script is inactive during bootstrap because the bootstrap
+PKGBUILD does not reference it. This permits the operational transition to be
+fully rendered and reviewed without granting trust before ceremony admission.
 
 ## What Cannot Be Validated Yet
 

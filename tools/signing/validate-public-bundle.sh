@@ -17,7 +17,7 @@ require_tool() {
 (( $# == 1 )) || fail 'usage: validate-public-bundle.sh PUBLIC_BUNDLE_DIR'
 bundle_dir="$1"
 
-for tool in awk find gpg grep mktemp readlink sha256sum sort stat; do
+for tool in awk chmod cmp date find gpg grep mkdir mktemp readlink rm sed sha256sum sort stat; do
   require_tool "$tool"
 done
 
@@ -90,10 +90,12 @@ broken_link="$(find "$bundle_dir" -xtype l -print -quit)"
 [[ ! -s "${bundle_dir}/schweisos-revoked" ]] || \
   fail 'initial production bundle must not contain a revoked key'
 
-if gpg --batch --list-packets "${bundle_dir}/schweisos.gpg" 2>&1 |
-    grep -Eqi 'secret (sub)?key packet'; then
-  fail 'public keyring contains secret key packets'
-fi
+for public_certificate in schweisos.gpg schweisos-release.asc; do
+  if gpg --batch --list-packets "${bundle_dir}/${public_certificate}" 2>&1 |
+      grep -Eqi 'secret (sub)?key packet'; then
+    fail "public certificate contains secret key packets: ${public_certificate}"
+  fi
+done
 
 metadata_value() {
   local key="$1"
@@ -147,10 +149,10 @@ mapfile -t key_records < <(
   gpg --batch --with-colons --show-keys "${bundle_dir}/schweisos.gpg" |
     awk -F: '
       $1 == "pub" || $1 == "sub" {
-        kind = $1; algorithm = $4; created = $6; expires = $7; capabilities = $12; want = 1; next
+        kind = $1; validity = $2; algorithm = $4; created = $6; expires = $7; capabilities = $12; want = 1; next
       }
       want && $1 == "fpr" {
-        print kind "|" $10 "|" algorithm "|" created "|" expires "|" capabilities
+        print kind "|" $10 "|" validity "|" algorithm "|" created "|" expires "|" capabilities
         want = 0
       }
     '
@@ -158,11 +160,11 @@ mapfile -t key_records < <(
 (( ${#key_records[@]} == 3 )) || \
   fail "expected one primary and two subkeys, found ${#key_records[@]} key records"
 
-IFS='|' read -r primary_kind actual_primary primary_algorithm primary_created primary_expires primary_caps \
+IFS='|' read -r primary_kind actual_primary primary_record_validity primary_algorithm primary_created primary_expires primary_caps \
   <<<"${key_records[0]}"
-IFS='|' read -r package_kind actual_package package_algorithm package_created package_expires package_caps \
+IFS='|' read -r package_kind actual_package package_record_validity package_algorithm package_created package_expires package_caps \
   <<<"${key_records[1]}"
-IFS='|' read -r database_kind actual_database database_algorithm database_created database_expires database_caps \
+IFS='|' read -r database_kind actual_database database_record_validity database_algorithm database_created database_expires database_caps \
   <<<"${key_records[2]}"
 
 [[ "$primary_kind" == pub && "$actual_primary" == "$primary_fingerprint" ]] || \
@@ -179,6 +181,20 @@ IFS='|' read -r database_kind actual_database database_algorithm database_create
   fail 'package operational subkey must be signing-only'
 [[ "$database_caps" == *[sS]* && "$database_caps" != *[cC]* ]] || \
   fail 'database operational subkey must be signing-only'
+for record_validity in \
+  "$primary_record_validity" \
+  "$package_record_validity" \
+  "$database_record_validity"; do
+  case "$record_validity" in
+    r|e|d|i) fail 'public signing certificate contains a revoked, expired, or invalid key record' ;;
+  esac
+done
+
+current_epoch="$(date -u +%s)"
+for expires_at in "$primary_expires" "$package_expires" "$database_expires"; do
+  [[ "$expires_at" =~ ^[0-9]+$ ]] || fail 'release key expiry is missing or invalid'
+  (( expires_at > current_epoch )) || fail 'release signing key is no longer currently valid'
+done
 
 primary_lifetime=$((primary_expires - primary_created))
 package_lifetime=$((package_expires - package_created))
@@ -198,11 +214,13 @@ mapfile -t public_uids < <(
 decoded_uid="$(printf '%s' "${public_uids[0]}" | sed 's/\\x3a/:/g')"
 [[ "$decoded_uid" == "$expected_uid" ]] || fail 'public certificate UID does not match policy'
 
-armored_primary="$({
-  gpg --batch --with-colons --show-keys "${bundle_dir}/schweisos-release.asc"
-} | awk -F: '$1 == "pub" { want = 1; next } want && $1 == "fpr" { print $10; exit }')"
-[[ "$armored_primary" == "$primary_fingerprint" ]] || \
-  fail 'armored and binary public certificates differ'
+temporary_check="$(mktemp -d)"
+trap 'rm -rf -- "$temporary_check"' EXIT
+gpg --batch --dearmor \
+  --output "${temporary_check}/schweisos-release.gpg" \
+  "${bundle_dir}/schweisos-release.asc"
+cmp -s "${bundle_dir}/schweisos.gpg" "${temporary_check}/schweisos-release.gpg" || \
+  fail 'armored and binary public certificates are not byte-identical'
 
 [[ "$(<"${bundle_dir}/schweisos-trusted")" == "${primary_fingerprint}:4:" ]] || \
   fail 'trusted owner record does not contain exactly the primary fingerprint'
@@ -224,8 +242,8 @@ expected_checksum_entries="$({
   sha256sum --check --strict --status SHA256SUMS
 ) || fail 'public bundle checksum verification failed'
 
-temporary_home="$(mktemp -d)"
-trap 'rm -rf -- "$temporary_home"' EXIT
+temporary_home="${temporary_check}/gnupg"
+mkdir -m 0700 -- "$temporary_home"
 chmod 0700 -- "$temporary_home"
 gpg --batch --homedir "$temporary_home" --quiet --import "${bundle_dir}/schweisos.gpg"
 if gpg --batch --homedir "$temporary_home" --with-colons --list-secret-keys |

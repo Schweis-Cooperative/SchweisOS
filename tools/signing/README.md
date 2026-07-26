@@ -25,7 +25,8 @@ checkout:
 tools/signing/create-offline-release-key.sh \
   --gnupg-home /path/on/encrypted/offline-media/gnupg \
   --public-output /path/on/separate/media/schweisos-public \
-  --acknowledge-airgapped
+  --acknowledge-airgapped \
+  --acknowledge-clock-verified
 ```
 
 The paths above are examples selected by the ceremony operator. They are not
@@ -43,6 +44,13 @@ requiring or reading private material:
 tools/signing/validate-public-bundle.sh /path/to/schweisos-public
 ```
 
+`validate-admitted-public-bundle.sh` is the online production boundary. It
+requires the canonical six trust files to be tracked at the current reviewed
+commit with a clean keyring-package worktree, then byte-compares the supplied
+bundle. Pacman bootstrap, operational signing, signature verification, and
+production repository tooling use this stricter gate; they cannot select a
+parallel policy-conformant certificate.
+
 `export-operational-subkeys.sh` creates separate secret-subkey exports for the
 package and repository-database roles. It runs only on the same offline host,
 requires a LUKS-backed transfer destination, and uses GnuPG's
@@ -59,9 +67,50 @@ tools/signing/export-operational-subkeys.sh \
 ```
 
 Import the two exports into the restricted signing GnuPG home, verify that the
-recorded role fingerprints are available, perform an independent signing test,
-and then securely erase the transfer copies. Never import the offline primary
-secret key into the signing host.
+recorded role fingerprints are available, and perform an independent signing
+test. Then unmount and return the encrypted transfer medium to offline custody;
+portable file deletion is not represented as secure flash-media erasure. Never
+import the offline primary secret key into the signing host.
+
+The canonical import is automated and refuses an existing/non-empty home, a
+repository-local path, root execution, a usable primary secret, missing role
+subkeys, or any extra key:
+
+```bash
+tools/signing/import-operational-subkeys.sh \
+  --public-bundle /path/to/schweisos-public \
+  --gnupg-home /path/to/restricted-signing-home \
+  --package-export /encrypted/media/package-signing-subkey.asc \
+  --database-export /encrypted/media/database-signing-subkey.asc \
+  --acknowledge-restricted-host
+```
+
+`validate-signing-home.sh` can repeat the exact inventory and filesystem-
+custody check independently. Before returning the encrypted transfer medium,
+run the independent two-role signing test:
+
+```bash
+tools/signing/smoke-test-signing-home.sh \
+  /path/to/schweisos-public \
+  /path/to/restricted-signing-home
+```
+
+Only a successful package-role and database-role result completes the import
+handoff.
+
+After the ceremony record has been accepted, admit the public-only bundle into
+the keyring package with:
+
+```bash
+tools/signing/admit-public-bundle.sh \
+  --public-bundle /path/to/schweisos-public \
+  --ceremony-record /path/to/accepted-ceremony-record.md \
+  --acknowledge-fingerprint-review
+```
+
+Admission validates two recorded fingerprint readings, renders every source
+checksum, and fails if the package is not in its exact bootstrap state. The
+result remains an uncommitted package-only change until reviewed.
 
 `sign-artifact.sh` is used only on the restricted signing host after operational
 subkeys have been imported. It requires the role, public bundle, private GnuPG
@@ -73,12 +122,25 @@ tools/signing/sign-artifact.sh \
   --public-bundle /path/to/schweisos-public \
   --gnupg-home /path/to/restricted-signing-home \
   --artifact schweisos-release.pkg.tar.zst \
-  --signature schweisos-release.pkg.tar.zst.sig
+  --signature schweisos-release.pkg.tar.zst.sig \
+  --expected-sha256 APPROVED_64_CHARACTER_LOWERCASE_SHA256
 ```
 
 Use `--role database` for a finalized `repo-add` database. The command selects
-the exact recorded subkey, refuses to overwrite output, and verifies the
-signature against `schweisos.gpg` before the atomic rename.
+the exact recorded subkey, snapshots the artifact inside a signer-owned
+directory, binds it to the pre-approved digest, refuses to overwrite output,
+and verifies the signature against `schweisos.gpg` before atomic publication.
+
+`verify-artifact-signature.sh` provides the corresponding public-only role
+gate. `bootstrap-pacman-trust.sh` performs the one-time initial client trust
+transition only after independent fingerprint verification; it requires an
+already initialized pacman keyring and never invokes `pacman-key --init`.
+
+The complete dependency graph and post-ceremony order are documented in
+[Production Trust Bootstrap](../../docs/release/production-trust-bootstrap.md).
+Only the actions in the
+[Physical Offline Ceremony Checklist](../../docs/release/offline-ceremony-checklist.md)
+require the air-gapped computer.
 
 ## Boundaries
 

@@ -151,7 +151,9 @@ required_directories=(
     release
     scripts
     tests
+    tools/release
     tools/repo
+    tools/signing
 )
 required_files=(
     VISION.md
@@ -173,8 +175,11 @@ required_files=(
     tests/validate-build-dependencies.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
+    tests/validate-built-iso-identity.sh
+    tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
+    tests/validate-signing-tooling.sh
 )
 layout_failures=()
 
@@ -313,19 +318,33 @@ required_executables=(
     tests/install-local-bootstrap-packages.sh
     tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh
+    tests/validate-built-iso-identity.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
+    tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
     tests/validate-repository-bootstrap.sh
+    tests/validate-signed-repository-client.sh
     tests/validate-signing-tooling.sh
+    tools/release/activate-build-repository.sh
+    tools/release/create-repository-candidate.sh
+    tools/release/sign-repository-metadata.sh
+    tools/release/validate-release-repository.sh
     tools/repo/bootstrap-local-repo.sh
     tools/repo/publish-local-packages.sh
     tools/repo/validate-local-repo.sh
+    tools/signing/admit-public-bundle.sh
+    tools/signing/bootstrap-pacman-trust.sh
     tools/signing/create-offline-release-key.sh
     tools/signing/export-operational-subkeys.sh
+    tools/signing/import-operational-subkeys.sh
     tools/signing/sign-artifact.sh
+    tools/signing/smoke-test-signing-home.sh
+    tools/signing/validate-admitted-public-bundle.sh
     tools/signing/validate-public-bundle.sh
+    tools/signing/validate-signing-home.sh
+    tools/signing/verify-artifact-signature.sh
 )
 
 input_manifest="$(mktemp /tmp/schweisos-build-inputs.XXXXXX 2>/dev/null || true)"

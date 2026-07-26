@@ -104,10 +104,32 @@ tests/validate-signing-tooling.sh
 
 It validates script syntax and permissions, offline ceremony guards, absence
 of unattended passphrase handling, LUKS-backed primary and operational-subkey
-custody, exact signing-subkey selection, immediate signature verification,
-private-material exclusion, and required rotation policy. After the reviewed
-offline ceremony admits a public bundle, the same test also invokes
-`tools/signing/validate-public-bundle.sh`.
+custody, exact signing-subkey selection, restricted signing-home inventory,
+public-bundle admission, initial pacman trust bootstrap, immediate signature
+verification, private-material exclusion, signed repository boundaries, and
+required rotation policy. It treats bootstrap, complete production, and
+partial keyring states separately; a partial state is fatal.
+
+`validate-keyring-package.sh` builds and inspects the keyring package in either
+its exact bootstrap state or its complete admitted production state:
+
+```bash
+tests/validate-keyring-package.sh
+```
+
+`validate-signed-repository-client.sh` becomes runnable after ceremony
+admission and repository signing. It creates a disposable pacman trust root,
+syncs only through a supplied `file://` repository, requires trusted package
+and database signatures, downloads every repository package, and leaves host
+pacman state untouched.
+
+`validate-built-iso-identity.sh` performs post-build SquashFS forensics without
+booting a VM. It proves the installed `schweisos-release` version, package
+ownership, portable `/etc/os-release` link, and effective SchweisOS fields:
+
+```bash
+tests/validate-built-iso-identity.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
+```
 
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:

@@ -29,6 +29,13 @@ The bundle is copied into `packages/schweisos-keyring/keys/` only after those
 checks. Copying it earlier would blur the difference between unverified input
 and an admitted trust root.
 
+The reviewed transition is implemented by
+`tools/signing/admit-public-bundle.sh`. It accepts the external bundle and
+accepted ceremony record, verifies that each role fingerprint appears in two
+recorded readings, requires the exact bootstrap sentinel state, renders all
+source checksums, and leaves one package-only worktree change for review. It
+does not read private material or invent any fingerprint.
+
 ## Package Transition
 
 The admission change converts `schweisos-keyring` from bootstrap state to an
@@ -44,6 +51,11 @@ operational trust package. One focused review must:
 6. remove bootstrap-only wording and assign the first operational package
    version
 7. build and inspect the complete package payload
+
+The operational PKGBUILD, README, install hook, source-link contract, and
+payload validator are already present as bootstrap templates. Admission removes
+the templates after rendering; the operator must not hand-edit checksums or
+copy bundle files individually.
 
 No generated pacman database, local trustdb, secret key, revocation
 certificate, signing-host export, signature, hostname, or private path belongs
@@ -96,3 +108,7 @@ The focused admission review must prove:
 - all repository and ISO validators remain strict
 
 The package is not production-ready until these tests are recorded as passing.
+
+The canonical package gate is `tests/validate-keyring-package.sh`. Bootstrap,
+complete production, and forbidden partial states are distinct and
+fail-closed.

@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+populate_schweisos_keyring() {
+  if [ -x usr/bin/pacman-key ] && usr/bin/pacman-key -l >/dev/null 2>&1; then
+    usr/bin/pacman-key --populate schweisos
+  fi
+}
+
+post_install() {
+  populate_schweisos_keyring
+}
+
+post_upgrade() {
+  populate_schweisos_keyring
+}

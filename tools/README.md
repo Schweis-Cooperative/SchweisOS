@@ -9,8 +9,11 @@ This directory contains maintainer-facing tools for SchweisOS development workfl
 Current tool groups:
 
 - [repo](repo/README.md): local package repository bootstrap and validation tools.
+- [release](release/README.md): signed production repository candidate,
+  metadata-signing, and completeness validation tools.
 - [signing](signing/README.md): offline release-key ceremony, public-bundle
-  validation, and role-bound artifact signing tools.
+  admission, restricted-host import, trust bootstrap, and role-bound artifact
+  signing tools.
 
 Signing custody and trust requirements are defined in
 [Release Signing Workflow](../docs/release/release-signing-workflow.md). No

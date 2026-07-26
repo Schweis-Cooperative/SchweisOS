@@ -93,9 +93,11 @@ offline GnuPG home is mounted.
 
 Only the operational signing subkeys may be transferred to the restricted
 signing host. The exported secret-subkey bundle is transported on encrypted
-removable media and deleted from the transfer medium after an independent
-import and signing test succeeds. The offline primary remains a stub on the
-signing host and cannot certify, rotate, or revoke keys.
+removable media. After an independent import and signing test succeeds, the
+medium is unmounted and returned to offline custody; portable file deletion is
+not claimed to securely sanitize flash storage. The medium is not reused. The
+offline primary remains a stub on the signing host and cannot certify, rotate,
+or revoke keys.
 
 `tools/signing/export-operational-subkeys.sh` performs that export on the
 offline host. It creates separate role files with GnuPG's
@@ -200,17 +202,28 @@ clean package build
 `tools/signing/sign-artifact.sh` is the only project-provided generic signing
 entry point. It requires an explicit `package` or `database` role, reads the
 authorized subkey from `release-key-metadata.tsv`, selects that fingerprint
-exactly, refuses to overwrite a signature, and verifies the detached signature
-before publishing it to the requested output path.
+exactly, requires the independently approved SHA256, signs a private immutable
+snapshot, refuses to overwrite a signature, and verifies both the digest and
+detached signature before publishing it to the requested output path.
 
 Package and database signatures are mandatory. A failed signature or trust
-check stops publication. Local development repositories remain outside this
-workflow and must never be relabeled as release repositories.
+check stops publication. Verification rejects revoked, expired, wrong-role,
+future-dated, or out-of-validity-window signatures in addition to cryptographic
+failure. Local development repositories remain outside this workflow and must
+never be relabeled as release repositories.
 
 ## Rotation
 
 Operational signing subkeys rotate annually. Rotation begins at least 90 days
 before expiry:
+
+Public-bundle schema 1 is deliberately the generation-zero format: exactly one
+active package subkey, one active database subkey, and no revocation entry. It
+fails closed on overlap, expired records, or revocation. Before the first
+rotation begins, a reviewed schema revision must add role history, overlap,
+revocation, and historical-signature fixtures to the validators and keyring
+package. This is an engineering gate scheduled before the 90-day window, not
+an operator workaround during rotation.
 
 1. create the replacement subkey on the offline host
 2. update and verify the public bundle
@@ -250,6 +263,13 @@ and release authorization. They contain no user telemetry.
 The ceremony's public audit record uses
 `docs/release/key-ceremony-record-template.md`. It deliberately excludes
 private storage paths and device identifiers.
+
+The complete machine-enforced dependency graph and online handoffs are in
+[Production Trust Bootstrap](production-trust-bootstrap.md). The separate
+[Physical Offline Ceremony Checklist](offline-ceremony-checklist.md) contains
+only actions that require custody of the air-gapped computer or encrypted
+media; signing-host import and repository work are not misclassified as
+offline ceremony steps.
 
 ## Explicit Prohibitions
 

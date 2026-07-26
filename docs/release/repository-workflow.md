@@ -69,8 +69,9 @@ key on a restricted signing host.
 
 The signing host must invoke `tools/signing/sign-artifact.sh --role package`.
 The tool selects the exact package-signing subkey from the reviewed public key
-inventory and immediately verifies the detached signature before exposing it
-at the requested path. Generic GnuPG default-key selection is not an official
+inventory, requires the approved build SHA256, snapshots those exact bytes,
+and immediately verifies the detached signature before exposing it at the
+requested path. Generic GnuPG default-key selection is not an official
 publication workflow.
 
 Developer workstations and general build workers must not hold the offline
@@ -97,6 +98,17 @@ Repository creation owns:
 Repository creation does not build packages, add trust keys to clients, choose
 public mirror operators, or publish directly from a developer directory.
 
+The production implementation is
+`tools/release/create-repository-candidate.sh`. It accepts a new output path,
+verifies each detached package signature against the exact package role, sorts
+inputs, and invokes `repo-add --include-sigs --prevent-downgrade`. In addition,
+every update must supply the complete currently signed repository as
+`--baseline-dir`; removals and version rollback relative to that generation
+are fatal. Replacing package bytes without incrementing the package version is
+also fatal. Only generation zero may use the explicit `--initial-repository`
+acknowledgement. Its output is explicitly a candidate until repository metadata
+is signed.
+
 ## Repository Database Signing
 
 The completed repository database must be signed after `repo-add` finishes and
@@ -111,6 +123,14 @@ against the admitted `schweisos.gpg` public bundle.
 Official repository policy requires trusted signatures for both packages and
 repository databases. An unsigned local bootstrap database is a developer test
 artifact only and cannot be promoted into public infrastructure.
+
+`tools/release/sign-repository-metadata.sh` signs both the database and files
+archives with the restricted database role and requires the two digests
+recorded when the candidate was created. It exposes neither signature until
+both verify. `tools/release/validate-release-repository.sh --state complete`
+is the publication gate; `tests/validate-signed-repository-client.sh` proves the
+same state is consumable by a disposable strict pacman client without touching
+host trust.
 
 ## Publication
 

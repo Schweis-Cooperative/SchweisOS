@@ -594,6 +594,42 @@ else
     fi
 fi
 
+if (( repository_ready )) && ! type -P bsdtar >/dev/null 2>&1; then
+    repository_ready=0
+    repository_failure='repository database reader unavailable: bsdtar'
+fi
+
+repository_db_path=''
+if (( repository_ready )); then
+    mapfile -t schweisos_servers < <(
+        pacman-conf --config "${profile_dir}/pacman.conf" --repo schweisos Server 2>/dev/null
+    )
+    if (( ${#schweisos_servers[@]} != 1 )); then
+        repository_ready=0
+        repository_failure='expected exactly one SchweisOS repository endpoint'
+    elif [[ "${schweisos_servers[0]}" != file:///* ]]; then
+        repository_ready=0
+        repository_failure='SchweisOS repository endpoint must be local file:// for build validation'
+    else
+        repository_root="${schweisos_servers[0]#file://}"
+        if [[ ! -d "$repository_root" || -L "$repository_root" ]]; then
+            repository_ready=0
+            repository_failure='SchweisOS repository endpoint is missing or unsafe'
+        else
+            repository_db_path="${repository_root}/schweisos.db.tar.gz"
+            [[ -f "$repository_db_path" && ! -L "$repository_db_path" ]] || \
+                repository_db_path="${repository_root}/schweisos.db"
+            if [[ ! -f "$repository_db_path" ]]; then
+                repository_ready=0
+                repository_failure='SchweisOS repository database is missing'
+            elif ! bsdtar -tf "$repository_db_path" >/dev/null 2>&1; then
+                repository_ready=0
+                repository_failure='SchweisOS repository database is unreadable'
+            fi
+        fi
+    fi
+fi
+
 if (( repository_ready )); then
     repository_version_failures=()
     for package in "${identity_packages[@]}"; do
@@ -612,15 +648,28 @@ if (( repository_ready )); then
         expected_version="${source_pkgver}-${source_pkgrel}"
         [[ -z "$source_epoch" ]] || expected_version="${source_epoch}:${expected_version}"
 
-        if ! repository_info="$(pacman --config "${profile_dir}/pacman.conf" -Si -- "$package" 2>/dev/null)"; then
+        if ! repository_desc_path="$(bsdtar -tf "$repository_db_path" 2>/dev/null | awk -v package="$package" '
+            /\/desc$/ {
+                entry = $0
+                sub(/\/desc$/, "", entry)
+                if (index(entry, package "-") == 1) {
+                    matches[++count] = $0
+                }
+            }
+            END { if (count == 1) print matches[1]; else exit 1 }
+        ')"; then
             repository_version_failures+=("${package}:repository-metadata-unavailable")
             continue
         fi
-        repository_name="$(awk '$1 == "Repository" && $2 == ":" { print $3; exit }' <<<"$repository_info")"
-        repository_version="$(awk '$1 == "Version" && $2 == ":" { print $3; exit }' <<<"$repository_info")"
-        if [[ "$repository_name" != schweisos || "$repository_version" != "$expected_version" ]]; then
+        if ! repository_info="$(bsdtar -xOf "$repository_db_path" "$repository_desc_path" 2>/dev/null)"; then
+            repository_version_failures+=("${package}:repository-metadata-unavailable")
+            continue
+        fi
+        repository_name="$(awk 'previous == "%NAME%" { print; exit } { previous = $0 }' <<<"$repository_info")"
+        repository_version="$(awk 'previous == "%VERSION%" { print; exit } { previous = $0 }' <<<"$repository_info")"
+        if [[ "$repository_name" != "$package" || "$repository_version" != "$expected_version" ]]; then
             repository_version_failures+=(
-                "${package}:expected-${expected_version}:found-${repository_name:-none}/${repository_version:-none}"
+                "${package}:expected-${expected_version}:found-schweisos/${repository_version:-none}"
             )
         fi
     done

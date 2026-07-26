@@ -2,25 +2,49 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 pkgname=schweisos-keyring
-pkgver=0.1.0
-pkgrel=2
-pkgdesc='Bootstrap structure for the future SchweisOS package signing keyring'
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='SchweisOS package signing trust anchor'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
 license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
-depends=('pacman')
+depends=('pacman' 'archlinux-keyring')
+install=schweisos-keyring.install
 source=(
+  'schweisos.gpg'
+  'schweisos-trusted'
+  'schweisos-revoked'
+  'schweisos-release-public'
+  'release-key-metadata.tsv'
+  'SHA256SUMS'
   'keyring-policy.md'
   'future-keys.md'
 )
-sha256sums=('c4d4c383023bbede32d475a5a4a86854b4b1a45ef2e06fc083d65173bfec4724'
-            'ab9525300030b5d0236cb2afe69981e9fa35ade88e85695f9ca6c6bd07c787e3')
+sha256sums=(
+  '4353f77106ccf5981e578716b986bd4cd9345c87584244a1fd4277a5ed052456'
+  'cdee97269c1f6ec575697a141255ced4cdd95292d6b3b88807e0f61064759d1d'
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+  'c3f37957cf2c0a5dc08e479e765bc1780d13b2ef159b2db39c6ba26e3252e0a2'
+  '05dddfb9a7c606778108cf1c9df818b5804bf823573a20d63e8adc6b982f1765'
+  '8ed8c1865c6576c332ce91ac0445b87469792c85b441426091a0c619e208e3e2'
+  '8bbc20a8dcd4e59592cc95f4bb695e54a45387bd32f3acee95af4b52b87c470f'
+  'd6828f2576a1be4f2383ef26abfdc2057949bdb72ec8a3fb58ad9f9f893eb4d9'
+)
 
 package() {
-  # The directory remains empty until the production offline-key ceremony and
-  # public-bundle admission process have completed.
-  install -dm755 "${pkgdir}/usr/share/pacman/keyrings"
+  install -Dm644 "${srcdir}/schweisos.gpg" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos.gpg"
+  install -Dm644 "${srcdir}/schweisos-trusted" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos-trusted"
+  install -Dm644 "${srcdir}/schweisos-revoked" \
+    "${pkgdir}/usr/share/pacman/keyrings/schweisos-revoked"
 
+  install -Dm644 "${srcdir}/schweisos-release-public" \
+    "${pkgdir}/usr/share/doc/${pkgname}/schweisos-release.asc"
+  install -Dm644 "${srcdir}/release-key-metadata.tsv" \
+    "${pkgdir}/usr/share/doc/${pkgname}/release-key-metadata.tsv"
+  install -Dm644 "${srcdir}/SHA256SUMS" \
+    "${pkgdir}/usr/share/doc/${pkgname}/public-bundle-SHA256SUMS"
   install -Dm644 "${srcdir}/keyring-policy.md" \
     "${pkgdir}/usr/share/doc/${pkgname}/keyring-policy.md"
   install -Dm644 "${srcdir}/future-keys.md" \

@@ -2,36 +2,24 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-`schweisos-keyring` is responsible only for approved SchweisOS-owned package
-signing public keys and their trust or revocation metadata.
-
-The bootstrap package contains no key material and establishes no production
-trust. The production policy is finalized, but public keys may be introduced
-only after its offline ceremony and admission gates complete.
+`schweisos-keyring` owns only approved SchweisOS public certificates and their
+pacman trust and revocation metadata. It never owns repository configuration,
+mirrors, package selection, or private signing operations.
 
 It must not:
 
-- modify Arch Linux keyrings
-- replace `archlinux-keyring`
-- disable pacman signature verification
-- use `TrustAll`
-- set `SigLevel = Never`
-- trust third-party package sources
-- configure SchweisOS repositories
-- contain private signing keys
-- initialize pacman's keyring or fetch keys from installation hooks
-- sign packages
-- create repository databases
+- modify or replace `archlinux-keyring`;
+- change pacman `SigLevel`;
+- use `TrustAll` or `SigLevel = Never`;
+- trust third-party package sources;
+- contain private keys, revocation certificates, or operational exports;
+- initialize pacman's local keyring or fetch network keys;
+- sign packages or create repository databases.
 
-Arch Linux trust remains provided by `archlinux-keyring`.
+Arch Linux trust remains provided by `archlinux-keyring`. SchweisOS repository
+enablement belongs to `schweisos-pacman-config`; mirror discovery belongs to
+`schweisos-mirrorlist`. Mirrors are distribution channels, never trust anchors.
 
-SchweisOS repository enablement belongs to `schweisos-pacman-config`. SchweisOS mirror discovery belongs to `schweisos-mirrorlist`.
-
-Mirrors and repository locations are distribution channels, not trust anchors.
-Possession of this package without approved public keys does not make a
-repository or package trusted.
-
-This package is intentionally non-operational until the reviewed production
-public bundle exists. Once admitted, its install script may use only the
-upstream `pacman-key --populate schweisos` pattern against an already initialized
-pacman keyring.
+The install hook may invoke only `pacman-key --populate schweisos`, and only
+when pacman's local keyring is already initialized. Every trust change requires
+the reviewed admission, rotation, or revocation process.

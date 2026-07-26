@@ -1,35 +1,26 @@
-# Future Key Material
+# SchweisOS Trust Evolution
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-No SchweisOS signing keys or other cryptographic material are included in this
-bootstrap package.
+The installed trust root contains only public material admitted through the
+canonical release-signing process. Private keys never enter this package.
 
-The canonical release-signing policy is finalized in
-`docs/release/release-signing-workflow.md`. Production public keys must not be
-added until its physical offline ceremony, independent fingerprint comparison,
-public-bundle validation, and package review gates have all succeeded.
+Adding or replacing a maintainer or operational key requires:
 
-After the production public bundle is approved, the expected installed pacman
-keyring files are:
+1. authenticated collection of the public certificate;
+2. independent full-fingerprint verification;
+3. recorded role and maintainer authorization;
+4. offline-primary certification where the role policy requires it;
+5. public-bundle validation and keyring source review;
+6. a package build and complete payload inspection;
+7. a package update signed by a currently trusted operational key; and
+8. an announcement whenever user trust or recovery actions change.
 
-```text
-/usr/share/pacman/keyrings/schweisos.gpg
-/usr/share/pacman/keyrings/schweisos-trusted
-/usr/share/pacman/keyrings/schweisos-revoked
-```
+Operational subkeys rotate before expiry with an overlap window. Revoked or
+expired public records remain available where historical verification requires
+them. Replacing the offline primary is a new trust-root ceremony, not a normal
+package update.
 
-The future process for adding a maintainer key must include at least:
-
-1. Collect the maintainer public key.
-2. Verify the fingerprint through an authenticated channel.
-3. Record maintainer approval.
-4. Add the key to the reviewed keyring source material.
-5. Update trusted or revoked metadata.
-6. Build and validate `schweisos-keyring`.
-7. Publish a signed package update.
-8. Announce trust changes when user impact exists.
-
-Private keys must never enter this repository or package. Fake fingerprints,
-dummy public keys, generated test keys, empty keyring databases, and signatures
-that could be mistaken for production material must not be shipped.
+Fake fingerprints, dummy public keys, generated test keys, empty keyring
+databases, and signatures that could be mistaken for production material must
+never be shipped.

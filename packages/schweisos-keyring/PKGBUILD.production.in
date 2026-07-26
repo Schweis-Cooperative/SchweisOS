@@ -14,7 +14,7 @@ source=(
   'schweisos.gpg'
   'schweisos-trusted'
   'schweisos-revoked'
-  'schweisos-release.asc'
+  'schweisos-release-public'
   'release-key-metadata.tsv'
   'SHA256SUMS'
   'keyring-policy.md'
@@ -24,7 +24,7 @@ sha256sums=(
   '@SCHWEISOS_GPG_SHA256@'
   '@SCHWEISOS_TRUSTED_SHA256@'
   '@SCHWEISOS_REVOKED_SHA256@'
-  '@SCHWEISOS_RELEASE_ASC_SHA256@'
+  '@SCHWEISOS_RELEASE_PUBLIC_SHA256@'
   '@RELEASE_KEY_METADATA_SHA256@'
   '@PUBLIC_BUNDLE_SHA256SUMS_SHA256@'
   '@KEYRING_POLICY_SHA256@'
@@ -39,7 +39,7 @@ package() {
   install -Dm644 "${srcdir}/schweisos-revoked" \
     "${pkgdir}/usr/share/pacman/keyrings/schweisos-revoked"
 
-  install -Dm644 "${srcdir}/schweisos-release.asc" \
+  install -Dm644 "${srcdir}/schweisos-release-public" \
     "${pkgdir}/usr/share/doc/${pkgname}/schweisos-release.asc"
   install -Dm644 "${srcdir}/release-key-metadata.tsv" \
     "${pkgdir}/usr/share/doc/${pkgname}/release-key-metadata.tsv"

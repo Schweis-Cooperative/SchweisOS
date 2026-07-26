@@ -65,6 +65,17 @@ if [[ "${key_entries[*]}" == README.md ]]; then
     fail 'operational template does not order trust setup after archlinux-keyring'
   grep -Eq '@[A-Z0-9_]+@' "${package_dir}/PKGBUILD.production.in" || \
     fail 'operational PKGBUILD template has no checksum admission tokens'
+  production_source_block="$(
+    awk '
+      /^[[:space:]]*source=\(/ { in_source = 1 }
+      in_source { print }
+      in_source && /^[[:space:]]*\)[[:space:]]*$/ { in_source = 0 }
+    ' "${package_dir}/PKGBUILD.production.in"
+  )"
+  grep -Fq "'schweisos-release-public'" <<<"$production_source_block" || \
+    fail 'operational PKGBUILD template does not use a neutral public certificate source name'
+  ! grep -Fq "'schweisos-release.asc'" <<<"$production_source_block" || \
+    fail 'operational PKGBUILD template exposes the public certificate as a .asc source'
   unexpected_source_link="$(find "$package_dir" -maxdepth 1 -type l -print -quit)"
   [[ -z "$unexpected_source_link" ]] || fail "unexpected bootstrap source link: $unexpected_source_link"
 elif [[ "${key_entries[*]}" == "${production_entries[*]}" ]]; then
@@ -81,10 +92,18 @@ elif [[ "${key_entries[*]}" == "${production_entries[*]}" ]]; then
     fail 'production package retains the bootstrap policy template'
   "${signing_dir}/validate-public-bundle.sh" "$keys_dir"
   for filename in "${production_entries[@]}"; do
-    source_link="${package_dir}/${filename}"
-    [[ -L "$source_link" && "$(readlink -- "$source_link")" == "keys/${filename}" ]] || \
+    if [[ "$filename" == schweisos-release.asc ]]; then
+      source_link="${package_dir}/schweisos-release-public"
+      expected_target='keys/schweisos-release.asc'
+    else
+      source_link="${package_dir}/${filename}"
+      expected_target="keys/${filename}"
+    fi
+    [[ -L "$source_link" && "$(readlink -- "$source_link")" == "$expected_target" ]] || \
       fail "operational makepkg source link is missing or unsafe: $source_link"
   done
+  [[ ! -e "${package_dir}/schweisos-release.asc" && ! -L "${package_dir}/schweisos-release.asc" ]] || \
+    fail 'operational makepkg source must not use the .asc filename'
   grep -Fq 'install=schweisos-keyring.install' "${package_dir}/PKGBUILD" || \
     fail 'operational package does not activate its reviewed install script'
   grep -Eq "depends=.*'archlinux-keyring'" "${package_dir}/PKGBUILD" || \
@@ -166,6 +185,9 @@ else
     cmp -s "${keys_dir}/${filename}" "${payload_root}/usr/share/pacman/keyrings/${filename}" || \
       fail "installed trust file differs from admitted public bundle: $filename"
   done
+  cmp -s "${keys_dir}/schweisos-release.asc" \
+    "${payload_root}/usr/share/doc/schweisos-keyring/schweisos-release.asc" || \
+    fail 'installed armored public certificate differs from admitted public bundle'
 fi
 
 expected_directories=(

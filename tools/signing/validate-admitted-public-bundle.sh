@@ -78,6 +78,9 @@ for filename in "${expected_files[@]}"; do
     fail "canonical trust file must be tracked as 100644: $relative_path"
   cmp -s "${canonical_bundle}/${filename}" "${supplied_bundle}/${filename}" || \
     fail "supplied public bundle differs from the repository-admitted trust root: $filename"
+done
+
+for filename in SHA256SUMS release-key-metadata.tsv schweisos-revoked schweisos-trusted schweisos.gpg; do
   source_link="${package_dir}/${filename}"
   [[ -L "$source_link" && "$(readlink -- "$source_link")" == "keys/${filename}" ]] || \
     fail "canonical keyring package source link is missing or unsafe: $filename"
@@ -85,6 +88,14 @@ for filename in "${expected_files[@]}"; do
   [[ "$(git -C "$project_root" ls-files -s -- "$relative_link" | awk '{ print $1 }')" == 120000 ]] || \
     fail "canonical keyring package source link must be tracked as 120000: $filename"
 done
+source_link="${package_dir}/schweisos-release-public"
+[[ -L "$source_link" && "$(readlink -- "$source_link")" == 'keys/schweisos-release.asc' ]] || \
+  fail 'canonical keyring package public certificate source link is missing or unsafe'
+relative_link="${package_pathspec}/schweisos-release-public"
+[[ "$(git -C "$project_root" ls-files -s -- "$relative_link" | awk '{ print $1 }')" == 120000 ]] || \
+  fail 'canonical keyring package public certificate source link must be tracked as 120000'
+[[ ! -e "${package_dir}/schweisos-release.asc" && ! -L "${package_dir}/schweisos-release.asc" ]] || \
+  fail 'canonical keyring package must not expose the armored certificate as a .asc makepkg source'
 
 git -C "$project_root" diff-index --quiet HEAD -- "$package_pathspec" || \
   fail 'canonical keyring package differs from the reviewed HEAD commit'

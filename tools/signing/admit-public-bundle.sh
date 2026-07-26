@@ -166,6 +166,7 @@ cleanup() {
       "${package_dir}/schweisos-trusted" \
       "${package_dir}/schweisos-revoked" \
       "${package_dir}/schweisos-release.asc" \
+      "${package_dir}/schweisos-release-public" \
       "${package_dir}/release-key-metadata.tsv" \
       "${package_dir}/SHA256SUMS"
     [[ ! -e "${backup_dir}/keys" ]] || { rm -rf -- "$keys_dir"; mv -T -- "${backup_dir}/keys" "$keys_dir"; }
@@ -193,7 +194,7 @@ sed \
   -e "s/@SCHWEISOS_GPG_SHA256@/$(hash_of "${public_bundle}/schweisos.gpg")/" \
   -e "s/@SCHWEISOS_TRUSTED_SHA256@/$(hash_of "${public_bundle}/schweisos-trusted")/" \
   -e "s/@SCHWEISOS_REVOKED_SHA256@/$(hash_of "${public_bundle}/schweisos-revoked")/" \
-  -e "s/@SCHWEISOS_RELEASE_ASC_SHA256@/$(hash_of "${public_bundle}/schweisos-release.asc")/" \
+  -e "s/@SCHWEISOS_RELEASE_PUBLIC_SHA256@/$(hash_of "${public_bundle}/schweisos-release.asc")/" \
   -e "s/@RELEASE_KEY_METADATA_SHA256@/$(hash_of "${public_bundle}/release-key-metadata.tsv")/" \
   -e "s/@PUBLIC_BUNDLE_SHA256SUMS_SHA256@/$(hash_of "${public_bundle}/SHA256SUMS")/" \
   -e "s/@KEYRING_POLICY_SHA256@/$(hash_of "$production_keyring_policy")/" \
@@ -229,9 +230,10 @@ rm -f -- \
   "$production_readme" \
   "$production_future_keys" \
   "$production_keyring_policy"
-for filename in SHA256SUMS release-key-metadata.tsv schweisos-release.asc schweisos-revoked schweisos-trusted schweisos.gpg; do
+for filename in SHA256SUMS release-key-metadata.tsv schweisos-revoked schweisos-trusted schweisos.gpg; do
   ln -s -- "keys/${filename}" "${package_dir}/${filename}"
 done
+ln -s -- 'keys/schweisos-release.asc' "${package_dir}/schweisos-release-public"
 
 "${script_dir}/validate-public-bundle.sh" "$keys_dir"
 (

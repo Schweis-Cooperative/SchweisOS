@@ -21,8 +21,11 @@ Optional:
   --repository schweisos|schweisos-testing|schweisos-staging
   -h, --help
 
-Creates a disposable pacman root and local pacman trust root, synchronizes only
-from the supplied file repository, and verifies every downloaded package. It
+Creates a disposable pacman root and local pacman trust root, synchronizes from
+the supplied SchweisOS file repository plus read-only official Arch Linux
+repositories for dependency resolution, and verifies every downloaded SchweisOS
+package. SchweisOS packages remain authenticated by the SchweisOS production
+key; Arch dependency packages remain authenticated by the Arch Linux keyring. It
 never reads or changes host pacman configuration or host keyrings.
 EOF
 }
@@ -44,7 +47,7 @@ done
 case "$repository" in schweisos|schweisos-testing|schweisos-staging) ;; *) fail 'unsupported repository name' ;; esac
 [[ -n "$repository_dir" && -n "$public_bundle" ]] || fail 'repository directory and public bundle are required'
 
-for tool in awk find git grep mkdir mktemp pacman pacman-conf pacman-key readlink rm sort; do
+for tool in awk bsdtar find git grep mkdir mktemp pacman pacman-conf pacman-key readlink rm sort; do
   command -v "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
 done
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
@@ -57,6 +60,9 @@ signing_tools="${project_root}/tools/signing"
   --public-bundle "$public_bundle"
 repository_dir="$(readlink -f -- "$repository_dir")"
 public_bundle="$(readlink -f -- "$public_bundle")"
+
+mirrorlist=/etc/pacman.d/mirrorlist
+[[ -f "$mirrorlist" && ! -L "$mirrorlist" ]] || fail 'official Arch mirrorlist is missing or unsafe'
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf -- "$tmp_dir"' EXIT
@@ -83,6 +89,14 @@ LocalFileSigLevel = Required TrustedOnly
 [${repository}]
 SigLevel = Required TrustedOnly
 Server = file://${repository_dir}
+
+[core]
+SigLevel = PackageRequired PackageTrustedOnly DatabaseOptional DatabaseTrustedOnly
+Include = ${mirrorlist}
+
+[extra]
+SigLevel = PackageRequired PackageTrustedOnly DatabaseOptional DatabaseTrustedOnly
+Include = ${mirrorlist}
 EOF
 chmod 0600 "$config"
 pacman-conf --config "$config" >/dev/null
@@ -90,6 +104,7 @@ pacman-conf --config "$config" >/dev/null
 # This creates only the disposable client's local trust root. It is not a
 # SchweisOS release key and never enters the host pacman keyring.
 pacman-key --gpgdir "$gpg_dir" --init
+pacman-key --gpgdir "$gpg_dir" --populate archlinux
 pacman-key \
   --gpgdir "$gpg_dir" \
   --populate-from "$public_bundle" \
@@ -103,13 +118,26 @@ else
 fi
 
 "${pacman_runner[@]}" --config "$config" --root "$root_dir" --sync --refresh --noconfirm
+schweisos_release_version="$(
+  pacman --config "$config" --root "$root_dir" --sync --info schweisos-release |
+    awk -F ':' '
+      {
+        key = $1
+        value = $2
+        sub(/[[:space:]]+$/, "", key)
+        sub(/^[[:space:]]+/, "", value)
+      }
+      key == "Version" { print value; exit }
+    '
+)"
+[[ -n "$schweisos_release_version" ]] || fail 'pacman -Si did not expose schweisos-release'
 mapfile -t package_names < <(
   pacman --config "$config" --root "$root_dir" --sync --list "$repository" |
     awk '{ print $2 }' | sort -u
 )
 (( ${#package_names[@]} > 0 )) || fail 'signed repository exposed no packages to pacman'
 "${pacman_runner[@]}" --config "$config" --root "$root_dir" \
-  --sync --downloadonly --nodeps --noconfirm "${package_names[@]}"
+  --sync --downloadonly --noconfirm "${package_names[@]}"
 
 for package_name in "${package_names[@]}"; do
   mapfile -t downloaded < <(
@@ -120,7 +148,24 @@ for package_name in "${package_names[@]}"; do
     "${downloaded[0]}" "${downloaded[0]}.sig"
 done
 
+package_artifact="${repository_dir}/schweisos-release-${schweisos_release_version}-any.pkg.tar.zst"
+[[ -f "$package_artifact" && ! -L "$package_artifact" ]] || \
+  fail 'schweisos-release package artifact is missing from the signed repository'
+"${signing_tools}/verify-artifact-signature.sh" package "$public_bundle" \
+  "$package_artifact" "${package_artifact}.sig"
+if "${signing_tools}/verify-artifact-signature.sh" database "$public_bundle" \
+    "$package_artifact" "${package_artifact}.sig" >/dev/null 2>&1; then
+  fail 'package signature was accepted for the database role'
+fi
+if "${signing_tools}/verify-artifact-signature.sh" package "$public_bundle" \
+    "${repository_dir}/${repository}.db.tar.gz" "${repository_dir}/${repository}.db.sig" >/dev/null 2>&1; then
+  fail 'repository database signature was accepted for the package role'
+fi
+
 printf 'Disposable signed-repository pacman validation passed.\n'
 printf '  repository: %s\n' "$repository"
 printf '  packages: %s\n' "${#package_names[@]}"
+printf '  schweisos-release version: %s\n' "$schweisos_release_version"
+printf '  dependency repositories: core extra\n'
+printf '  wrong-role signatures: rejected\n'
 printf '  host pacman state: untouched\n'

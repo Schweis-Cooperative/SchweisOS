@@ -8,27 +8,32 @@ export LC_ALL=C
 public_bundle=''
 offline_home=''
 output_dir=''
-airgap_acknowledged=false
-encrypted_media_acknowledged=false
+network_isolation_acknowledged=false
+encrypted_output_acknowledged=false
 
 usage() {
   cat <<'EOF'
 Usage: export-operational-subkeys.sh OPTIONS
 
 Export the package and repository-database signing subkeys from the canonical
-offline GnuPG home. Run only on the physically offline ceremony host.
+offline GnuPG home. Run only during a reviewed local ceremony with no visible
+non-loopback network connectivity. A Bubblewrap ceremony must use a dedicated
+network namespace (bwrap --unshare-net).
 
 Required options:
   --public-bundle PATH
   --offline-gnupg-home PATH
   --output-dir PATH
+  --acknowledge-network-isolated
   --acknowledge-airgapped
+  --acknowledge-encrypted-output
   --acknowledge-encrypted-media
   -h, --help
 
 The output directory must be new, outside the source repository, and located
-on LUKS-backed removable media. The offline primary is exported only as the
-non-secret certificate stub created by GnuPG's --export-secret-subkeys.
+on LUKS-backed storage. Separate removable media is strongly recommended. The
+offline primary is exported only as the non-secret certificate stub created by
+GnuPG's --export-secret-subkeys.
 EOF
 }
 
@@ -70,12 +75,20 @@ while (( $# > 0 )); do
       output_dir="$2"
       shift 2
       ;;
+    --acknowledge-network-isolated)
+      network_isolation_acknowledged=true
+      shift
+      ;;
     --acknowledge-airgapped)
-      airgap_acknowledged=true
+      network_isolation_acknowledged=true
+      shift
+      ;;
+    --acknowledge-encrypted-output)
+      encrypted_output_acknowledged=true
       shift
       ;;
     --acknowledge-encrypted-media)
-      encrypted_media_acknowledged=true
+      encrypted_output_acknowledged=true
       shift
       ;;
     -h|--help)
@@ -90,9 +103,10 @@ done
 
 [[ -n "$public_bundle" && -n "$offline_home" && -n "$output_dir" ]] || \
   fail 'all path options are required'
-[[ "$airgap_acknowledged" == true ]] || fail '--acknowledge-airgapped is required'
-[[ "$encrypted_media_acknowledged" == true ]] || \
-  fail '--acknowledge-encrypted-media is required after physical media review'
+[[ "$network_isolation_acknowledged" == true ]] || \
+  fail '--acknowledge-network-isolated or --acknowledge-airgapped is required'
+[[ "$encrypted_output_acknowledged" == true ]] || \
+  fail '--acknowledge-encrypted-output or --acknowledge-encrypted-media is required'
 (( EUID != 0 )) || fail 'operational subkey export must not run as root'
 [[ -z "${SSH_CONNECTION-}${SSH_CLIENT-}${SSH_TTY-}" ]] || \
   fail 'operational subkey export must not run through SSH'
@@ -100,14 +114,6 @@ done
 for tool in awk chmod find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath rm sort systemd-detect-virt; do
   require_tool "$tool"
 done
-
-os_release=/etc/os-release
-[[ -r "$os_release" ]] || os_release=/usr/lib/os-release
-[[ -r "$os_release" ]] || fail 'cannot read the ceremony host os-release'
-unset ID
-# shellcheck disable=SC1090
-source "$os_release"
-[[ "${ID-}" == arch ]] || fail 'the ceremony host must be canonical Arch Linux'
 
 systemd-detect-virt --quiet && \
   fail 'operational subkey export must not run inside virtualization or a container'
@@ -153,7 +159,7 @@ chmod 0700 -- "$output_dir"
 require_luks_backing "$offline_home" 'offline GnuPG home'
 require_luks_backing "$output_dir" 'operational subkey transfer output'
 
-"${script_dir}/validate-public-bundle.sh" "$public_bundle"
+/usr/bin/bash "${script_dir}/validate-public-bundle.sh" "$public_bundle"
 metadata="${public_bundle}/release-key-metadata.tsv"
 metadata_value() {
   local key="$1"
@@ -234,7 +240,7 @@ verify_exported_role \
 verify_exported_role \
   "${output_dir}/database-signing-subkey.asc" "$database_fingerprint"
 
-printf 'Operational subkey exports created on encrypted transfer media.\n'
+printf 'Operational subkey exports created on encrypted transfer storage.\n'
 printf '  package role:  %s\n' "$package_fingerprint"
 printf '  database role: %s\n' "$database_fingerprint"
 printf 'Import each file only into the restricted signing home, verify both roles,\n'

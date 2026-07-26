@@ -175,11 +175,11 @@ IFS='|' read -r database_kind actual_database database_record_validity database_
   fail 'database-signing fingerprint does not match the second operational subkey'
 [[ "$primary_algorithm" == 22 && "$package_algorithm" == 22 && "$database_algorithm" == 22 ]] || \
   fail 'all release keys must use Ed25519'
-[[ "$primary_caps" == *[cC]* && "$primary_caps" != *[sS]* ]] || \
+[[ "$primary_caps" == *c* && "$primary_caps" != *s* ]] || \
   fail 'offline primary must be certification-only'
-[[ "$package_caps" == *[sS]* && "$package_caps" != *[cC]* ]] || \
+[[ "$package_caps" == *s* && "$package_caps" != *c* ]] || \
   fail 'package operational subkey must be signing-only'
-[[ "$database_caps" == *[sS]* && "$database_caps" != *[cC]* ]] || \
+[[ "$database_caps" == *s* && "$database_caps" != *c* ]] || \
   fail 'database operational subkey must be signing-only'
 for record_validity in \
   "$primary_record_validity" \

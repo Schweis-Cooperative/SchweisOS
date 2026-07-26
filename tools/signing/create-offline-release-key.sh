@@ -14,7 +14,7 @@ operational_capability=''
 operational_validity=''
 gnupg_home=''
 public_output=''
-airgap_acknowledged=false
+network_isolation_acknowledged=false
 clock_acknowledged=false
 
 usage() {
@@ -22,13 +22,16 @@ usage() {
 Usage: create-offline-release-key.sh OPTIONS
 
 Create the canonical SchweisOS offline release primary and operational signing
-subkeys. Run only during the reviewed ceremony on a physically offline Arch
-Linux host.
+subkeys. Run only during a reviewed local ceremony on a Linux host with no
+visible non-loopback network connectivity. A Bubblewrap ceremony must use a
+dedicated network namespace (bwrap --unshare-net).
 
 Required options:
-  --gnupg-home PATH          New private GnuPG home on encrypted offline media
+  --gnupg-home PATH          New private GnuPG home on LUKS-backed storage
   --public-output PATH       New directory for public-only ceremony output
-  --acknowledge-airgapped    Confirm physical network isolation was reviewed
+  --acknowledge-network-isolated
+                             Confirm network namespace isolation was reviewed
+  --acknowledge-airgapped    Confirm stronger physical isolation was reviewed
   --acknowledge-clock-verified Confirm UTC clock was independently verified
   -h, --help                 Show this help
 
@@ -57,8 +60,12 @@ while (( $# > 0 )); do
       public_output="$2"
       shift 2
       ;;
+    --acknowledge-network-isolated)
+      network_isolation_acknowledged=true
+      shift
+      ;;
     --acknowledge-airgapped)
-      airgap_acknowledged=true
+      network_isolation_acknowledged=true
       shift
       ;;
     --acknowledge-clock-verified)
@@ -77,8 +84,8 @@ done
 
 [[ -n "$gnupg_home" ]] || fail '--gnupg-home is required'
 [[ -n "$public_output" ]] || fail '--public-output is required'
-[[ "$airgap_acknowledged" == true ]] || \
-  fail '--acknowledge-airgapped is required after physical isolation review'
+[[ "$network_isolation_acknowledged" == true ]] || \
+  fail '--acknowledge-network-isolated or --acknowledge-airgapped is required'
 [[ "$clock_acknowledged" == true ]] || \
   fail '--acknowledge-clock-verified is required after independent UTC clock review'
 (( EUID != 0 )) || fail 'the offline key ceremony must not run as root'
@@ -88,14 +95,6 @@ done
 for tool in awk chmod date find findmnt git gpg grep ip lsblk mkdir mktemp networkctl realpath sha256sum sort stat systemd-detect-virt; do
   require_tool "$tool"
 done
-
-os_release=/etc/os-release
-[[ -r "$os_release" ]] || os_release=/usr/lib/os-release
-[[ -r "$os_release" ]] || fail 'cannot read the build host os-release'
-unset ID
-# shellcheck disable=SC1090
-source "$os_release"
-[[ "${ID-}" == arch ]] || fail 'the ceremony host must be canonical Arch Linux'
 
 if systemd-detect-virt --quiet; then
   fail 'the offline key ceremony must not run inside virtualization or a container'
@@ -258,7 +257,7 @@ chmod 0644 -- "${public_output}"/*
 )
 chmod 0644 -- "${public_output}/SHA256SUMS"
 
-"${script_dir}/validate-public-bundle.sh" "$public_output"
+/usr/bin/bash "${script_dir}/validate-public-bundle.sh" "$public_output"
 
 printf '\nOffline key ceremony public output created.\n'
 printf '  primary:            %s\n' "$primary_fingerprint"

@@ -18,6 +18,7 @@ Allowed early packages:
 - pacman repository configuration.
 - Installer configuration.
 - Desktop defaults.
+- Minimal runtime branding assets with explicit brand-use documentation.
 - Small meta packages.
 - Documentation packages.
 

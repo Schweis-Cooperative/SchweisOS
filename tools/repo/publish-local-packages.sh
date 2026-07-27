@@ -9,6 +9,7 @@ build_packages=true
 database_name='schweisos'
 
 identity_packages=(
+  schweisos-branding
   schweisos-release
   schweisos-keyring
   schweisos-mirrorlist

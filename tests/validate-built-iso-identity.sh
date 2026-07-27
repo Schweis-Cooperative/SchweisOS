@@ -96,11 +96,17 @@ identity_value() {
 }
 [[ "$(identity_value "$effective_identity" NAME)" == SchweisOS ]] || fail 'effective NAME is not SchweisOS'
 [[ "$(identity_value "$effective_identity" ID)" == schweisos ]] || fail 'effective ID is not schweisos'
-[[ "$(identity_value "$effective_identity" PRETTY_NAME)" == 'SchweisOS Development' ]] || \
-  fail 'effective PRETTY_NAME is not SchweisOS Development'
+[[ "$(identity_value "$effective_identity" PRETTY_NAME)" == 'SchweisOS' ]] || \
+  fail 'effective PRETTY_NAME is not SchweisOS'
+[[ "$(identity_value "$effective_identity" VERSION)" == "$source_pkgver" ]] || \
+  fail 'effective VERSION does not match schweisos-release pkgver'
+[[ "$(identity_value "$effective_identity" VERSION_ID)" == "$source_pkgver" ]] || \
+  fail 'effective VERSION_ID does not match schweisos-release pkgver'
 
 printf 'Built ISO identity validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"
 printf '  package: schweisos-release %s\n' "$installed_version"
 printf '  /etc/os-release -> ../usr/lib/schweisos-release/os-release\n'
-printf '  identity: %s\n' "$(identity_value "$effective_identity" PRETTY_NAME)"
+printf '  identity: %s %s\n' \
+  "$(identity_value "$effective_identity" PRETTY_NAME)" \
+  "$(identity_value "$effective_identity" VERSION_ID)"

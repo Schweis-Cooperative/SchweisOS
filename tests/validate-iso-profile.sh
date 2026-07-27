@@ -21,6 +21,7 @@ done
 
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 profile_dir="${project_root}/iso/profiles/kde"
+release_package_dir="${project_root}/packages/schweisos-release"
 airootfs_dir="${profile_dir}/airootfs"
 entry_dir="${profile_dir}/efiboot/loader/entries"
 profiledef="${profile_dir}/profiledef.sh"
@@ -66,6 +67,10 @@ cleanup() {
   rm -rf -- "$tmp_dir"
 }
 trap cleanup EXIT
+
+release_srcinfo="$(cd -- "$release_package_dir" && makepkg --printsrcinfo)"
+release_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$release_srcinfo")"
+[[ -n "$release_pkgver" ]] || fail 'source schweisos-release pkgver is unreadable'
 
 unexpected_type="$(find "$profile_dir" -mindepth 1 \
   ! -type d ! -type f ! -type l -print -quit)"
@@ -113,7 +118,7 @@ profile_snapshot() {
     [[ "$iso_label" == SCHWEIS_197001 ]]
     [[ "$iso_label" =~ ^[A-Z0-9_]{1,32}$ ]]
     [[ "$iso_publisher" == "Schweis Project <https://schweisos.org>" ]]
-    [[ "$iso_version" == 1970.01.01 ]]
+    [[ "$iso_version" == "$2" ]]
     [[ "$install_dir" =~ ^[a-z0-9]{1,8}$ ]]
     [[ "${#buildmodes[@]}" -eq 1 && "${buildmodes[0]}" == iso ]]
     [[ "${#bootmodes[@]}" -eq 1 && "${bootmodes[0]}" == uefi.systemd-boot ]]
@@ -125,7 +130,7 @@ profile_snapshot() {
     declare -p iso_name iso_label iso_publisher iso_application iso_version
     declare -p install_dir buildmodes bootmodes arch pacman_conf
     declare -p airootfs_image_type airootfs_image_tool_options
-  ' _ "$profiledef"
+  ' _ "$profiledef" "$release_pkgver"
 }
 
 profile_snapshot UTC >"${tmp_dir}/profile.utc"
@@ -180,6 +185,8 @@ required_packages=(
   networkmanager
   plasma-desktop
   plasma-nm
+  plasma-systemmonitor
+  schweisos-branding
   schweisos-keyring
   schweisos-mirrorlist
   schweisos-pacman-config

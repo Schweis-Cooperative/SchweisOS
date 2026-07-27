@@ -29,20 +29,24 @@ done
 
 bash -n "${package_dir}/PKGBUILD" "${BASH_SOURCE[0]}"
 
+srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
+source_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$srcinfo")"
+[[ -n "$source_pkgver" ]] || fail 'source schweisos-release pkgver is unreadable'
+
 set -a
 # shellcheck disable=SC1090
 source "$identity_file"
 set +a
 
 [[ "$NAME" == SchweisOS ]] || fail 'NAME must identify SchweisOS'
-[[ "$PRETTY_NAME" == 'SchweisOS Development' ]] || fail 'unexpected PRETTY_NAME'
+[[ "$PRETTY_NAME" == 'SchweisOS' ]] || fail 'unexpected PRETTY_NAME'
 [[ "$ID" == schweisos ]] || fail 'ID must be schweisos'
 [[ "$ID_LIKE" == arch ]] || fail 'ID_LIKE must preserve the Arch base relationship'
-[[ "$VERSION" == Development ]] || fail 'unexpected VERSION'
-[[ "$VERSION_ID" == development ]] || fail 'unexpected VERSION_ID'
-[[ "$BUILD_ID" == development ]] || fail 'unexpected BUILD_ID'
+[[ "$VERSION" == "$source_pkgver" ]] || fail 'VERSION must match schweisos-release pkgver'
+[[ "$VERSION_ID" == "$source_pkgver" ]] || fail 'VERSION_ID must match schweisos-release pkgver'
+[[ "$BUILD_ID" == "$source_pkgver" ]] || fail 'BUILD_ID must match schweisos-release pkgver'
 [[ "$LOGO" == schweisos ]] || fail 'LOGO must reference the SchweisOS icon name'
-[[ "$SCHWEISOS_RELEASE_CHANNEL" == development ]] || fail 'unexpected release channel'
+[[ "$SCHWEISOS_RELEASE_CHANNEL" == rolling ]] || fail 'unexpected release channel'
 [[ "$SCHWEISOS_RELEASE_SCHEMA" == 1 ]] || fail 'unexpected release schema'
 
 for project_url in \
@@ -55,15 +59,15 @@ for project_url in \
     fail "identity URL is outside the canonical project namespace: ${project_url}"
 done
 
-jq -e '
+jq -e --arg release_version "$source_pkgver" '
   .schema == "org.schweisos.release.v1" and
   .id == "schweisos" and
   .name == "SchweisOS" and
-  .version.name == "Development" and
-  .version.id == "development" and
-  .version.build_id == "development" and
-  .phase == "development" and
-  .release_channel == "development" and
+  .version.name == $release_version and
+  .version.id == $release_version and
+  .version.build_id == $release_version and
+  .phase == "bootstrap" and
+  .release_channel == "rolling" and
   .base.id == "arch" and
   .base.policy == "upstream-first" and
   (.urls | keys | sort) ==
@@ -113,6 +117,6 @@ git -C "$project_root" diff --check -- \
   tests
 
 printf 'Distribution identity validation passed.\n'
-printf '  identity: %s (%s)\n' "$PRETTY_NAME" "$ID"
+printf '  identity: %s %s (%s)\n' "$PRETTY_NAME" "$VERSION_ID" "$ID"
 printf '  base: %s\n' "$ID_LIKE"
 printf '  os-release: /etc/os-release -> ../usr/lib/schweisos-release/os-release\n'

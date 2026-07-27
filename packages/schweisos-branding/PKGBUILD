@@ -1,0 +1,28 @@
+# Maintainer: Schweis Project <maintainers@schweisos.org>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-branding
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS visual identity assets'
+arch=('any')
+url='https://github.com/Schweis-Cooperative/SchweisOS'
+license=('LicenseRef-SchweisOS-Brand-Assets')
+depends=('hicolor-icon-theme')
+source=(
+  'schweisos-logo.png'
+  'BRAND-ASSETS.md'
+)
+sha256sums=('88cfb5b1fcca38f3f5979ddab619d3885e82df84c886b983f412604f72df76bd'
+            'f811d2f3f1c0483a7cad7467dc3174f4fe43f2f56956bb52656b8407f36b347f')
+
+package() {
+  install -Dm644 "${srcdir}/schweisos-logo.png" \
+    "${pkgdir}/usr/share/schweisos/branding/schweisos-logo.png"
+  install -Dm644 "${srcdir}/schweisos-logo.png" \
+    "${pkgdir}/usr/share/icons/hicolor/1024x1024/apps/schweisos.png"
+  install -Dm644 "${srcdir}/schweisos-logo.png" \
+    "${pkgdir}/usr/share/pixmaps/schweisos.png"
+  install -Dm644 "${srcdir}/BRAND-ASSETS.md" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/BRAND-ASSETS.md"
+}

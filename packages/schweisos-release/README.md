@@ -1,8 +1,8 @@
 # schweisos-release
 
-Version: 0.2
-Status: Development identity implementation
-Date: 2026-07-25
+Version: 0.3
+Status: Release identity implementation
+Date: 2026-07-27
 
 `schweisos-release` provides SchweisOS distribution identity metadata.
 
@@ -53,7 +53,7 @@ From this directory:
 bash -n PKGBUILD
 makepkg --printsrcinfo
 makepkg -f
-bsdtar -tf schweisos-release-0.2.0-1-any.pkg.tar.* | sort
+bsdtar -tf schweisos-release-0.2.0-2-any.pkg.tar.* | sort
 ```
 
 Expected package payload:

@@ -144,6 +144,7 @@ required_directories=(
     iso/profiles/kde/efiboot
     iso/profiles/kde/efiboot/loader/entries
     packages
+    packages/schweisos-branding
     packages/schweisos-keyring
     packages/schweisos-mirrorlist
     packages/schweisos-pacman-config
@@ -572,6 +573,7 @@ bootstrap_host_packages=(
 )
 missing_bootstrap_packages=()
 identity_packages=(
+    schweisos-branding
     schweisos-keyring
     schweisos-mirrorlist
     schweisos-pacman-config

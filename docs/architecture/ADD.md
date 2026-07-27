@@ -107,6 +107,20 @@ The layer must preserve Arch package semantics. It integrates SchweisOS reposito
 
 Related decision: [ADR-009 Distribution Identity Packages](../adr/ADR-009-distribution-identity-packages.md).
 
+## Branding Layer
+
+SchweisOS visual identity is separate from distribution identity.
+
+Source artwork and brand guidance live under `branding/`. Runtime-ready brand
+assets are delivered by `schweisos-branding`, a small package that provides the
+icon name referenced by `LOGO=schweisos` and generic desktop icon lookup paths.
+
+`schweisos-branding` must not configure wallpapers, themes, SDDM appearance,
+Plymouth, installer pages, bootloader visuals, or KDE defaults. Those areas
+remain separate feature packages or profile decisions when they are approved.
+This keeps identity metadata, brand assets, and desktop customization from
+becoming one unreviewable package.
+
 ## Package Architecture
 
 SchweisOS packages must be boring on purpose. The first repository should contain only packages that define identity, trust, installability, and documented defaults.
@@ -117,6 +131,7 @@ Initial package categories:
 - `schweisos-keyring`: package signing trust material.
 - `schweisos-mirrorlist`: repository mirror configuration.
 - `schweisos-pacman-config`: pacman repository include and conservative defaults.
+- `schweisos-branding`: minimal runtime visual identity assets.
 - `schweisos-kde-settings`: KDE defaults through configuration files, not patched Plasma packages.
 - `schweisos-calamares-config`: future installer configuration.
 - `schweisos-gaming-meta`: optional gaming package set.
@@ -199,12 +214,12 @@ The future profile is expected under `iso/profiles/kde/` and separates these con
 | Exceptional live-only filesystem content | Minimal `airootfs/` overlay |
 | Live-medium UEFI boot configuration | `efiboot/` following supported archiso interfaces |
 | Reusable system behavior and persistent configuration | SchweisOS packages under `packages/` |
-| Source artwork and brand policy | `branding/` |
+| Source artwork and brand policy | `branding/` and `schweisos-branding` |
 | Canonical documentation | `docs/`, packaged when offline media access is required |
 
 Persistent, reusable, security-relevant, or updateable configuration belongs in packages rather than `airootfs/`. This provides pacman ownership, signatures, versioned upgrades, removal behavior, and independent validation. The overlay remains an exception for archiso-native or genuinely ephemeral live-session files.
 
-Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, properly licensed branding, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Exact contents require their own package design; the profile should only list the resulting package names.
+Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
 
 The ISO must eventually provide:
 

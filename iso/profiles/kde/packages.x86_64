@@ -47,6 +47,7 @@ distrobox
 podman
 
 # SchweisOS distribution identity
+schweisos-branding
 schweisos-keyring
 schweisos-mirrorlist
 schweisos-pacman-config

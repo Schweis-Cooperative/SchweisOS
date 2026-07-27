@@ -8,6 +8,7 @@ repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
 database_name='schweisos'
 
 expected_packages=(
+  schweisos-branding
   schweisos-keyring
   schweisos-mirrorlist
   schweisos-pacman-config

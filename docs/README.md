@@ -38,14 +38,15 @@ This directory is the source of truth for SchweisOS engineering decisions. Impor
 
 - `docs/`: living engineering documentation
 - `build/`: machine-readable build policy inputs
-- `iso/`: future archiso profile and live media configuration
-- `packages/`: future SchweisOS PKGBUILD sources
-- `tools/`: future maintainer-facing tools
-- `scripts/`: future small automation scripts
+- `iso/`: archiso profile and live media configuration
+- `packages/`: SchweisOS PKGBUILD sources
+- `tools/`: maintainer-facing tools
+- `scripts/`: small automation scripts
 - `release/`: local staged release artifacts, not a publication endpoint
-- `branding/`: future visual identity assets
+- `branding/`: source visual identity assets
 - `website/`: future project website source
 - `.github/`: future CI and GitHub metadata
-- `tests/`: future smoke, packaging, ISO, and regression tests
+- `tests/`: smoke, packaging, ISO, and regression tests
 
-The implementation directories are intentionally empty except for README placeholders until their corresponding design documents are approved.
+Implementation directories should remain small and aligned with their approved
+design documents.

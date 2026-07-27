@@ -3,12 +3,12 @@
   "id": "schweisos",
   "name": "SchweisOS",
   "version": {
-    "name": "Development",
-    "id": "development",
-    "build_id": "development"
+    "name": "0.2.0",
+    "id": "0.2.0",
+    "build_id": "0.2.0"
   },
-  "phase": "development",
-  "release_channel": "development",
+  "phase": "bootstrap",
+  "release_channel": "rolling",
   "base": {
     "id": "arch",
     "policy": "upstream-first"

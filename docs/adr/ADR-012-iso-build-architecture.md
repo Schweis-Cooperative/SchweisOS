@@ -171,7 +171,7 @@ The following classes of files are expected to become official SchweisOS package
 | Distribution identity, trust, mirror discovery, and repository integration | Existing `schweisos-release`, `schweisos-keyring`, `schweisos-mirrorlist`, and `schweisos-pacman-config` packages |
 | KDE system defaults and project-owned desktop configuration | `schweisos-kde-settings` |
 | Installer configuration, modules, and desktop launcher | `schweisos-calamares-config` or another installer package approved by the installer ADR |
-| Reusable release-ready visual assets | A future `schweisos-branding` package, after licensing and brand-use rules are satisfied |
+| Reusable release-ready visual assets | `schweisos-branding` for minimal runtime identity assets; broader visual customization requires separate package design |
 | Offline user and troubleshooting documentation | A future `schweisos-docs` package or another documented documentation package |
 | Substantial live-session services, policies, or helpers | A narrowly scoped future live-configuration package if ordinary upstream packages cannot provide them |
 

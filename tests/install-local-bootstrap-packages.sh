@@ -8,6 +8,7 @@ repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
 database_name='schweisos'
 
 expected_packages=(
+  schweisos-branding
   schweisos-keyring
   schweisos-mirrorlist
   schweisos-pacman-config
@@ -18,7 +19,7 @@ usage() {
   cat <<'EOF'
 Usage: install-local-bootstrap-packages.sh [options]
 
-Install the four locally published bootstrap package files together inside a
+Install the locally published bootstrap package files together inside a
 disposable pacman root.
 
 Options:
@@ -98,8 +99,8 @@ while IFS= read -r descriptor; do
   package_artifacts+=("${database_dir}/${package_filename}")
 done < <(bsdtar -tf "${repository_database}" | sed -n '/\/desc$/p')
 
-[[ "${#package_artifacts[@]}" -eq 4 ]] || \
-  fail "expected four published package artifacts, found ${#package_artifacts[@]}"
+[[ "${#package_artifacts[@]}" -eq "${#expected_packages[@]}" ]] || \
+  fail "expected ${#expected_packages[@]} published package artifacts, found ${#package_artifacts[@]}"
 
 tmp_dir="$(mktemp -d)"
 case "${tmp_dir}" in
@@ -147,7 +148,9 @@ fi
 "${pacman_runner[@]}" \
   --config "${pacman_config}" \
   --noconfirm \
+  --assume-installed archlinux-keyring=1 \
   --assume-installed filesystem=1 \
+  --assume-installed hicolor-icon-theme=1 \
   --assume-installed pacman=1 \
   -U "${package_artifacts[@]}"
 
@@ -167,6 +170,9 @@ expected_payload=(
   etc/os-release
   usr/lib/schweisos-release/os-release
   usr/lib/schweisos-release/release.json
+  usr/share/icons/hicolor/1024x1024/apps/schweisos.png
+  usr/share/pixmaps/schweisos.png
+  usr/share/schweisos/branding/schweisos-logo.png
   usr/share/doc/schweisos-keyring/future-keys.md
   usr/share/doc/schweisos-keyring/keyring-policy.md
   usr/share/pacman/keyrings

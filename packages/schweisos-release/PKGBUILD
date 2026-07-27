@@ -3,7 +3,7 @@
 
 pkgname=schweisos-release
 pkgver=0.2.0
-pkgrel=1
+pkgrel=2
 pkgdesc='SchweisOS distribution identity metadata'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
@@ -13,8 +13,8 @@ source=(
   'os-release'
   'release.json'
 )
-sha256sums=('aead22c20f9497dcf6b8c11e4926affaeb0c8c5acdb68b373e5692efc9db240f'
-            'f191e2042f685db100e998aaa34857eda2a010b47264dd0ac14b7997fcf6a6f2')
+sha256sums=('55d3bcef641fcb0255b1d4d2f2a804364aa763de0f5d2a3765987ed5a34fa15f'
+            'd13b58653016cc58f6c9d2718b42690846a7f79d689caa3b443bdc2a9beecada')
 
 package() {
   install -Dm644 "${srcdir}/os-release" \

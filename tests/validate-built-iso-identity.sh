@@ -13,7 +13,7 @@ fail() {
 (( $# == 1 )) || fail 'usage: validate-built-iso-identity.sh ISO_PATH'
 iso_path="$1"
 
-for tool in awk bsdtar cmp find git grep makepkg mkdir mktemp readlink rm sort unsquashfs; do
+for tool in awk bsdtar chmod cmp cp find git grep makepkg mkdir mktemp readlink rm sort unsquashfs; do
   command -v "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
 done
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
@@ -52,8 +52,18 @@ squashfs_path="${install_dir}/x86_64/airootfs.sfs"
 iso_squashfs_count="$(bsdtar -tf "$iso_path" | awk -v expected="$squashfs_path" '$0 == expected { count++ } END { print count + 0 }')"
 [[ "$iso_squashfs_count" == 1 ]] || fail "ISO does not contain exactly one ${squashfs_path}"
 
-tmp_dir="$(mktemp -d)"
-trap 'rm -rf -- "$tmp_dir"' EXIT
+tmp_parent="${TMPDIR:-${project_root}/work/validators/built-iso-identity}"
+[[ -n "$tmp_parent" && "$tmp_parent" != / ]] || fail 'unsafe temporary directory parent'
+mkdir -p -- "$tmp_parent"
+[[ -d "$tmp_parent" && ! -L "$tmp_parent" ]] || fail 'temporary directory parent is missing or unsafe'
+tmp_parent="$(readlink -f -- "$tmp_parent")"
+tmp_dir="$(mktemp -d "${tmp_parent%/}/schweisos-built-iso-identity.XXXXXXXXXX")"
+cleanup() {
+  [[ -n "${tmp_dir:-}" && -d "$tmp_dir" ]] || return 0
+  chmod -R u+rwX -- "$tmp_dir" 2>/dev/null || true
+  rm -rf -- "$tmp_dir"
+}
+trap cleanup EXIT
 bsdtar -xOf "$iso_path" "$squashfs_path" >"${tmp_dir}/airootfs.sfs"
 [[ -s "${tmp_dir}/airootfs.sfs" ]] || fail 'extracted airootfs SquashFS is empty'
 unsquashfs -no-progress -d "${tmp_dir}/rootfs" "${tmp_dir}/airootfs.sfs" >/dev/null

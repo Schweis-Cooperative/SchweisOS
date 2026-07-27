@@ -132,6 +132,13 @@ ownership, portable `/etc/os-release` link, and effective SchweisOS fields:
 tests/validate-built-iso-identity.sh out/iso/schweisos-2026.07.27-x86_64.iso
 ```
 
+The validator extracts the ISO SquashFS and can need several GiB of temporary
+space. By default it uses the ignored repository work area
+`work/validators/built-iso-identity/` instead of a possibly small `/tmp` tmpfs.
+Set `TMPDIR=/path/to/disk-backed-temp` only when the build host needs a
+different disposable extraction location. The script removes only its own
+per-run temporary directory.
+
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:
 

@@ -136,7 +136,10 @@ For each signed repository generation:
    local source with `activate-build-repository.sh`;
 11. run the existing build validators and `SCHWEISOS_ISO_BUILD_MODE=release`
    build entry point;
-12. run `validate-built-iso-identity.sh` before any boot test or release.
+12. run `validate-built-iso-identity.sh` before any boot test or release. The
+    validator extracts the ISO SquashFS into its own disposable directory under
+    the ignored repository `work/` tree by default; set `TMPDIR` only when the
+    build host requires another disk-backed extraction location.
 
 Failures stop at their current trust boundary. No failed candidate is published
 and no validator has a permissive production mode.

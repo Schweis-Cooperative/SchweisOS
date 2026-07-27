@@ -65,8 +65,12 @@ package set before a VM or hardware test begins.
 installed package identity remains byte-for-byte package-owned; the built ISO
 identity must equal that package identity plus exactly the upstream Archiso
 `IMAGE_ID` and `IMAGE_VERSION` fields derived from the validated profile.
-Manual SquashFS evidence may support investigation, but it does not replace the
-automated post-build validator.
+Because the check extracts the ISO SquashFS, it uses the ignored repository
+`work/validators/built-iso-identity/` directory by default rather than assuming
+that `/tmp` has enough space for a full live root filesystem. Build hosts may set
+`TMPDIR` to another disk-backed disposable location. Manual SquashFS evidence may
+support investigation, but it does not replace the automated post-build
+validator.
 
 ## Gaming Validation
 

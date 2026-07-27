@@ -1,8 +1,8 @@
 # SchweisOS Release Artifacts
 
-Version: 0.1
-Status: Active
-Date: 2026-07-25
+Version: 0.2
+Status: Staging contract; naming reconciliation required
+Date: 2026-07-27
 
 This directory is the canonical local staging root for SchweisOS release
 artifacts.
@@ -28,3 +28,8 @@ pipeline.
 This directory is not a publication endpoint. It is local release evidence that
 can later feed signing, repository publication, mirror synchronization, and
 GitHub release steps.
+
+The existing stager requires date-based ISO filenames, while the current build
+produces a semantic-version filename. Release staging is therefore blocked
+until the canonical version/naming contract is reconciled in the implementation
+and tests. Manual renaming is not an accepted workaround.

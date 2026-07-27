@@ -2,12 +2,12 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.2
+Version: 0.3
 Status: Local bootstrap workflow
-Date: 2026-07-25
+Date: 2026-07-27
 
-These tools build and inspect a local `repo-add` repository for the four
-Distribution Identity Layer packages.
+These tools build and inspect a local `repo-add` repository for the five
+current SchweisOS bootstrap packages.
 
 This workflow is deliberately separate from the canonical publication flow in
 [Package Repository Workflow](../../docs/release/repository-workflow.md). It
@@ -24,6 +24,7 @@ is directly consumable by pacman and Archiso without manual copy steps.
 
 ## Supported Packages
 
+- `schweisos-branding`
 - `schweisos-release`
 - `schweisos-keyring`
 - `schweisos-mirrorlist`
@@ -71,7 +72,7 @@ This operation creates directories only. It does not build or publish packages.
 
 ### publish-local-packages.sh
 
-Builds the four packages into `packages/`, copies the selected artifacts into
+Builds the five packages into `packages/`, copies the selected artifacts into
 `schweisos/os/x86_64/`, and runs `repo-add`:
 
 ```bash
@@ -97,7 +98,7 @@ output must never be uploaded or relabeled as an official repository.
 
 ### validate-local-repo.sh
 
-Validates layout ownership, the exact four-package repository membership,
+Validates layout ownership, the exact five-package repository membership,
 database-to-artifact references, absence of signing material, and absence of
 network endpoints:
 
@@ -117,7 +118,7 @@ tests/install-local-bootstrap-packages.sh
 ```
 
 The test requires the `schweisos` database and fails with a diagnostic if
-publication has not happened. It installs the four unsigned local package files
+publication has not happened. It installs the five unsigned local package files
 as one transaction into a temporary pacman root, then verifies that the installed
 SchweisOS pacman snippet and mirrorlist parse through `pacman-conf`. The
 disposable configuration:
@@ -130,12 +131,12 @@ disposable configuration:
 
 The transaction assumes the external Arch `filesystem` and `pacman`
 dependencies are present rather than installing an Arch base system into the
-test root. It verifies only the four SchweisOS packages and their mutual file
+test root. It verifies only the five SchweisOS packages and their mutual file
 and dependency compatibility.
 
 The local-file exception is not official repository policy and does not test
-the future signed client trust path. It exists only because Sprint B prohibits
-fake signing material while requiring package co-installation validation.
+the separate production signed-client path. It exists only for unsigned local
+package co-installation validation.
 
 ## Configuration
 

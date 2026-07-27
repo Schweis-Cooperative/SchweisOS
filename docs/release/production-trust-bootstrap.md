@@ -1,15 +1,21 @@
 # SchweisOS Production Trust Bootstrap
 
-Version: 1.0
-Status: Automation complete; physical ceremony pending
-Date: 2026-07-26
+Version: 1.1
+Status: Public trust admitted; operational pipeline implemented
+Date: 2026-07-27
 
 ## Purpose
 
-This runbook joins the accepted signing policy, the initial keyring admission,
+This runbook joins the accepted signing policy, keyring admission,
 the restricted signing host, the signed repository, pacman trust, and ISO
-validation. It adds no alternate trust path. Missing ceremony output is a hard
-gate.
+validation. It adds no alternate trust path.
+
+The initial physical ceremony and public-bundle admission are complete. The
+repository tracks the production public certificate and metadata, while
+private primary material and revocation material remain outside the repository.
+Operational package and database roles have been exercised through the signed
+repository pipeline. Future rotations must repeat the same fail-closed gates;
+ceremony completion is not permission to bypass them.
 
 ## Dependency Graph
 
@@ -99,17 +105,21 @@ Once that one-time trust bridge is complete, pacman requires trusted package
 and database signatures. Every later keyring package must be authenticated by
 a currently trusted SchweisOS package-signing subkey.
 
-## Release Execution After Ceremony
+## Release Execution
 
-After the admitted keyring change has been reviewed and committed:
+The initial operational handoff imports both encrypted role exports into the
+restricted signing home, runs `smoke-test-signing-home.sh`, and returns the
+still-encrypted transfer medium to offline custody. Portable software deletion
+is not represented as secure flash-media erasure. This handoff is repeated only
+for a new signing host or an approved key rotation, not for every repository
+generation.
 
-1. import both encrypted operational exports on the restricted signing host,
-   run `smoke-test-signing-home.sh`, then unmount and return the still-encrypted
-   transfer medium to offline custody; portable software deletion is not
-   represented as secure flash-media erasure;
+For each signed repository generation:
+
+1. validate the admitted public bundle and restricted signing-home inventory;
 2. build the current packages in the canonical clean Arch build environment;
-3. transfer immutable package artifacts and digests to the restricted signing
-   host;
+3. transfer immutable package artifacts and approved digests to the restricted
+   signing host;
 4. sign each package with `sign-artifact.sh --role package`;
 5. create a new repository candidate from the signed artifacts;
 6. transfer the complete immutable candidate to the signing host because the
@@ -120,8 +130,8 @@ After the admitted keyring change has been reviewed and committed:
    host with both approved digests, then return the complete candidate and both
    detached metadata signatures to the repository host;
 8. validate the complete repository and run the disposable pacman client gate;
-9. install the admitted trust on the build host through the one-time bootstrap
-   command;
+9. confirm the build host has the admitted trust; use the one-time bootstrap
+   command only for a new trust root;
 10. activate the complete signed generation at the build host's configured
    local source with `activate-build-repository.sh`;
 11. run the existing build validators and `SCHWEISOS_ISO_BUILD_MODE=release`
@@ -130,3 +140,8 @@ After the admitted keyring change has been reviewed and committed:
 
 Failures stop at their current trust boundary. No failed candidate is published
 and no validator has a permissive production mode.
+
+The repository proves the tooling and admitted public inventory, but it cannot
+prove the continuing physical custody of offline media or operational host
+separation. Those are operator-controlled security obligations and must be
+audited before a public release.

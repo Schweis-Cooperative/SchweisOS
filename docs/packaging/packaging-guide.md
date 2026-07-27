@@ -1,8 +1,8 @@
 # SchweisOS Packaging Guide
 
-Version: 0.1
+Version: 0.2
 Status: Draft
-Date: 2026-07-24
+Date: 2026-07-27
 
 ## Goal
 
@@ -10,15 +10,18 @@ SchweisOS packaging exists to add a small distribution layer on top of Arch, not
 
 ## Package Policy
 
-Allowed early packages:
+Current packages:
 
-- Release identity.
-- Keyring.
-- Mirror list.
-- pacman repository configuration.
+- `schweisos-release`: distribution identity and version metadata.
+- `schweisos-keyring`: admitted production public trust only.
+- `schweisos-mirrorlist`: SchweisOS repository discovery.
+- `schweisos-pacman-config`: SchweisOS-owned pacman policy/include.
+- `schweisos-branding`: minimal runtime logo assets.
+
+Allowed next packages:
+
 - Installer configuration.
 - Desktop defaults.
-- Minimal runtime branding assets with explicit brand-use documentation.
 - Small meta packages.
 - Documentation packages.
 
@@ -40,18 +43,32 @@ Minimum expectations:
 - No network access during build functions.
 - `namcap` review before repository publication when practical.
 - No hidden telemetry, remote configuration, or post-install surprises.
+- Every installed path has one package owner; package boundaries must not
+  overlap.
+- Private keys, operational secret-key exports, fake fingerprints, and
+  development trust anchors are prohibited package sources.
+- Package versions admitted to a release repository must match the reviewed
+  source and be signed by the authorized package role.
 
 References: [PKGBUILD manual](https://man.archlinux.org/man/PKGBUILD.5.en), [PKGBUILD - ArchWiki](https://wiki.archlinux.org/title/PKGBUILD).
 
 ## Repository Policy
 
-The SchweisOS binary repository must be signed. Packages should be promoted through clear stages:
+The SchweisOS binary repository is signed. Packages are promoted through clear
+stages:
 
 1. Local build.
-2. Local install test.
-3. VM install test.
-4. Repository staging.
-5. Signed release repository.
+2. Package and payload validation.
+3. Package-role signing and immediate verification.
+4. Atomic repository candidate construction with `repo-add`.
+5. Database-role signing and immediate verification.
+6. Complete repository validation.
+7. Disposable pacman trust validation.
+8. Atomic build-repository activation.
+
+The unsigned local bootstrap repository is only a package-coexistence
+development tool. It must never be promoted, mirrored, or relabeled as a
+release repository.
 
 ## Meta Package Policy
 

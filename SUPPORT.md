@@ -2,8 +2,8 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-SchweisOS is currently in the bootstrap engineering phase. It is not ready for
-end-user installation on a primary machine.
+SchweisOS is currently in pre-alpha engineering. Development images exist, but
+the project is not ready for end-user installation on a primary machine.
 
 ## Where to Ask
 

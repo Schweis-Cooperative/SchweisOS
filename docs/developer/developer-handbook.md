@@ -1,8 +1,8 @@
 # SchweisOS Developer Handbook
 
-Version: 0.1
+Version: 0.2
 Status: Draft
-Date: 2026-07-24
+Date: 2026-07-27
 
 ## Engineering Principles
 
@@ -15,6 +15,9 @@ Date: 2026-07-24
 - Do not ship telemetry by default.
 
 ## Workflow
+
+Before substantial work, declare `Working Mode`, `Current Goal`,
+`Deliverables`, and `Out of Scope`.
 
 Every substantial change should follow this sequence:
 
@@ -33,11 +36,14 @@ Every substantial change should follow this sequence:
 ## Repository Areas
 
 - `docs/` owns project truth.
-- `iso/` will own archiso profile work.
-- `packages/` will own PKGBUILD sources.
-- `tools/` will own maintainer utilities.
-- `scripts/` will own small automation scripts.
-- `tests/` will own repeatable validation.
+- `iso/` owns Archiso profile work.
+- `packages/` owns PKGBUILD sources.
+- `tools/` owns maintainer utilities.
+- `scripts/` owns build and artifact entry points.
+- `tests/` owns repeatable validation.
+- `branding/` owns source visual identity.
+- `build/` owns machine-readable build-host policy.
+- `release/` is a generated local staging boundary, not a publication endpoint.
 
 ## Commit Rules
 
@@ -65,3 +71,10 @@ Even with one developer, review should be simulated before merge:
 ## Definition of Done
 
 A change is done only when implementation, documentation, and relevant validation are complete.
+
+## Context Handoff
+
+A new engineering conversation must begin with the reusable
+[SchweisOS Master Prompt](MASTER_PROMPT.md). The prompt is a discovery and
+safety contract, not a substitute for reading the repository at its current
+commit.

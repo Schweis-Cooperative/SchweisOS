@@ -1,8 +1,8 @@
 # Tests Directory
 
-Version: 0.5
+Version: 0.6
 Status: Active
-Date: 2026-07-26
+Date: 2026-07-27
 
 This directory owns repository-level validation that crosses package boundaries.
 
@@ -72,9 +72,9 @@ Run it from any directory inside the repository:
 tests/validate-repository-bootstrap.sh
 ```
 
-`install-local-bootstrap-packages.sh` validates that the four locally published
-identity packages can coexist in one isolated pacman database and filesystem
-root. It requires a previously created local `schweisos` repository:
+`install-local-bootstrap-packages.sh` validates that the five locally
+published bootstrap packages can coexist in one isolated pacman database and
+filesystem root. It requires a previously created local `schweisos` repository:
 
 ```bash
 tools/repo/publish-local-packages.sh
@@ -117,18 +117,19 @@ its exact bootstrap state or its complete admitted production state:
 tests/validate-keyring-package.sh
 ```
 
-`validate-signed-repository-client.sh` becomes runnable after ceremony
-admission and repository signing. It creates a disposable pacman trust root,
-syncs only through a supplied `file://` repository, requires trusted package
-and database signatures, downloads every repository package, and leaves host
-pacman state untouched.
+`validate-signed-repository-client.sh` validates a completed signed repository.
+It creates a disposable pacman trust root, uses the supplied `file://`
+SchweisOS repository and read-only official Arch repositories only for
+dependency resolution, requires trusted package and database signatures,
+downloads every SchweisOS repository package, tests role rejection, and leaves
+host pacman state untouched.
 
 `validate-built-iso-identity.sh` performs post-build SquashFS forensics without
 booting a VM. It proves the installed `schweisos-release` version, package
 ownership, portable `/etc/os-release` link, and effective SchweisOS fields:
 
 ```bash
-tests/validate-built-iso-identity.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
+tests/validate-built-iso-identity.sh out/iso/schweisos-0.2.0-x86_64.iso
 ```
 
 `validate-release-artifacts.sh` validates one prepared release artifact

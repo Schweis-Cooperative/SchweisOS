@@ -1,8 +1,8 @@
 # SchweisOS Build Documentation
 
-Version: 0.5
+Version: 0.6
 Status: Active
-Date: 2026-07-25
+Date: 2026-07-27
 
 This directory documents the canonical SchweisOS ISO build workflow. The
 orchestration wrapper is `scripts/build-iso.sh`; upstream `mkarchiso` remains
@@ -237,17 +237,21 @@ snapshotting and measured comparisons belong to later release engineering.
 
 ## Expected Outputs
 
-A successful future build produces:
+A successful build for the current `0.2.0` profile produces:
 
-- `out/iso/schweisos-YYYY.MM.DD-x86_64.iso`
-- `out/iso/schweisos-YYYY.MM.DD-x86_64.iso.sha256`
+- `out/iso/schweisos-0.2.0-x86_64.iso`
+- `out/iso/schweisos-0.2.0-x86_64.iso.sha256`
 - `work/iso/kde/build_date`
 - reusable content in `cache/pacman/`
 - `logs/iso/build-<id>.log`
 - `logs/iso/build-<id>.json`
 - `logs/iso/build-manifest.json`
 
-Release-ready artifact staging is a separate post-build step:
+Release-ready artifact staging is a separate post-build subsystem. Its current
+`YYYY.MM`/date-based filename contract predates the versioned Archiso profile
+and does not accept `schweisos-0.2.0-x86_64.iso`. The mismatch is fail-closed:
+do not rename or copy an ISO to bypass it. Reconcile the two contracts and
+update their tests before using this example:
 
 ```sh
 scripts/create-release-artifacts.sh \
@@ -260,6 +264,11 @@ The release artifact step is intentionally not invoked when build validation
 fails and never calls `mkarchiso` itself. It creates `release/YYYY.MM/`
 atomically, validates the staged directory, and refuses to overwrite existing
 release evidence.
+
+The production package/repository signing workflow is operational, but ISO
+detached signing is not yet integrated into this artifact stage. A successful
+build and checksum therefore remain development evidence, not a publishable
+release by themselves.
 
 After `mkarchiso`, exactly one `.iso` must exist in `out/iso/`. It must have the
 profile-derived name, be a regular non-symlink file, and have a positive byte
@@ -324,16 +333,14 @@ The ISO consumes already published, trusted package artifacts. Package build,
 repository publication, ISO construction, signing, and release publication
 remain separate workflows.
 
-## Remaining Blockers Before Sprint D
+## Current Build Readiness
 
 The ordered validators, dependency manifest, failure manifest, invocation
-path, and post-build checks are implemented. The current classified readiness
-snapshot is maintained in
-[`environment-readiness.md`](environment-readiness.md). The profile validator
-passes independently on the development system, but the environment gate
-intentionally blocks the build.
+path, and post-build checks have produced and inspected a development ISO. The
+original pre-build blocker snapshot is preserved as historical evidence in
+[`environment-readiness.md`](environment-readiness.md).
 
-Sprint D execution requires all of the following:
+Every clean build still requires all of the following:
 
 - A canonical Arch Linux x86_64 host.
 - A fully synchronized and upgraded system.
@@ -342,13 +349,12 @@ Sprint D execution requires all of the following:
 - Host-installed `schweisos-keyring`, `schweisos-mirrorlist`, and
   `schweisos-pacman-config` through an approved bootstrap process.
 - A real signed SchweisOS repository source resolving every profile package,
-  including all four identity packages, under `Required TrustedOnly`.
+  including all five SchweisOS packages, under `Required TrustedOnly`.
 - Both validators passing, empty or explicitly cleaned work state, and no
   pre-existing ISO or ISO checksum in `out/iso/`.
 
 No placeholder endpoint, fake mirror, unsigned production shortcut, or
-signature-policy exception may satisfy these conditions. Until they pass, the
-repository is not ready to execute Sprint D, even though its local dry-run
-failure path is complete.
+signature-policy exception may satisfy these conditions. A previous successful
+build is never evidence that a later host or repository state may skip them.
 
 Related decision: [ADR-013 ISO Build Workflow](../adr/ADR-013-iso-build-workflow.md).

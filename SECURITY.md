@@ -2,8 +2,8 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-SchweisOS is in the bootstrap engineering phase. It does not yet publish stable
-release artifacts.
+SchweisOS is in pre-alpha engineering. It has production package/repository
+trust tooling but does not yet publish supported stable release artifacts.
 
 ## Reporting Security Issues
 
@@ -21,7 +21,7 @@ No stable SchweisOS version is currently supported.
 
 | Version | Supported |
 | --- | --- |
-| Bootstrap documentation and prototypes | No stable support |
+| Pre-alpha source, packages, and development images | No stable support |
 
 ## Security Principles
 

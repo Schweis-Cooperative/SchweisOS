@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.3
-Status: Draft, bootstrap baseline
-Date: 2026-07-26
+Version: 0.4
+Status: Active pre-alpha architecture
+Date: 2026-07-27
 
 ## Scope
 
@@ -21,6 +21,21 @@ The answer must be technical:
 - Gaming-oriented package selection and validation without unverified tweaks.
 - Privacy and security defaults without telemetry or forced accounts.
 - Living documentation that makes the distribution maintainable by one developer at first.
+
+## Implementation Snapshot
+
+Architecture and implementation are deliberately separated. As of
+2026-07-27, the repository contains a KDE Archiso profile, five SchweisOS
+packages, production public trust material, role-separated signing tools, a
+signed local production repository workflow, disposable client validation, and
+a development ISO build pipeline.
+
+The following remain unimplemented or incomplete: an installer, installed
+system boot configuration, public mirrors and publication, ISO detached
+signing, Secure Boot, disk encryption, Flatpak/AUR user workflows, gaming
+integration, Distrobox automation, and release-grade hardware/boot
+qualification. This snapshot records implementation state; ADRs remain the
+authority for accepted design.
 
 ## System Layers
 
@@ -205,7 +220,7 @@ SchweisOS builds live and installation media with the upstream `archiso` package
 
 The ISO is a downstream consumer of validated Arch and SchweisOS package repositories. ISO assembly must not implicitly build SchweisOS packages or become an alternative package publication path.
 
-The future profile is expected under `iso/profiles/kde/` and separates these concerns:
+The current profile lives under `iso/profiles/kde/` and separates these concerns:
 
 | Concern | Architectural owner |
 | --- | --- |
@@ -221,14 +236,12 @@ Persistent, reusable, security-relevant, or updateable configuration belongs in 
 
 Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
 
-The ISO must eventually provide:
+The current live image provides UEFI boot, KDE Plasma, networking, and a
+compact troubleshooting/user utility set. The ISO must still gain:
 
-- A UEFI-first boot path using archiso-supported defaults where practical.
-- A functional KDE Plasma live session.
-- Networking required for installation and support.
 - A clear installer launcher.
 - Offline access to essential installation and troubleshooting documentation.
-- A compact set of storage, networking, log, hardware, and boot troubleshooting tools.
+- Release-grade boot and hardware validation.
 
 The live-media boot path is separate from installed-system boot policy. systemd-boot remains the installed-system default on UEFI systems, while archiso owns how the medium boots. A `syslinux/` profile area is relevant only if legacy BIOS support is approved later. BIOS support and Secure Boot are not first-release requirements.
 
@@ -296,7 +309,9 @@ References: [Flatpak sandbox permissions](https://docs.flatpak.org/en/latest/san
 
 ## Distrobox Architecture
 
-Distrobox is a strategic compatibility layer, not a first-release core requirement.
+Distrobox is a strategic compatibility layer. `distrobox` and rootless
+`podman` are present in the current live package set, but SchweisOS does not
+yet provide automation, curated containers, or a GUI workflow.
 
 The long-term SchweisOS idea is:
 
@@ -308,9 +323,9 @@ The long-term SchweisOS idea is:
 
 Important boundary: Distrobox is not a strong sandbox. It is designed to integrate containers with the host, including graphical apps and user files. Therefore SchweisOS must describe it as compatibility containment, not as a privacy or security boundary.
 
-First supported stance:
+Supported progression:
 
-- V1: document and optionally install `distrobox` + `podman`.
+- V1: install and document `distrobox` + `podman` without custom automation.
 - V1.x: provide curated templates for Ubuntu LTS, Debian Stable, and Fedora current.
 - V2: consider a GUI workflow after CLI behavior, security warnings, storage layout, and updates are tested.
 
@@ -342,8 +357,10 @@ The first security boundary is packaging trust, not marketing language.
 
 SchweisOS must:
 
-- Sign its own packages.
-- Ship a dedicated keyring package.
+- Continue signing its own packages and repository databases with separate
+  authorized operational roles.
+- Maintain the dedicated `schweisos-keyring` trust package and documented
+  rotation/revocation process.
 - Provide ISO checksums and signatures.
 - Avoid telemetry by default.
 - Require explicit user action for bug reports.
@@ -355,22 +372,26 @@ Detailed policy: [Security Model](../security/security-model.md).
 
 ## Development Sequence
 
-1. Documentation baseline.
-2. Repository and package policy.
-3. Keyring and release identity package design.
-4. Minimal local package repository.
-5. Minimal archiso profile.
-6. KDE live ISO smoke boot.
-7. Installer prototype with UEFI + systemd-boot + ext4.
-8. Optional Btrfs installer path.
-9. Flatpak integration.
-10. AUR first-use warning workflow.
-11. Gaming meta package and test matrix.
-12. Distrobox CLI support and documentation.
-13. Release signing and mirror process.
-14. Alpha ISO.
+The documentation, identity package set, trust bootstrap, signed local
+repository, minimal KDE profile, and first development ISO are complete as
+engineering foundations. The next dependency-ordered sequence is:
 
-The sequence intentionally starts with documentation and trust infrastructure before user-facing customization.
+1. Reconcile the release-artifact naming contract with the versioned ISO
+   produced by the profile.
+2. Add ISO signing and verification without placing private keys on the build
+   host.
+3. Design and implement the installer prototype for UEFI, systemd-boot, and
+   ext4.
+4. Validate a complete installation and first boot on disposable test storage.
+5. Add the optional Btrfs path after the ext4 path is reliable.
+6. Establish a public publication endpoint and mirror operations.
+7. Implement Flatpak integration and the AUR first-use warning workflow.
+8. Add a measured gaming package/test matrix.
+9. Document the installed Distrobox/Podman baseline before any automation.
+10. Complete alpha release qualification and known-issues documentation.
+
+Trust infrastructure remains ahead of user-facing customization so later
+features can consume an auditable release path.
 
 ## Open Questions
 

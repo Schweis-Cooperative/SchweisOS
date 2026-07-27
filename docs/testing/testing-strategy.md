@@ -1,8 +1,8 @@
 # SchweisOS Testing Strategy
 
-Version: 0.2
+Version: 0.3
 Status: Draft
-Date: 2026-07-25
+Date: 2026-07-27
 
 ## Goal
 
@@ -34,13 +34,13 @@ Repository bootstrap validation has three deliberately separate levels:
   pacman snippets, and signature policy
 - local repository validation checks the generated local `schweisos` layout,
   exact package membership, and `repo-add` database references
-- disposable-root validation installs the four local package files in one
+- disposable-root validation installs the five local package files in one
   isolated pacman transaction without using host configuration or keyrings
 
 The disposable local-file test proves package compatibility, not production
-trust. Installation through a signed repository remains a release gate after
-real signing policy, approved public keys, and signed repository databases
-exist.
+trust. The separate signed-repository client test bootstraps the admitted
+SchweisOS public trust, keeps Arch trust for upstream dependencies, requires
+trusted package and database signatures, and verifies wrong-role rejection.
 
 ## Manual Test Evidence
 
@@ -52,6 +52,23 @@ Each release candidate should record:
 - Install path selected.
 - Result.
 - Known failures.
+
+Post-build SquashFS inspection is mandatory but does not replace a boot test.
+It must verify the installed `schweisos-release` version, effective
+`/etc/os-release` link and fields, package ownership, and the expected live
+package set before a VM or hardware test begins.
+
+## Known Validator Reconciliation
+
+`tests/validate-built-iso-identity.sh` currently requires the effective
+SchweisOS `os-release` in the built image to be byte-for-byte equal to the
+package source. ADR-009 also records upstream Archiso's supported behavior of
+appending `IMAGE_ID` and `IMAGE_VERSION` to the resolved identity file. These
+contracts cannot both hold when Archiso adds the fields. The validator must be
+changed to compare the package-owned canonical fields while separately
+validating the two Archiso image fields. Until that correction is reviewed,
+manual SquashFS evidence does not make the contradictory automated check a
+valid release gate.
 
 ## Gaming Validation
 

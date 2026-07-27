@@ -2,15 +2,15 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.1
-Status: Bootstrap ownership package
-Date: 2026-07-25
+Version: 0.2
+Status: Local endpoint ownership package
+Date: 2026-07-27
 
 `schweisos-mirrorlist` defines ownership of the pacman-compatible mirror file
 that will eventually list official SchweisOS repository endpoints.
 
-No production SchweisOS repository or mirror exists yet. The installed file
-therefore uses a local development bootstrap endpoint:
+No public SchweisOS endpoint or mirror exists yet. The installed file therefore
+uses a local build-host endpoint:
 
 ```ini
 Server = file:///var/lib/schweisos/local-repo/$repo/os/$arch
@@ -32,13 +32,14 @@ The package does not create repositories, sign packages, configure pacman
 repository sections, rank mirrors, contact network services, modify Arch Linux
 mirrorlists, or edit `/etc/pacman.conf`. It has no install script.
 
-The local development endpoint remains unusable for official installation until
-the path contains already-signed SchweisOS packages, signed repository
-databases, and public keys accepted by `schweisos-keyring`.
+The endpoint is usable only when the operator has atomically activated a
+fully signed repository generation at that path. It is not an end-user
+publication mechanism.
 
 ## Relationship With schweisos-keyring
 
-`schweisos-keyring` provides the future public keys and trust metadata used to verify SchweisOS package signatures.
+`schweisos-keyring` provides the admitted production public certificate and
+trust metadata used to verify SchweisOS package signatures.
 
 `schweisos-mirrorlist` only tells pacman where repository files may be downloaded from. It does not decide whether downloaded packages are trusted.
 
@@ -67,9 +68,10 @@ This means future mirror operators should not need to be trusted with package in
 
 Mirror publication should happen in stages:
 
-1. Finalize signing and publication policy.
-2. Operate the canonical repository and validate its signed artifacts.
-3. Add its real endpoint through a reviewed package update.
+1. Approve public publication and mirror operating policy.
+2. Operate the canonical publication endpoint and validate its signed
+   artifacts.
+3. Add that endpoint through a reviewed package update.
 4. Document mirror eligibility and synchronization rules.
 5. Add official or community mirrors only after those rules are operational.
 
@@ -127,8 +129,7 @@ tests/validate-repository-bootstrap.sh
 - Live repository availability.
 - Mirror synchronization.
 - Repository database download.
-- Package signature verification from the endpoint.
-- Repository database signature verification.
+- Public endpoint availability and signature validation.
 - Failover behavior across multiple mirrors.
 
 These require real SchweisOS repository infrastructure.
@@ -137,10 +138,9 @@ These require real SchweisOS repository infrastructure.
 
 Architectural risks:
 
-- An included `[schweisos]` repository has a local development endpoint but no
-  usable trust path until signed artifacts and approved public keys exist. This
-  deliberate failure state prevents accidental use of unsigned bootstrap
-  infrastructure.
+- An included `[schweisos]` repository has only a local endpoint. It remains
+  unusable unless a complete signed generation and admitted public trust are
+  present, which prevents accidental use of unsigned bootstrap output.
 - A future endpoint update must preserve the file's narrow ownership and pacman
   backup semantics.
 
@@ -153,8 +153,8 @@ Unnecessary complexity:
 
 Future improvements:
 
-- Replace or supplement the local development endpoint with the canonical
-  endpoint only after signing, publication, and ownership are operational.
+- Replace or supplement the local endpoint only after public publication and
+  endpoint ownership are operational.
 - Add official mirrors after mirror policy and synchronization are documented.
 - Add health-check metadata only after a mirror maintenance process exists.
 - Add community mirror sections only after trust and support boundaries are documented.

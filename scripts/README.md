@@ -1,8 +1,8 @@
 # Scripts Directory
 
-Version: 0.3
+Version: 0.4
 Status: Active
-Date: 2026-07-25
+Date: 2026-07-27
 
 This directory contains small orchestration scripts. Scripts must preserve the
 ownership boundaries established by the project ADRs and must not hide package
@@ -20,8 +20,8 @@ validate-build-environment.sh
   -> artifact and checksum validation
 ```
 
-Every gate is mandatory and a failure prevents later steps. A successful
-future run requires exactly one expected, non-empty ISO in a previously empty
+Every gate is mandatory and a failure prevents later steps. A successful run
+requires exactly one expected, non-empty ISO in a previously empty
 `out/iso/`, creates and verifies its SHA256 sidecar, and records optional
 BLAKE2b-512 in the manifest when `b2sum` is available.
 
@@ -36,6 +36,8 @@ From the repository root:
 ```sh
 ./scripts/build-iso.sh
 ```
+
+The current profile produces `out/iso/schweisos-0.2.0-x86_64.iso`.
 
 To discard only the generated `work/iso/kde/` state before building:
 
@@ -54,6 +56,11 @@ host and repository prerequisites.
 requires an existing successful ISO build output and build manifest, then
 creates a new immutable `release/YYYY.MM/` directory with checksums, manifests,
 notes, and validation evidence.
+
+Its current date-based filename contract does not match the current
+semantic-version ISO filename. The command below documents the implemented
+contract, but must not be used with a renamed copy of the current ISO. The
+contract and tests require a deliberate reconciliation first.
 
 From the repository root:
 

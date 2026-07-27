@@ -18,6 +18,16 @@ Substantial work should declare one Working Mode:
 - Release Engineer: repository, CI/CD, signing, release process, metadata.
 - Reviewer: critical review only, no implementation.
 
+The declaration must also state:
+
+- `Current Goal`
+- `Deliverables`
+- `Out of Scope`
+
+Work must remain consistent with that scope. An architectural change updates
+the relevant ADR and ADD before or with implementation; a review request does
+not authorize implementation.
+
 ## Contribution Licensing
 
 SchweisOS uses a lightweight inbound-equals-outbound contribution policy.

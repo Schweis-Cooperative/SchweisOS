@@ -1,13 +1,13 @@
 # SchweisOS Release Artifact Pipeline
 
-Version: 0.1
-Status: Active
-Date: 2026-07-25
+Version: 0.2
+Status: Implemented, naming reconciliation required
+Date: 2026-07-27
 
 This document defines the repository-local release artifact pipeline for
-SchweisOS. It becomes active only after a future successful ISO build. It does
-not build images, sign files, publish repositories, upload artifacts, or create
-GitHub releases.
+SchweisOS. It consumes an already successful ISO build. It does not build
+images, sign files, publish repositories, upload artifacts, or create GitHub
+releases.
 
 ## Artifact Flow
 
@@ -25,6 +25,13 @@ successful mkarchiso build
 The current implementation is `scripts/create-release-artifacts.sh`. It accepts
 an existing ISO and successful build manifest, prepares an immutable local
 release directory, validates it, and exits nonzero on any failure.
+
+The implementation still enforces the original date-based
+`schweisos-YYYY.MM.DD-x86_64.iso` contract. The current Archiso profile and
+build wrapper produce `schweisos-0.2.0-x86_64.iso`. Consequently, this stage is
+intentionally unusable for the current ISO until one canonical naming/version
+contract is selected and both implementation test suites are updated. Manual
+renames and copied aliases are prohibited.
 
 ## Canonical Layout
 
@@ -98,11 +105,12 @@ The manifest must not contain hostnames, usernames, machine IDs, home
 directories, IP addresses, private keys, credentials, Git remotes, repository
 endpoints, or signing material.
 
-## Future Integration Points
+## Integration Points
 
-Signing will be added after the official release-signing policy and keys exist.
-The signing step belongs after artifact validation and before external
-publication.
+Production package and repository signing exist as separate workflows. ISO
+detached signing is not implemented. It belongs after artifact validation and
+before external publication, using a documented role and verification path
+that does not place offline primary material on the build host.
 
 Repository publication and mirror synchronization are separate release
 engineering steps. They consume already validated and signed artifacts; they do

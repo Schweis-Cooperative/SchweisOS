@@ -1,8 +1,8 @@
 # SchweisOS
 
-Version: 0.1
-Status: Bootstrap documentation
-Date: 2026-07-24
+Version: 0.2
+Status: Pre-alpha engineering
+Date: 2026-07-27
 
 SchweisOS is an independent Arch-based Linux distribution by Schweis Project.
 
@@ -12,9 +12,23 @@ SchweisOS is not a new kernel, a new package manager, or an Arch rewrite. It is 
 
 ## Current Status
 
-This repository is in the project bootstrap phase.
+SchweisOS has moved beyond a documentation-only bootstrap. The repository now
+contains:
 
-It currently contains engineering documentation only. It intentionally does not yet contain an archiso profile, Calamares configuration, package sources, build scripts, or release automation.
+- Five SchweisOS-owned packages for identity, trust, repository integration,
+  and minimal branding.
+- A KDE Archiso profile and a fail-closed ISO build wrapper.
+- Production public trust material, role-separated signing tooling, and signed
+  repository tooling.
+- Disposable pacman, package, repository, ISO-profile, release-artifact, and
+  built-image validators.
+- A development ISO whose SquashFS identity has been verified as SchweisOS.
+
+This is still a pre-alpha engineering state. There is no installer, public
+mirror network, public release channel, Secure Boot support, disk encryption,
+or stable release. A generated ISO is not a public release until the documented
+release gates, manual boot testing, verification material, and publication
+process have all completed.
 
 ## Core Principles
 
@@ -33,6 +47,7 @@ It currently contains engineering documentation only. It intentionally does not 
 - [Architecture Decision Records](docs/adr/README.md)
 - [Product Roadmap](docs/roadmap/product-roadmap.md)
 - [Developer Handbook](docs/developer/developer-handbook.md)
+- [New Conversation Master Prompt](docs/developer/MASTER_PROMPT.md)
 - [Packaging Guide](docs/packaging/packaging-guide.md)
 - [Security Model](docs/security/security-model.md)
 - [Release Engineering Guide](docs/release/release-engineering-guide.md)
@@ -40,7 +55,24 @@ It currently contains engineering documentation only. It intentionally does not 
 
 ## Repository Layout
 
-SchweisOS starts as a monorepo so a single maintainer can keep architecture, packaging policy, ISO work, tests, and documentation aligned. The layout is designed so larger areas can be split into separate repositories later without renaming core concepts.
+SchweisOS uses a monorepo so a single maintainer can keep architecture,
+packaging, ISO work, validation, release engineering, branding, and
+documentation aligned. Canonical source areas are:
+
+```text
+branding/   source brand assets and policy
+build/      machine-readable build-host requirements
+docs/       architecture, policy, operations, and developer documentation
+iso/        upstream-compatible Archiso profiles
+packages/   SchweisOS-owned package sources
+scripts/    build and release-artifact entry points
+tests/      fail-closed repository-local validators
+tools/      repository, release, and signing workflows
+website/    reserved website boundary
+```
+
+Generated `cache/`, `logs/`, `out/`, `work/`, package build directories, and
+operational private-key exports are not repository source.
 
 See [docs/README.md](docs/README.md) and [ADR-001 Repository Strategy](docs/adr/ADR-001-repository-strategy.md).
 

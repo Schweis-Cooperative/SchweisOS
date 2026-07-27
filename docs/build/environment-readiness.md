@@ -1,17 +1,18 @@
 # Build Environment Readiness
 
-Version: 1.0
-Status: Active blocker register
-Date: 2026-07-25
+Version: 1.1
+Status: Historical snapshot; blockers resolved
+Date: 2026-07-27
 
 ## Purpose
 
-This document classifies every failure reported while preparing the first
-SchweisOS ISO build environment. It is an evidence snapshot, not a waiver.
-Sprint D2 may proceed only when the full build dependency, environment, and ISO
-profile validators all pass on the canonical host.
+This document preserves the failures observed before the first successful
+SchweisOS ISO build. It is historical evidence, not the current readiness
+source and not a waiver. The active contract is
+[`docs/build/README.md`](README.md) plus the repository validators.
 
-The observation was made read-only on an x86_64 EndeavourOS development host.
+The original observation was made read-only on an x86_64 EndeavourOS
+development host.
 No package database was refreshed, no package was installed, no trust setting
 was changed, and no `mkarchiso` execution occurred.
 
@@ -109,13 +110,18 @@ validate-build-dependencies.sh
 the expanded sequence above makes the ownership boundary explicit. A failure
 at any gate prevents `mkarchiso`.
 
-## Sprint D2 Readiness
+## Resolution
 
-Repository-side dependency policy and validation are ready for transfer to a
-canonical build host. Sprint D2 execution is **not ready** because the current
-host is noncanonical and stale, the Archiso toolchain is incomplete, and the
-production SchweisOS repository trust and publication path do not exist.
+The recorded blockers were later resolved without weakening the gates:
 
-No code-only change can legitimately remove those blockers. They require build
-host preparation and approved release infrastructure. Until then, producing an
-ISO remains prohibited by the fail-closed workflow.
+- ISO builds moved to a canonical Arch Linux x86_64 host with the manifest
+  dependencies installed and current package databases.
+- The five SchweisOS packages were built, signed, and admitted to a signed
+  local production repository.
+- Production public trust was admitted through `schweisos-keyring`.
+- Disposable pacman validation preserved separate Arch and SchweisOS trust.
+- The build-host, profile, repository, and post-build identity gates passed,
+  and a versioned KDE development ISO was produced and inspected.
+
+This resolution does not imply a public mirror, ISO signature, installer,
+stable release, or public release readiness. Those remain separate gates.

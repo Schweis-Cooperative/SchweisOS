@@ -54,11 +54,11 @@ repositories and includes `/etc/pacman.d/schweisos.conf` for SchweisOS-owned
 repositories. That include file is owned by `schweisos-pacman-config`; its
 dependencies provide the SchweisOS keyring and mirrorlist.
 
-A future build host must install `schweisos-pacman-config` before running
+A build host must install `schweisos-pacman-config` before running
 `mkarchiso`. Its dependencies install `schweisos-keyring` and
-`schweisos-mirrorlist`. The profile then resolves all four identity packages,
-including `schweisos-release`, from the configured SchweisOS repository into
-the image.
+`schweisos-mirrorlist`. The profile resolves the four Distribution Identity
+Layer packages plus `schweisos-branding` from the configured SchweisOS
+repository into the image.
 
 The profile does not embed a repository URL, mirrorlist, signing key, or a copy
 of the packaged repository snippet.
@@ -76,10 +76,9 @@ The dedicated validator owns the complete profile contract, including package
 ordering, permissions, UEFI and mkinitcpio inputs, airootfs minimality,
 host-independent pacman parsing, symlink targets, and secret scanning.
 
-The profile contract is complete, but a real build still requires an Arch build
-host with current archiso tooling and a reachable SchweisOS package repository.
-The repository must provide the four identity packages under the signature
-policy selected by `schweisos-pacman-config`. Until real signing keys and the
-official repository exist, an official repository-backed build is not
-possible. ISO construction and boot testing remain separate release-engineering
-work.
+The profile contract and repository-backed build path have produced a
+development ISO on a canonical Arch build host. A clean build still requires
+current Archiso tooling, the five signed SchweisOS packages, the signed
+repository database in release mode, and every validator to pass. Construction,
+post-build SquashFS inspection, manual boot testing, installer testing, ISO
+signing, and publication remain distinct release-engineering gates.

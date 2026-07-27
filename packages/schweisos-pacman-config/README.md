@@ -2,9 +2,9 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.1
-Status: Bootstrap repository configuration
-Date: 2026-07-25
+Version: 0.2
+Status: Active local repository configuration
+Date: 2026-07-27
 
 `schweisos-pacman-config` provides the pacman repository configuration snippet for SchweisOS-owned package repositories.
 
@@ -57,17 +57,18 @@ This requires signatures for both packages and repository databases and accepts
 only fully trusted signing keys. The snippet does not inherit a weaker global
 database policy and never uses `Never`, `Optional`, or `TrustAll`.
 
-The bootstrap keyring contains no production key material, so this configuration
-is not yet operational for repository installation. It is designed to fail
-closed until signed repository artifacts and approved public keys exist.
+The production keyring and signed local repository workflow are operational.
+The configuration still fails closed when the configured path lacks a complete
+signed generation or the client has not admitted SchweisOS trust.
 
 ## Relationship With schweisos-keyring
 
-`schweisos-keyring` provides SchweisOS-owned public signing keys and trust metadata.
+`schweisos-keyring` provides the SchweisOS production public certificate and
+trust metadata.
 
 This package depends on `schweisos-keyring` so the package relationship is
-explicit. The current bootstrap keyring grants no trust; production public keys
-will be introduced only after the official release-signing policy is finalized.
+explicit. Trust bootstrap, rotation, and revocation remain separate
+release-engineering operations.
 
 This package does not install, import, revoke, or generate keys.
 
@@ -131,23 +132,18 @@ tests/validate-repository-bootstrap.sh
 
 ## What Cannot Be Validated Yet
 
-- Real repository database download.
-- Real package signature verification.
-- Real repository database signature verification.
-- Interaction with a populated `schweisos-keyring`.
-- End-to-end installation from the future official endpoint.
+- End-to-end installation from a future public endpoint.
 - Mirror failover.
 
-These require official SchweisOS repository infrastructure and real signing keys.
+These require public SchweisOS repository and mirror infrastructure.
 
 ## Self Review
 
 Architectural risks:
 
-- If an administrator includes this file before real signed infrastructure
+- If an administrator includes this file before a complete signed repository
   exists, pacman operations against `[schweisos]` will fail because the
-  development endpoint does not provide a trusted signed repository. This is
-  the intended fail-closed bootstrap behavior.
+  configured path is incomplete. This is the intended fail-closed behavior.
 
 Unnecessary complexity:
 
@@ -159,5 +155,5 @@ Unnecessary complexity:
 Future improvements:
 
 - Add installer documentation describing when `/etc/pacman.d/schweisos.conf` is included.
-- Add validation against a disposable pacman root after real keyring and repository infrastructure exist.
+- Continue validating each repository generation in a disposable pacman root.
 - Add testing and staging snippets only when those channels become operational.

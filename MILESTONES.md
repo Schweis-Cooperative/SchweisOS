@@ -37,3 +37,47 @@ This milestone does not represent a public package repository, signed repository
 Next milestone:
 
 MS-002 — First Signed Repository & First Package Installation
+
+## MS-002
+
+Title: First Signed Repository & First Package Installation
+
+Date: 2026-07-27
+
+Contributors:
+
+- Marijua
+
+Completed work:
+
+- Completed the production public-key ceremony outside the online build
+  workflow and admitted the reviewed public bundle.
+- Promoted `schweisos-keyring` from a placeholder package to the production
+  public trust package.
+- Implemented role-separated operational signing for packages and repository
+  databases.
+- Built and validated the first signed local production repository containing
+  the five current SchweisOS packages.
+- Validated repository and package signatures in a disposable pacman client
+  while preserving Arch Linux trust for upstream dependencies.
+- Implemented the KDE Archiso profile, build-host and profile gates, build
+  manifests, checksums, and post-build identity inspection.
+- Produced a development ISO and verified its SquashFS distribution identity
+  and required live package set without treating it as a public release.
+- Added the minimal runtime branding package and aligned the effective
+  `os-release` identity with SchweisOS version `0.2.0`.
+
+Architectural significance:
+
+SchweisOS now has a real public trust root, distinct operational signing roles,
+a signed repository lifecycle, and a locally consumable KDE development image.
+The image consumes signed SchweisOS packages without replacing Arch's package
+trust or package manager.
+
+This milestone does not represent a public mirror, stable release, completed
+installer, ISO signature, Secure Boot implementation, or completed manual
+hardware qualification.
+
+Next milestone:
+
+MS-003 — Installer Foundation & Installation Validation

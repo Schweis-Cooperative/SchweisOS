@@ -8,7 +8,7 @@ export PATH=/usr/bin:/bin
 
 usage() {
     cat <<'EOF'
-Usage: scripts/create-release-artifacts.sh --release-id YYYY.MM --iso PATH --build-manifest PATH [--output-root PATH] [--profile NAME]
+Usage: scripts/create-release-artifacts.sh --release-id YYYY.MM.DD --iso PATH --build-manifest PATH [--output-root PATH] [--profile NAME]
 
 Create an immutable local release artifact directory from a successful ISO
 build output. This command does not build, sign, publish, or upload anything.
@@ -111,8 +111,8 @@ while (( $# > 0 )); do
     esac
 done
 
-[[ "$release_id" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])$ ]] || \
-    fail 'release id must use YYYY.MM format'
+[[ "$release_id" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])$ ]] || \
+    fail 'release id must use YYYY.MM.DD format'
 [[ -n "$iso_input" ]] || fail '--iso is required'
 [[ -n "$build_manifest_input" ]] || fail '--build-manifest is required'
 [[ "$profile" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile name is invalid'
@@ -215,23 +215,19 @@ read -r sha256_value sha256_name <"${tmp_dir}/checksum/${sha256_file}"
 [[ "$sha256_name" == "$iso_filename" && "$sha256_value" =~ ^[0-9a-f]{64}$ ]] || \
     fail 'generated SHA256 checksum format is invalid'
 
-blake2b_value=''
-blake2b_file=''
-if type -P b2sum >/dev/null 2>&1; then
-    blake2b_file="${iso_filename}.b2"
-    (
-        cd -- "${tmp_dir}/iso"
-        b2sum -- "$iso_filename"
-    ) >"${tmp_dir}/checksum/${blake2b_file}"
-    chmod 0644 -- "${tmp_dir}/checksum/${blake2b_file}"
-    (
-        cd -- "${tmp_dir}/iso"
-        b2sum --check --strict --status -- "../checksum/${blake2b_file}"
-    ) || fail 'generated BLAKE2b-512 checksum failed verification'
-    read -r blake2b_value blake2b_name <"${tmp_dir}/checksum/${blake2b_file}"
-    [[ "$blake2b_name" == "$iso_filename" && "$blake2b_value" =~ ^[0-9a-f]{128}$ ]] || \
-        fail 'generated BLAKE2b-512 checksum format is invalid'
-fi
+blake2b_file="${iso_filename}.b2"
+(
+    cd -- "${tmp_dir}/iso"
+    b2sum -- "$iso_filename"
+) >"${tmp_dir}/checksum/${blake2b_file}"
+chmod 0644 -- "${tmp_dir}/checksum/${blake2b_file}"
+(
+    cd -- "${tmp_dir}/iso"
+    b2sum --check --strict --status -- "../checksum/${blake2b_file}"
+) || fail 'generated BLAKE2b-512 checksum failed verification'
+read -r blake2b_value blake2b_name <"${tmp_dir}/checksum/${blake2b_file}"
+[[ "$blake2b_name" == "$iso_filename" && "$blake2b_value" =~ ^[0-9a-f]{128}$ ]] || \
+    fail 'generated BLAKE2b-512 checksum format is invalid'
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 release_manifest="${tmp_dir}/manifests/release-manifest.json"
@@ -282,9 +278,7 @@ notes_path="${tmp_dir}/RELEASE_NOTES.md"
     printf '%s\n\n' '- Release artifacts: `pass`'
     printf 'Checksum summary:\n\n'
     printf '%s\n' "- SHA256: \`${sha256_value}\`"
-    if [[ -n "$blake2b_value" ]]; then
-        printf '%s\n' "- BLAKE2b-512: \`${blake2b_value}\`"
-    fi
+    printf '%s\n' "- BLAKE2b-512: \`${blake2b_value}\`"
     printf '\nThis summary is generated from local release evidence. It is not a signature or publication approval.\n'
 } >"$notes_path"
 chmod 0644 -- "$notes_path"
@@ -312,8 +306,6 @@ staging_parent=''
 printf 'Release artifacts prepared: %s\n' "${release_dir#"$repo_root"/}"
 printf '  ISO: iso/%s\n' "$iso_filename"
 printf '  SHA256: checksum/%s\n' "$sha256_file"
-if [[ -n "$blake2b_file" ]]; then
-    printf '  BLAKE2b-512: checksum/%s\n' "$blake2b_file"
-fi
+printf '  BLAKE2b-512: checksum/%s\n' "$blake2b_file"
 printf '  Manifest: manifests/release-manifest.json\n'
 printf '  Notes: RELEASE_NOTES.md\n'

@@ -59,10 +59,10 @@ machine usernames, machine IDs, network identifiers, or secret-key material.
 
 ## Private Custody
 
-- Two LUKS2-encrypted offline copies created and verified:
-- Copies held in separate physical locations:
+- Two LUKS2-encrypted offline copies created and verified before admission:
+- Copies held in separate physical custody locations before admission:
 - Primary revocation certificate recovery copy verified:
-- Operational subkeys exported to encrypted transfer media:
+- Operational subkeys exported to encrypted transfer media and kept outside Git:
 
 ## Completion
 

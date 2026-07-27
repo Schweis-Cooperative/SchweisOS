@@ -2,8 +2,8 @@ name: Architecture decision
 description: Propose or revise an Architecture Decision Record.
 title: "adr: "
 labels:
-  - area: architecture
-  - type: decision
+  - "area: architecture"
+  - "type: decision"
 body:
   - type: textarea
     id: context

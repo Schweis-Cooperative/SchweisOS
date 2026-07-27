@@ -15,7 +15,7 @@ require_tool() {
     type -P "$1" >/dev/null 2>&1 || fail "required tool not found: $1"
 }
 
-for tool in chmod cp date find git mkdir mktemp rm sed sha256sum stat; do
+for tool in b2sum chmod cp date find git mkdir mktemp rm sed sha256sum stat; do
     require_tool "$tool"
 done
 
@@ -38,7 +38,8 @@ trap cleanup EXIT
 pass_count=0
 
 current_commit="$(git -C "$project_root" rev-parse --verify HEAD)"
-iso_name='schweisos-2026.07.25-x86_64.iso'
+release_id='2026.07.27'
+iso_name="schweisos-${release_id}-x86_64.iso"
 
 write_fixture() {
     local case_dir=$1
@@ -82,12 +83,12 @@ prepare_release() {
     local case_dir="${tmp_root}/${case_name}"
     write_fixture "$case_dir"
     "$creator" \
-        --release-id 2026.07 \
+        --release-id "$release_id" \
         --iso "${case_dir}/out/${iso_name}" \
         --build-manifest "${case_dir}/logs/build-manifest.json" \
         --output-root "${case_dir}/release" \
         >/dev/null
-    printf '%s\n' "${case_dir}/release/2026.07"
+    printf '%s\n' "${case_dir}/release/${release_id}"
 }
 
 expect_success() {
@@ -128,7 +129,7 @@ release_dir="$(prepare_release empty-iso)"
 expect_failure 'empty ISO' "$validator" "$release_dir"
 
 release_dir="$(prepare_release duplicate-iso)"
-cp -- "${release_dir}/iso/${iso_name}" "${release_dir}/iso/schweisos-2026.07.26-x86_64.iso"
+cp -- "${release_dir}/iso/${iso_name}" "${release_dir}/iso/schweisos-2026.07.28-x86_64.iso"
 expect_failure 'duplicate ISO' "$validator" "$release_dir"
 
 release_dir="$(prepare_release corrupt-manifest)"
@@ -158,7 +159,7 @@ case_dir="${tmp_root}/empty-input"
 write_fixture "$case_dir"
 : >"${case_dir}/out/${iso_name}"
 expect_failure 'creator rejects empty ISO' "$creator" \
-    --release-id 2026.07 \
+    --release-id "$release_id" \
     --iso "${case_dir}/out/${iso_name}" \
     --build-manifest "${case_dir}/logs/build-manifest.json" \
     --output-root "${case_dir}/release"
@@ -166,13 +167,13 @@ expect_failure 'creator rejects empty ISO' "$creator" \
 case_dir="${tmp_root}/duplicate-output"
 write_fixture "$case_dir"
 "$creator" \
-    --release-id 2026.07 \
+    --release-id "$release_id" \
     --iso "${case_dir}/out/${iso_name}" \
     --build-manifest "${case_dir}/logs/build-manifest.json" \
     --output-root "${case_dir}/release" \
     >/dev/null
 expect_failure 'creator refuses existing release' "$creator" \
-    --release-id 2026.07 \
+    --release-id "$release_id" \
     --iso "${case_dir}/out/${iso_name}" \
     --build-manifest "${case_dir}/logs/build-manifest.json" \
     --output-root "${case_dir}/release"

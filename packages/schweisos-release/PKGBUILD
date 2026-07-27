@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 pkgname=schweisos-release
-pkgver=0.2.0
-pkgrel=2
+pkgver=2026.07.27
+pkgrel=1
 pkgdesc='SchweisOS distribution identity metadata'
 arch=('any')
 url='https://github.com/Schweis-Cooperative/SchweisOS'
@@ -13,8 +13,8 @@ source=(
   'os-release'
   'release.json'
 )
-sha256sums=('55d3bcef641fcb0255b1d4d2f2a804364aa763de0f5d2a3765987ed5a34fa15f'
-            'd13b58653016cc58f6c9d2718b42690846a7f79d689caa3b443bdc2a9beecada')
+sha256sums=('aba949f80782a00da5934cbd57bbfaed8ba6345328f6bf669ba98d7babc1f391'
+            '797c042154889471561429c067863fcc41eae5677157a31593cea1e816f5a71a')
 
 package() {
   install -Dm644 "${srcdir}/os-release" \

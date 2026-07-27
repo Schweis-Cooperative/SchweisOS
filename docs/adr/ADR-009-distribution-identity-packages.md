@@ -50,8 +50,10 @@ install script, runtime rewrite, or fork of Arch's `filesystem` package.
 Arch's `filesystem` package remains the owner of `/usr/lib/os-release`, which is
 the upstream fallback. On live media, upstream `mkarchiso` resolves the
 `/etc/os-release` link and adds profile-derived `IMAGE_ID` and `IMAGE_VERSION`
-to the SchweisOS-owned file. Installed-system release metadata remains entirely
-package-owned and does not depend on ISO overlays.
+to the SchweisOS-owned file. This is the only accepted live-image difference:
+installed-system release metadata remains byte-for-byte package-owned, while
+built ISO validation requires the package identity plus exactly those two
+Archiso image fields.
 
 `schweisos-keyring` owns SchweisOS package signing trust material.
 

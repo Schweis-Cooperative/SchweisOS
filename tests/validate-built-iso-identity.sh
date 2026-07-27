@@ -37,7 +37,17 @@ fi
 install_dir="$(
   SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n" "$install_dir"' _ "$profile"
 )"
+profile_identity="$(
+  SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n%s\n" "$iso_name" "$iso_version"' _ "$profile"
+)"
+mapfile -t profile_identity_lines <<<"$profile_identity"
+(( ${#profile_identity_lines[@]} == 2 )) || fail 'profile identity metadata is incomplete'
+profile_iso_name="${profile_identity_lines[0]}"
+profile_iso_version="${profile_identity_lines[1]}"
 [[ "$install_dir" =~ ^[a-z0-9._-]+$ ]] || fail 'invalid Archiso install directory'
+[[ "$profile_iso_name" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile IMAGE_ID is unsafe'
+[[ "$profile_iso_version" == "$source_pkgver" ]] || \
+  fail 'profile IMAGE_VERSION must match schweisos-release pkgver'
 squashfs_path="${install_dir}/x86_64/airootfs.sfs"
 iso_squashfs_count="$(bsdtar -tf "$iso_path" | awk -v expected="$squashfs_path" '$0 == expected { count++ } END { print count + 0 }')"
 [[ "$iso_squashfs_count" == 1 ]] || fail "ISO does not contain exactly one ${squashfs_path}"
@@ -73,8 +83,17 @@ effective_link="${rootfs}/etc/os-release"
   fail 'effective /etc/os-release has the wrong target'
 effective_identity="${rootfs}/usr/lib/schweisos-release/os-release"
 [[ -f "$effective_identity" && ! -L "$effective_identity" ]] || fail 'effective SchweisOS identity target is missing'
-cmp -s "$source_identity" "$effective_identity" || \
-  fail 'effective ISO identity payload differs byte-for-byte from the canonical source'
+if grep -Eq '^IMAGE_(ID|VERSION)=' "$source_identity"; then
+  fail 'canonical schweisos-release identity must not contain live-image fields'
+fi
+expected_live_identity="${tmp_dir}/expected-live-os-release"
+cp -- "$source_identity" "$expected_live_identity"
+{
+  printf 'IMAGE_ID=%s\n' "$profile_iso_name"
+  printf 'IMAGE_VERSION=%s\n' "$profile_iso_version"
+} >>"$expected_live_identity"
+cmp -s "$expected_live_identity" "$effective_identity" || \
+  fail 'effective ISO identity must equal schweisos-release identity plus Archiso IMAGE_ID and IMAGE_VERSION'
 
 identity_value() {
   local file="$1"
@@ -102,6 +121,10 @@ identity_value() {
   fail 'effective VERSION does not match schweisos-release pkgver'
 [[ "$(identity_value "$effective_identity" VERSION_ID)" == "$source_pkgver" ]] || \
   fail 'effective VERSION_ID does not match schweisos-release pkgver'
+[[ "$(identity_value "$effective_identity" IMAGE_ID)" == "$profile_iso_name" ]] || \
+  fail 'effective IMAGE_ID does not match the Archiso profile'
+[[ "$(identity_value "$effective_identity" IMAGE_VERSION)" == "$profile_iso_version" ]] || \
+  fail 'effective IMAGE_VERSION does not match the Archiso profile'
 
 printf 'Built ISO identity validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"
@@ -110,3 +133,6 @@ printf '  /etc/os-release -> ../usr/lib/schweisos-release/os-release\n'
 printf '  identity: %s %s\n' \
   "$(identity_value "$effective_identity" PRETTY_NAME)" \
   "$(identity_value "$effective_identity" VERSION_ID)"
+printf '  image: %s %s\n' \
+  "$(identity_value "$effective_identity" IMAGE_ID)" \
+  "$(identity_value "$effective_identity" IMAGE_VERSION)"

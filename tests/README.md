@@ -129,18 +129,18 @@ booting a VM. It proves the installed `schweisos-release` version, package
 ownership, portable `/etc/os-release` link, and effective SchweisOS fields:
 
 ```bash
-tests/validate-built-iso-identity.sh out/iso/schweisos-0.2.0-x86_64.iso
+tests/validate-built-iso-identity.sh out/iso/schweisos-2026.07.27-x86_64.iso
 ```
 
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:
 
 ```bash
-tests/validate-release-artifacts.sh release/YYYY.MM
+tests/validate-release-artifacts.sh release/YYYY.MM.DD
 ```
 
 It checks the canonical release layout, exactly one ISO, mandatory SHA256
-verification, optional BLAKE2b-512 verification, manifest consistency, release
+verification, mandatory BLAKE2b-512 verification, manifest consistency, release
 notes, unexpected files, permissions, symlink attacks, path traversal, and
 private-information patterns.
 

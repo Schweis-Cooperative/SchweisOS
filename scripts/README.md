@@ -37,7 +37,7 @@ From the repository root:
 ./scripts/build-iso.sh
 ```
 
-The current profile produces `out/iso/schweisos-0.2.0-x86_64.iso`.
+The current profile produces `out/iso/schweisos-2026.07.27-x86_64.iso`.
 
 To discard only the generated `work/iso/kde/` state before building:
 
@@ -54,19 +54,18 @@ host and repository prerequisites.
 
 `create-release-artifacts.sh` owns post-build release artifact staging. It
 requires an existing successful ISO build output and build manifest, then
-creates a new immutable `release/YYYY.MM/` directory with checksums, manifests,
-notes, and validation evidence.
+creates a new immutable `release/YYYY.MM.DD/` directory with checksums,
+manifests, notes, and validation evidence.
 
-Its current date-based filename contract does not match the current
-semantic-version ISO filename. The command below documents the implemented
-contract, but must not be used with a renamed copy of the current ISO. The
-contract and tests require a deliberate reconciliation first.
+It uses the same `YYYY.MM.DD` release identifier as `schweisos-release`, the
+Archiso profile, the ISO filename, and release validation. SHA256 and
+BLAKE2b-512 checksum files are both mandatory in staged release evidence.
 
 From the repository root:
 
 ```sh
 ./scripts/create-release-artifacts.sh \
-  --release-id YYYY.MM \
+  --release-id YYYY.MM.DD \
   --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
   --build-manifest logs/iso/build-manifest.json
 ```

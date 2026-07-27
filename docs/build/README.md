@@ -237,33 +237,36 @@ snapshotting and measured comparisons belong to later release engineering.
 
 ## Expected Outputs
 
-A successful build for the current `0.2.0` profile produces:
+A successful build for the current release profile produces:
 
-- `out/iso/schweisos-0.2.0-x86_64.iso`
-- `out/iso/schweisos-0.2.0-x86_64.iso.sha256`
+- `out/iso/schweisos-2026.07.27-x86_64.iso`
+- `out/iso/schweisos-2026.07.27-x86_64.iso.sha256`
 - `work/iso/kde/build_date`
 - reusable content in `cache/pacman/`
 - `logs/iso/build-<id>.log`
 - `logs/iso/build-<id>.json`
 - `logs/iso/build-manifest.json`
 
-Release-ready artifact staging is a separate post-build subsystem. Its current
-`YYYY.MM`/date-based filename contract predates the versioned Archiso profile
-and does not accept `schweisos-0.2.0-x86_64.iso`. The mismatch is fail-closed:
-do not rename or copy an ISO to bypass it. Reconcile the two contracts and
-update their tests before using this example:
+Release-ready artifact staging is a separate post-build subsystem. It consumes
+only an already successful build manifest and the profile-derived ISO filename
+using the same `YYYY.MM.DD` release identifier:
 
 ```sh
 scripts/create-release-artifacts.sh \
-  --release-id YYYY.MM \
+  --release-id YYYY.MM.DD \
   --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
   --build-manifest logs/iso/build-manifest.json
 ```
 
 The release artifact step is intentionally not invoked when build validation
-fails and never calls `mkarchiso` itself. It creates `release/YYYY.MM/`
+fails and never calls `mkarchiso` itself. It creates `release/YYYY.MM.DD/`
 atomically, validates the staged directory, and refuses to overwrite existing
 release evidence.
+
+Old local files under `out/iso/`, including older date-named ISOs, are not
+release evidence. Production ISO evidence is produced by the release pipeline
+on the approved production build host after the current commit has been pulled
+and all mandatory validators have passed.
 
 The production package/repository signing workflow is operational, but ISO
 detached signing is not yet integrated into this artifact stage. A successful
@@ -275,10 +278,11 @@ profile-derived name, be a regular non-symlink file, and have a positive byte
 size. No arbitrary minimum size is asserted before real artifacts have been
 measured.
 
-SHA256 generation and verification are mandatory. The atomic `.sha256`
-sidecar contains only the ISO basename and is verified both before and after
-placement. If `b2sum` is installed, a verified BLAKE2b-512 digest is recorded
-in the manifest; no second sidecar is created yet.
+SHA256 generation and verification are mandatory for ISO build output. The
+atomic `.sha256` sidecar contains only the ISO basename and is verified both
+before and after placement. If `b2sum` is installed, a verified BLAKE2b-512
+digest is recorded in the build manifest. Release artifact staging later
+requires both SHA256 and BLAKE2b-512 checksum files.
 
 ## Build Manifest
 
@@ -294,7 +298,8 @@ view. Earlier per-run evidence is not overwritten. The schema identifier is
 - Expected artifact name.
 - Environment, profile, and artifact validation states.
 - `mkarchiso` exit status when invoked.
-- Artifact basename, size, SHA256, and optional BLAKE2b-512.
+- Artifact basename, size, SHA256, and BLAKE2b-512 when available during the
+  build.
 - Text-log basename and a stable failure code.
 
 Unavailable values remain explicit JSON `null`; unreached validators use

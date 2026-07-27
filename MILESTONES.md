@@ -65,7 +65,7 @@ Completed work:
 - Produced a development ISO and verified its SquashFS distribution identity
   and required live package set without treating it as a public release.
 - Added the minimal runtime branding package and aligned the effective
-  `os-release` identity with SchweisOS version `0.2.0`.
+  `os-release` identity with the date-based SchweisOS release version.
 
 Architectural significance:
 

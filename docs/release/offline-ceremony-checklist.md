@@ -29,8 +29,8 @@ intentionally excluded because project automation owns them.
 - [ ] As a non-root ceremony account, run
   `tools/signing/create-offline-release-key.sh` from the reviewed commit,
   selecting a new directory on the already mounted public-output medium for
-  `--public-output`, and enter a new, unique passphrase only through local
-  pinentry. Pass both isolation acknowledgements. Confirm after creation that
+  `--public-output`, pass `--acknowledge-airgapped`, and enter a new, unique
+  passphrase only through local pinentry. Confirm after creation that
   this GnuPG passphrase is distinct from
   both media passphrases and all online credentials; record only that the check
   passed.

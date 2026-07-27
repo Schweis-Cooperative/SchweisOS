@@ -2,7 +2,7 @@ name: Feature request
 description: Propose a new SchweisOS capability or improvement.
 title: "feature: "
 labels:
-  - type: feature
+  - "type: feature"
 body:
   - type: textarea
     id: problem

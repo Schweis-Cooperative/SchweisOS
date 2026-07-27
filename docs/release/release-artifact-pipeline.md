@@ -1,7 +1,7 @@
 # SchweisOS Release Artifact Pipeline
 
-Version: 0.2
-Status: Implemented, naming reconciliation required
+Version: 0.3
+Status: Implemented
 Date: 2026-07-27
 
 This document defines the repository-local release artifact pipeline for
@@ -26,12 +26,10 @@ The current implementation is `scripts/create-release-artifacts.sh`. It accepts
 an existing ISO and successful build manifest, prepares an immutable local
 release directory, validates it, and exits nonzero on any failure.
 
-The implementation still enforces the original date-based
-`schweisos-YYYY.MM.DD-x86_64.iso` contract. The current Archiso profile and
-build wrapper produce `schweisos-0.2.0-x86_64.iso`. Consequently, this stage is
-intentionally unusable for the current ISO until one canonical naming/version
-contract is selected and both implementation test suites are updated. Manual
-renames and copied aliases are prohibited.
+The canonical SchweisOS release identifier is `YYYY.MM.DD`. The
+`schweisos-release` package version, Archiso `iso_version`, ISO filename,
+release artifact directory, release manifest, and release validators all use
+that same identifier. Manual renames and copied aliases are prohibited.
 
 ## Canonical Layout
 
@@ -40,7 +38,7 @@ Release artifacts are staged under `release/`:
 ```text
 release/
     README.md
-    YYYY.MM/
+    YYYY.MM.DD/
         iso/
             schweisos-YYYY.MM.DD-x86_64.iso
         checksum/
@@ -54,15 +52,15 @@ release/
         RELEASE_NOTES.md
 ```
 
-The BLAKE2b-512 checksum is optional and is generated when `b2sum` is available.
-SHA256 is mandatory. Generated release directories are ignored by Git.
+SHA256 and BLAKE2b-512 checksums are mandatory for staged release artifacts.
+Generated release directories are ignored by Git.
 
 ## Ownership
 
 The ISO build wrapper owns `out/iso/`, `work/iso/kde/`, `cache/pacman/`, and
 `logs/iso/`.
 
-The release artifact pipeline owns only newly created `release/YYYY.MM/`
+The release artifact pipeline owns only newly created `release/YYYY.MM.DD/`
 directories. It never overwrites an existing release directory.
 
 Release artifact validation is owned by `tests/validate-release-artifacts.sh`.
@@ -72,7 +70,7 @@ Disposable behavior tests are owned by `tests/test-release-artifacts.sh`.
 
 The pipeline fails closed when:
 
-- The release identifier is not `YYYY.MM`.
+- The release identifier is not `YYYY.MM.DD`.
 - The target release directory already exists.
 - The ISO is missing, empty, symlinked, duplicated, or incorrectly named.
 - The build manifest is missing, unsuccessful, dirty, inconsistent, or from an
@@ -97,7 +95,7 @@ directory is removed unless the operating system prevents cleanup.
 - UTC generation and build timestamps.
 - Git commit and clean tree state.
 - ISO filename and size.
-- SHA256 and optional BLAKE2b-512 checksum values.
+- SHA256 and BLAKE2b-512 checksum values.
 - Profile, architecture, Archiso version, and `SOURCE_DATE_EPOCH`.
 - Validator versions and validator results.
 

@@ -53,7 +53,7 @@ From this directory:
 bash -n PKGBUILD
 makepkg --printsrcinfo
 makepkg -f
-bsdtar -tf schweisos-release-0.2.0-2-any.pkg.tar.* | sort
+bsdtar -tf schweisos-release-2026.07.27-1-any.pkg.tar.* | sort
 ```
 
 Expected package payload:

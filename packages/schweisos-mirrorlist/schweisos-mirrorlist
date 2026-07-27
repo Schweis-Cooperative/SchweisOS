@@ -1,16 +1,17 @@
 # This file is owned by schweisos-mirrorlist.
 #
-# Bootstrap status: no production SchweisOS repository or mirror exists yet.
-# The active entry below is a local development bootstrap endpoint. It is not a
-# production mirror, public publication endpoint, or trust anchor.
+# Bootstrap status: no public SchweisOS mirror exists yet.
+# The active entry below is a local controlled repository endpoint. It is not a
+# public publication endpoint, public mirror, or trust anchor.
 #
-# To use it, a developer or build host must explicitly stage an already-signed
-# SchweisOS repository at:
+# To use it, a developer, build host, or release host must explicitly stage a
+# complete signed SchweisOS repository at:
 #
 #   /var/lib/schweisos/local-repo/$repo/os/$arch
 #
-# Until signed packages, signed repository databases, and approved public keys
-# exist, this endpoint remains fail-closed under Required TrustedOnly policy.
+# If the staged repository is missing, incomplete, unsigned, or signed by the
+# wrong role, this endpoint remains fail-closed under Required TrustedOnly
+# policy.
 #
 # Arch Linux mirror entries belong to Arch's mirrorlist and must never be added
 # here. Community mirrors require a separately documented admission policy.

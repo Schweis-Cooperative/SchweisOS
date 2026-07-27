@@ -35,7 +35,7 @@ release_dir="$(realpath -m -- "$1")"
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || fail 'release directory is not a real directory'
 
 release_id="$(basename -- "$release_dir")"
-[[ "$release_id" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])$ ]] || fail 'release directory name must be YYYY.MM'
+[[ "$release_id" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])$ ]] || fail 'release directory name must be YYYY.MM.DD'
 
 for required_dir in iso checksum manifests logs; do
     [[ -d "${release_dir}/${required_dir}" && ! -L "${release_dir}/${required_dir}" ]] || \
@@ -97,25 +97,19 @@ valid_basename "$sha256_name" || fail 'SHA256 checksum contains path traversal'
 ) || fail 'SHA256 checksum verification failed'
 
 mapfile -t b2_files < <(find "${release_dir}/checksum" -maxdepth 1 -type f -name '*.b2' -printf '%f\n' | sort)
-if (( ${#b2_files[@]} > 1 )); then
-    fail 'multiple BLAKE2b checksum files found'
-fi
-blake2b_value=''
-blake2b_file=''
-if (( ${#b2_files[@]} == 1 )); then
-    blake2b_file="${b2_files[0]}"
-    [[ "$blake2b_file" == "${iso_filename}.b2" ]] || fail 'BLAKE2b checksum filename mismatch'
-    mapfile -t b2_lines <"${release_dir}/checksum/${blake2b_file}"
-    (( ${#b2_lines[@]} == 1 )) || fail 'BLAKE2b checksum must contain exactly one line'
-    read -r blake2b_value blake2b_name <<<"${b2_lines[0]}"
-    [[ "$blake2b_value" =~ ^[0-9a-f]{128}$ ]] || fail 'BLAKE2b checksum value is invalid'
-    [[ "$blake2b_name" == "$iso_filename" ]] || fail 'BLAKE2b checksum target mismatch'
-    valid_basename "$blake2b_name" || fail 'BLAKE2b checksum contains path traversal'
-    (
-        cd -- "${release_dir}/iso"
-        b2sum --check --strict --status -- "../checksum/${blake2b_file}"
-    ) || fail 'BLAKE2b checksum verification failed'
-fi
+(( ${#b2_files[@]} == 1 )) || fail "expected exactly one BLAKE2b checksum, found ${#b2_files[@]}"
+blake2b_file="${b2_files[0]}"
+[[ "$blake2b_file" == "${iso_filename}.b2" ]] || fail 'BLAKE2b checksum filename mismatch'
+mapfile -t b2_lines <"${release_dir}/checksum/${blake2b_file}"
+(( ${#b2_lines[@]} == 1 )) || fail 'BLAKE2b checksum must contain exactly one line'
+read -r blake2b_value blake2b_name <<<"${b2_lines[0]}"
+[[ "$blake2b_value" =~ ^[0-9a-f]{128}$ ]] || fail 'BLAKE2b checksum value is invalid'
+[[ "$blake2b_name" == "$iso_filename" ]] || fail 'BLAKE2b checksum target mismatch'
+valid_basename "$blake2b_name" || fail 'BLAKE2b checksum contains path traversal'
+(
+    cd -- "${release_dir}/iso"
+    b2sum --check --strict --status -- "../checksum/${blake2b_file}"
+) || fail 'BLAKE2b checksum verification failed'
 
 release_manifest="${release_dir}/manifests/release-manifest.json"
 build_manifest="${release_dir}/manifests/build-manifest.json"
@@ -134,13 +128,8 @@ build_manifest="${release_dir}/manifests/build-manifest.json"
 [[ "$(json_value sha256_file "$release_manifest")" == "$sha256_file" ]] || fail 'manifest SHA256 file mismatch'
 manifest_blake2b="$(json_value blake2b_512 "$release_manifest")"
 manifest_b2_file="$(json_value blake2b_512_file "$release_manifest")"
-if [[ -n "$blake2b_file" ]]; then
-    [[ "$manifest_blake2b" == "$blake2b_value" ]] || fail 'manifest BLAKE2b mismatch'
-    [[ "$manifest_b2_file" == "$blake2b_file" ]] || fail 'manifest BLAKE2b file mismatch'
-else
-    [[ "$manifest_blake2b" == null && "$manifest_b2_file" == null ]] || \
-        fail 'manifest advertises missing BLAKE2b checksum'
-fi
+[[ "$manifest_blake2b" == "$blake2b_value" ]] || fail 'manifest BLAKE2b mismatch'
+[[ "$manifest_b2_file" == "$blake2b_file" ]] || fail 'manifest BLAKE2b file mismatch'
 [[ "$(json_value profile "$release_manifest")" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile value is invalid'
 [[ "$(json_value arch "$release_manifest")" == x86_64 ]] || fail 'architecture value mismatch'
 [[ "$(json_value git_tree_state "$release_manifest")" == clean ]] || fail 'git tree state must be clean'
@@ -168,9 +157,7 @@ find "$release_dir" -printf '%P\n' | sort >"${comparison_tmp}/actual-files"
     printf 'RELEASE_NOTES.md\n'
     printf 'checksum\n'
     printf 'checksum/%s\n' "$sha256_file"
-    if [[ -n "$blake2b_file" ]]; then
-        printf 'checksum/%s\n' "$blake2b_file"
-    fi
+    printf 'checksum/%s\n' "$blake2b_file"
     printf 'iso\n'
     printf 'iso/%s\n' "$iso_filename"
     printf 'logs\n'
@@ -190,6 +177,4 @@ printf 'Release artifact validation: PASS\n'
 printf '  release: %s\n' "$release_id"
 printf '  iso: %s (%s bytes)\n' "$iso_filename" "$iso_size"
 printf '  sha256: %s\n' "$sha256_value"
-if [[ -n "$blake2b_value" ]]; then
-    printf '  blake2b_512: %s\n' "$blake2b_value"
-fi
+printf '  blake2b_512: %s\n' "$blake2b_value"

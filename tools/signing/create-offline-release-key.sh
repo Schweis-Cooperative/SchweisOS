@@ -14,7 +14,7 @@ operational_capability=''
 operational_validity=''
 gnupg_home=''
 public_output=''
-network_isolation_acknowledged=false
+physical_airgap_acknowledged=false
 clock_acknowledged=false
 
 usage() {
@@ -23,15 +23,13 @@ Usage: create-offline-release-key.sh OPTIONS
 
 Create the canonical SchweisOS offline release primary and operational signing
 subkeys. Run only during a reviewed local ceremony on a Linux host with no
-visible non-loopback network connectivity. A Bubblewrap ceremony must use a
-dedicated network namespace (bwrap --unshare-net).
+visible non-loopback network connectivity and physically removed or disabled
+network capability.
 
 Required options:
   --gnupg-home PATH          New private GnuPG home on LUKS-backed storage
   --public-output PATH       New directory for public-only ceremony output
-  --acknowledge-network-isolated
-                             Confirm network namespace isolation was reviewed
-  --acknowledge-airgapped    Confirm stronger physical isolation was reviewed
+  --acknowledge-airgapped    Confirm physical air-gap requirements were reviewed
   --acknowledge-clock-verified Confirm UTC clock was independently verified
   -h, --help                 Show this help
 
@@ -60,12 +58,8 @@ while (( $# > 0 )); do
       public_output="$2"
       shift 2
       ;;
-    --acknowledge-network-isolated)
-      network_isolation_acknowledged=true
-      shift
-      ;;
     --acknowledge-airgapped)
-      network_isolation_acknowledged=true
+      physical_airgap_acknowledged=true
       shift
       ;;
     --acknowledge-clock-verified)
@@ -84,8 +78,8 @@ done
 
 [[ -n "$gnupg_home" ]] || fail '--gnupg-home is required'
 [[ -n "$public_output" ]] || fail '--public-output is required'
-[[ "$network_isolation_acknowledged" == true ]] || \
-  fail '--acknowledge-network-isolated or --acknowledge-airgapped is required'
+[[ "$physical_airgap_acknowledged" == true ]] || \
+  fail '--acknowledge-airgapped is required after physical air-gap review'
 [[ "$clock_acknowledged" == true ]] || \
   fail '--acknowledge-clock-verified is required after independent UTC clock review'
 (( EUID != 0 )) || fail 'the offline key ceremony must not run as root'

@@ -198,7 +198,8 @@ development workflow and cannot be promoted or relabeled as release state.
 
 SigLevel:
 
-Official SchweisOS repositories must not use `TrustAll`. The intended model is trusted package signatures and, when operational, signed repository databases.
+Official SchweisOS repositories must not use `TrustAll`. The production model
+requires trusted package signatures and signed repository databases.
 
 ## Package Ownership
 

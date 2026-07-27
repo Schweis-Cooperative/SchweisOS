@@ -30,7 +30,8 @@ Environment override:
   SCHWEISOS_LOCAL_REPO_ARCH
 
 The test never edits host pacman configuration or keyrings and never installs
-to /. It does not claim to validate the future signed repository trust path.
+to /. It does not claim to validate the production signed repository trust
+path; use validate-signed-repository-client.sh for that gate.
 EOF
 }
 
@@ -224,4 +225,4 @@ printf '  root: %s (removed automatically)\n' "${root_dir}"
 printf '  packages: %s\n' "${expected_packages[*]}"
 printf '  repository endpoint: %s\n' "${parsed_servers[0]}"
 printf '  host pacman configuration and keyrings were not used.\n'
-printf '  signed repository installation remains a future release gate.\n'
+printf '  production signed repository validation is covered by validate-signed-repository-client.sh.\n'

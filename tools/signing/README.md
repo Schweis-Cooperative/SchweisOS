@@ -80,8 +80,8 @@ subkeys, or any extra key:
 tools/signing/import-operational-subkeys.sh \
   --public-bundle /path/to/schweisos-public \
   --gnupg-home /path/to/restricted-signing-home \
-  --package-export /encrypted/media/package-signing-subkey.asc \
-  --database-export /encrypted/media/database-signing-subkey.asc \
+  --package-export /encrypted/media/package-role.secret-subkeys.asc \
+  --database-export /encrypted/media/database-role.secret-subkeys.asc \
   --acknowledge-restricted-host
 ```
 

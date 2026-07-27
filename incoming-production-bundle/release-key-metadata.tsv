@@ -1,8 +1,0 @@
-schema_version	1
-uid	SchweisOS Release Authority <release@schweisos.org>
-primary_fingerprint	456E01F0160DB97F555D706A80E3E6F0A974E24D
-package_signing_fingerprint	477EF722D34A59EDF052AC7804B92FCAE55C06AB
-database_signing_fingerprint	503D53AA965764F8DD98E11BA2FF72294187D894
-primary_validity	10y
-operational_validity	1y
-created_utc	2026-07-26T13:56:12Z

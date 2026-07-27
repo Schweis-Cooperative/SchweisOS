@@ -58,17 +58,15 @@ It must verify the installed `schweisos-release` version, effective
 `/etc/os-release` link and fields, package ownership, and the expected live
 package set before a VM or hardware test begins.
 
-## Known Validator Reconciliation
+## Built-ISO Identity Contract
 
-`tests/validate-built-iso-identity.sh` currently requires the effective
-SchweisOS `os-release` in the built image to be byte-for-byte equal to the
-package source. ADR-009 also records upstream Archiso's supported behavior of
-appending `IMAGE_ID` and `IMAGE_VERSION` to the resolved identity file. These
-contracts cannot both hold when Archiso adds the fields. The validator must be
-changed to compare the package-owned canonical fields while separately
-validating the two Archiso image fields. Until that correction is reviewed,
-manual SquashFS evidence does not make the contradictory automated check a
-valid release gate.
+`tests/validate-built-iso-identity.sh` validates the installed
+`schweisos-release` package and the live image identity contract together. The
+installed package identity remains byte-for-byte package-owned; the built ISO
+identity must equal that package identity plus exactly the upstream Archiso
+`IMAGE_ID` and `IMAGE_VERSION` fields derived from the validated profile.
+Manual SquashFS evidence may support investigation, but it does not replace the
+automated post-build validator.
 
 ## Gaming Validation
 

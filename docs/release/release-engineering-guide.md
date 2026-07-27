@@ -28,16 +28,12 @@ Public releases must publish:
 - Known issues.
 - Package repository snapshot or manifest.
 
-Repository-local release artifacts are prepared under `release/YYYY.MM/` only
+Repository-local release artifacts are prepared under `release/YYYY.MM.DD/` only
 after a successful ISO build. The artifact pipeline validates exactly one ISO,
-generates and verifies mandatory SHA256 checksums, generates minimal release
-notes, writes a JSON manifest, and refuses to overwrite an existing release
-directory. It does not sign, upload, publish, or relax any trust policy.
-
-The artifact stager currently expects a date-based ISO filename, while the
-Archiso profile produces a semantic-version filename. This mismatch must be
-resolved in code and tests before the stager is used. Renaming an artifact by
-hand is not an accepted release step.
+generates and verifies mandatory SHA256 and BLAKE2b-512 checksums, generates
+minimal release notes, writes a JSON manifest, and refuses to overwrite an
+existing release directory. It does not sign, upload, publish, or relax any
+trust policy.
 
 ## ISO Build Direction
 
@@ -48,19 +44,11 @@ Reference: [Archiso - ArchWiki](https://wiki.archlinux.org/title/Archiso).
 
 ## Versioning
 
-Use human-readable release tracks:
-
-- `alpha`
-- `beta`
-- `1.0`
-- `1.x`
-- `2.x`
-
-The current profile uses a semantic version in the ISO filename and records
-timestamps separately in build manifests. Any version-scheme change must update
-the profile, build wrapper, artifact stager, validators, and release notes as
-one reviewed contract. Public releases require release notes and verification
-material.
+SchweisOS release identifiers use `YYYY.MM.DD`. The same identifier is used by
+`schweisos-release`, the Archiso profile `iso_version`, ISO filenames, release
+artifact directories, release manifests, validators, and release notes. Public
+release maturity labels such as alpha or beta belong in release notes and
+roadmap documentation, not in the machine release identifier.
 
 ## Release Gates
 

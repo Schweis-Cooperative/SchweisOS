@@ -3,7 +3,7 @@
 /work/
 /cache/
 /logs/
-/release/[0-9][0-9][0-9][0-9].??/
+/release/[0-9][0-9][0-9][0-9].??.??/
 /release/.*/
 *.iso
 *.img
@@ -24,8 +24,7 @@ openpgp-revocs.d/
 secring.gpg
 S.gpg-agent*
 offline-signing/
-package-signing-subkey.asc
-database-signing-subkey.asc
+*secret-subkeys*.asc
 
 # Logs and temporary files
 *.log

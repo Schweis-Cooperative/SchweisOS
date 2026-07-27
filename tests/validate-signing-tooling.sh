@@ -14,7 +14,7 @@ require_tool() {
   command -v "$1" >/dev/null 2>&1 || fail "required tool not found: $1"
 }
 
-for tool in bash find git grep sed stat; do
+for tool in bash find git gpg grep sed stat; do
   require_tool "$tool"
 done
 
@@ -182,6 +182,10 @@ for required_guard in \
   grep -Fq -- "$required_guard" "$ceremony_script" || \
     fail "offline ceremony guard is missing: $required_guard"
 done
+legacy_isolation_option='acknowledge-network''-isolated'
+if grep -Fq -- "$legacy_isolation_option" "$ceremony_script"; then
+  fail 'offline ceremony still accepts a legacy isolation acknowledgement'
+fi
 
 subkey_export_script="${signing_dir}/export-operational-subkeys.sh"
 for required_guard in \
@@ -198,6 +202,11 @@ for required_guard in \
   grep -Fq -- "$required_guard" "$subkey_export_script" || \
     fail "operational subkey export guard is missing: $required_guard"
 done
+grep -Fq -- 'acknowledge-airgapped' "$subkey_export_script" || \
+  fail 'operational subkey export must require physical air-gap acknowledgement'
+if grep -Fq -- "$legacy_isolation_option" "$subkey_export_script"; then
+  fail 'operational subkey export still accepts a legacy isolation acknowledgement'
+fi
 
 sign_script="${signing_dir}/sign-artifact.sh"
 grep -Fq -- '--local-user "${signing_fingerprint}!"' "$sign_script" || \
@@ -312,20 +321,57 @@ for policy_text in \
   grep -Fqi -- "$policy_text" "$policy" || fail "signing policy is missing: $policy_text"
 done
 
-private_material="$({
+private_material=''
+private_material_scan_failed=''
+private_key_markers=(
+  '-----BEGIN PGP ''PRIVATE'' KEY BLOCK-----'
+  '-----BEGIN OPENSSH ''PRIVATE'' KEY-----'
+  '-----BEGIN RSA ''PRIVATE'' KEY-----'
+  '-----BEGIN DSA ''PRIVATE'' KEY-----'
+  '-----BEGIN EC ''PRIVATE'' KEY-----'
+  '-----BEGIN ENCRYPTED ''PRIVATE'' KEY-----'
+  '-----BEGIN PRIVATE'' KEY-----'
+)
+while IFS= read -r -d '' candidate; do
+  relative_candidate="${candidate#"$project_root"/}"
+  case "$relative_candidate" in
+    */private-keys-v1.d/*|*/openpgp-revocs.d/*|*/secring.gpg|*.rev|*.p12|*.pfx|*/id_rsa|*/id_dsa|*/id_ecdsa|*/id_ed25519)
+      private_material=$relative_candidate
+      break
+      ;;
+  esac
+
+  for private_key_marker in "${private_key_markers[@]}"; do
+    if grep -IFq -- "$private_key_marker" "$candidate"; then
+      private_material=$relative_candidate
+      break 2
+    fi
+    grep_status=$?
+    if (( grep_status > 1 )); then
+      private_material_scan_failed=$relative_candidate
+      break 2
+    fi
+  done
+
+  if gpg --batch --list-packets "$candidate" 2>/dev/null |
+      grep -Eq ':(secret key|secret sub key) packet:'; then
+    private_material=$relative_candidate
+    break
+  fi
+done < <(
   find "$project_root" \
     \( -path "${project_root}/.git" \
       -o -path "${project_root}/cache" \
       -o -path "${project_root}/logs" \
       -o -path "${project_root}/out" \
       -o -path "${project_root}/release" \
-      -o -path "${project_root}/work" \) -prune -o \
-    -type f \
-    \( -path '*/private-keys-v1.d/*' \
-      -o -path '*/openpgp-revocs.d/*' \
-      -o -name secring.gpg \
-      -o -name '*.rev' \) -print -quit
-})"
+      -o -path "${project_root}/work" \
+      -o -path '*/pkg' \
+      -o -path '*/src' \) -prune -o \
+    -type f -print0
+)
+[[ -z "$private_material_scan_failed" ]] || \
+  fail "private signing material scan failed for: $private_material_scan_failed"
 [[ -z "$private_material" ]] || fail "private signing material found: $private_material"
 
 public_bundle="${project_root}/packages/schweisos-keyring/keys"
@@ -355,5 +401,5 @@ git -C "$project_root" diff --check
 
 printf 'SchweisOS signing tooling validation passed.\n'
 printf '  keyring state: %s\n' "$keyring_state"
-printf '  private material: absent\n'
+printf '  private material: absent from repository source paths\n'
 printf '  signature policy: fail-closed and role-bound\n'

@@ -108,7 +108,7 @@ At the time this handoff was written, the repository contained:
 - A UEFI-first live-medium path using upstream
   `uefi.systemd-boot`; installed-system systemd-boot policy remains installer
   architecture, not implemented installer behavior.
-- A versioned `0.2.0` development image contract.
+- A date-based `YYYY.MM.DD` release and image contract.
 - A fail-closed build wrapper that validates the host and profile before
   invoking `mkarchiso`, then records checksums and privacy-minimized manifests.
 - Separate unsigned local-bootstrap repository tooling and signed production
@@ -219,11 +219,10 @@ At the time of this handoff:
 - No public canonical endpoint or mirror network existed; the repository
   endpoint was local to controlled build/release infrastructure.
 - ISO detached signing was not integrated.
-- The release-artifact stager required a date-based ISO filename while the
-  profile produced a semantic-version filename.
-- The built-ISO identity validator required byte equality with package
-  `os-release`, while ADR-009 allowed Archiso to append `IMAGE_ID` and
-  `IMAGE_VERSION`; that contract required correction, not a workaround.
+- The release-artifact stager, profile, release package, validators, and docs
+  use one `YYYY.MM.DD` versioning strategy.
+- The built-ISO identity validator requires package-owned installed identity
+  plus the Archiso-provided `IMAGE_ID` and `IMAGE_VERSION` live-image fields.
 - No Secure Boot, full-disk encryption, BIOS path, Flatpak workflow, AUR
   first-use UX, gaming meta package/test matrix, Distrobox automation, or
   public update GUI existed.

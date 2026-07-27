@@ -8,8 +8,10 @@ export LC_ALL=C
 public_bundle=''
 offline_home=''
 output_dir=''
-network_isolation_acknowledged=false
+physical_airgap_acknowledged=false
 encrypted_output_acknowledged=false
+package_export=''
+database_export=''
 
 usage() {
   cat <<'EOF'
@@ -17,14 +19,13 @@ Usage: export-operational-subkeys.sh OPTIONS
 
 Export the package and repository-database signing subkeys from the canonical
 offline GnuPG home. Run only during a reviewed local ceremony with no visible
-non-loopback network connectivity. A Bubblewrap ceremony must use a dedicated
-network namespace (bwrap --unshare-net).
+non-loopback network connectivity and physically removed or disabled network
+capability.
 
 Required options:
   --public-bundle PATH
   --offline-gnupg-home PATH
   --output-dir PATH
-  --acknowledge-network-isolated
   --acknowledge-airgapped
   --acknowledge-encrypted-output
   --acknowledge-encrypted-media
@@ -75,12 +76,8 @@ while (( $# > 0 )); do
       output_dir="$2"
       shift 2
       ;;
-    --acknowledge-network-isolated)
-      network_isolation_acknowledged=true
-      shift
-      ;;
     --acknowledge-airgapped)
-      network_isolation_acknowledged=true
+      physical_airgap_acknowledged=true
       shift
       ;;
     --acknowledge-encrypted-output)
@@ -103,8 +100,8 @@ done
 
 [[ -n "$public_bundle" && -n "$offline_home" && -n "$output_dir" ]] || \
   fail 'all path options are required'
-[[ "$network_isolation_acknowledged" == true ]] || \
-  fail '--acknowledge-network-isolated or --acknowledge-airgapped is required'
+[[ "$physical_airgap_acknowledged" == true ]] || \
+  fail '--acknowledge-airgapped is required after physical air-gap review'
 [[ "$encrypted_output_acknowledged" == true ]] || \
   fail '--acknowledge-encrypted-output or --acknowledge-encrypted-media is required'
 (( EUID != 0 )) || fail 'operational subkey export must not run as root'
@@ -158,6 +155,8 @@ fi
 chmod 0700 -- "$output_dir"
 require_luks_backing "$offline_home" 'offline GnuPG home'
 require_luks_backing "$output_dir" 'operational subkey transfer output'
+package_export="${output_dir}/package-role.secret-subkeys.asc"
+database_export="${output_dir}/database-role.secret-subkeys.asc"
 
 /usr/bin/bash "${script_dir}/validate-public-bundle.sh" "$public_bundle"
 metadata="${public_bundle}/release-key-metadata.tsv"
@@ -183,15 +182,15 @@ gpg --batch --homedir "$offline_home" --list-secret-keys \
 
 umask 077
 gpg --homedir "$offline_home" --armor \
-  --output "${output_dir}/package-signing-subkey.asc" \
+  --output "$package_export" \
   --export-secret-subkeys "${package_fingerprint}!"
 gpg --homedir "$offline_home" --armor \
-  --output "${output_dir}/database-signing-subkey.asc" \
+  --output "$database_export" \
   --export-secret-subkeys "${database_fingerprint}!"
 
 for exported_subkey in \
-  "${output_dir}/package-signing-subkey.asc" \
-  "${output_dir}/database-signing-subkey.asc"; do
+  "$package_export" \
+  "$database_export"; do
   [[ -s "$exported_subkey" && ! -L "$exported_subkey" ]] || \
     fail 'GnuPG did not create the expected operational subkey export'
   chmod 0600 -- "$exported_subkey"
@@ -236,9 +235,9 @@ verify_exported_role() {
 }
 
 verify_exported_role \
-  "${output_dir}/package-signing-subkey.asc" "$package_fingerprint"
+  "$package_export" "$package_fingerprint"
 verify_exported_role \
-  "${output_dir}/database-signing-subkey.asc" "$database_fingerprint"
+  "$database_export" "$database_fingerprint"
 
 printf 'Operational subkey exports created on encrypted transfer storage.\n'
 printf '  package role:  %s\n' "$package_fingerprint"

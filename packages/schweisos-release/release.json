@@ -3,9 +3,9 @@
   "id": "schweisos",
   "name": "SchweisOS",
   "version": {
-    "name": "0.2.0",
-    "id": "0.2.0",
-    "build_id": "0.2.0"
+    "name": "2026.07.27",
+    "id": "2026.07.27",
+    "build_id": "2026.07.27"
   },
   "phase": "bootstrap",
   "release_channel": "rolling",

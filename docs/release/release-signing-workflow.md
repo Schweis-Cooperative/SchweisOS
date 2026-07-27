@@ -43,7 +43,9 @@ dedicated Arch Linux system that has no configured network route, no global
 network address, and no active non-loopback network interface. Removing a
 browser window or disabling one application does not make a host offline.
 
-The ceremony uses `tools/signing/create-offline-release-key.sh`. The script:
+The ceremony uses `tools/signing/create-offline-release-key.sh` after the
+operator confirms physical air-gap review with `--acknowledge-airgapped`. The
+script:
 
 - refuses to run as root
 - refuses to place the GnuPG home inside the source repository

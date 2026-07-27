@@ -60,14 +60,14 @@ identifiers, or other secret custody details.
 
 ## Private Custody
 
-- Two LUKS2-encrypted offline copies created and verified: private primary media created; backup copy recommended before long-term storage
-- Copies held in separate physical locations: recommended before long-term storage
-- Primary revocation certificate recovery copy verified: revocation certificate present under `openpgp-revocs.d/` and not admitted to Git
-- Operational subkeys exported to encrypted transfer media: confirmed; only operational subkeys were exported for signing host use
+- Two LUKS2-encrypted offline copies created and verified before admission: confirmed by operator attestation; private paths and device identifiers intentionally omitted
+- Copies held in separate physical custody locations before admission: confirmed by operator attestation; location details intentionally omitted
+- Primary revocation certificate recovery copy verified: confirmed by operator attestation; revocation material is not admitted to Git
+- Operational subkeys exported to encrypted transfer media: confirmed; only operational subkeys were exported for signing host use and the exports remain outside Git
 
 ## Completion
 
 - Offline host shut down before network restoration: confirmed for ceremony procedure
 - Ceremony result: accepted
 - Reviewer decision and date (UTC): accepted 2026-07-26T15:03:21Z after public bundle validation, checksum verification, release policy comparison, and two recorded fingerprint readings
-- Non-sensitive notes: The public bundle contains `schweisos.gpg`, `schweisos-release.asc`, `release-key-metadata.tsv`, `schweisos-trusted`, `schweisos-revoked`, and `SHA256SUMS`. Operational transfer material contains `package-signing-subkey.asc` and `database-signing-subkey.asc`. Offline private key material and the revocation certificate remain outside Git and must not be published.
+- Non-sensitive notes: The public bundle contains `schweisos.gpg`, `schweisos-release.asc`, `release-key-metadata.tsv`, `schweisos-trusted`, `schweisos-revoked`, and `SHA256SUMS`. Operational transfer material remains on encrypted removable media outside Git. Offline private key material and the revocation certificate remain outside Git and must not be published.

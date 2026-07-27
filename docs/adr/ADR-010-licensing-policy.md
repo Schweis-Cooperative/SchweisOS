@@ -1,6 +1,6 @@
 # ADR-010 Licensing Policy
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -31,7 +31,7 @@ SchweisOS will use a separated licensing model:
 - Source code: `GPL-3.0-or-later`.
 - Documentation: `CC-BY-SA-4.0`.
 - Non-logo artwork and non-mark visual assets: `CC-BY-SA-4.0` by default unless a file states otherwise.
-- Official names, logos, marks, and brand identifiers: not covered by the general software license and must be governed by a future trademark and brand-use policy.
+- Official names, logos, marks, and brand identifiers: not covered by the general software license; repository-shipped assets use explicit `LicenseRef-SchweisOS-Brand-Assets` terms until a fuller trademark and brand-use policy exists.
 - Third-party software and assets: remain under their upstream licenses and must be documented without relicensing claims.
 
 All new project-owned files should use SPDX identifiers where practical.
@@ -86,6 +86,16 @@ Non-logo artwork, screenshots, wallpaper source files, diagrams, and visual docu
 Official logos, names, marks, slogans, and brand identifiers require separate treatment. SchweisOS is not currently a registered trademark, but the project should reserve the ability to protect its name and marks later. This protects users from misleading unofficial builds and protects contributors from brand confusion.
 
 Until a trademark policy exists, official logos and brand marks must not be assumed to be freely reusable under the software license. Any brand asset included in the repository must carry explicit licensing and usage notes.
+
+The initial SchweisOS logo and runtime icon assets use
+`LicenseRef-SchweisOS-Brand-Assets`, whose canonical text is packaged as
+`/usr/share/licenses/schweisos-branding/BRAND-ASSETS.md`. Those terms permit
+unmodified redistribution with official SchweisOS source trees, packages,
+installation media, release artifacts, documentation, screenshots, and mirrors
+that distribute unmodified official artifacts. They also permit truthful
+referential use. They do not permit confusing unofficial branding, modified
+logos, or claims that a remix, fork, mirror, or unsigned artifact is an
+official SchweisOS release.
 
 ## Third-Party Software Policy
 
@@ -165,7 +175,7 @@ The cost is that the repository must track more than one license domain. This is
 
 `LICENSE` should exist at the repository root.
 
-It should state the project licensing summary, not pretend that every file has one license. It should say that SchweisOS source code is licensed under `GPL-3.0-or-later`, documentation under `CC-BY-SA-4.0`, and brand assets under explicit per-file terms and future trademark policy.
+It should state the project licensing summary, not pretend that every file has one license. It should say that SchweisOS source code is licensed under `GPL-3.0-or-later`, documentation under `CC-BY-SA-4.0`, and brand assets under explicit per-file terms such as `LicenseRef-SchweisOS-Brand-Assets` plus any future trademark policy.
 
 `COPYING` should exist at the repository root.
 

@@ -62,7 +62,7 @@ flowchart TD
 | --- | --- | --- |
 | Upstream Arch | Kernel, base system, pacman, systemd, KDE packages, most applications | Use directly wherever possible |
 | SchweisOS repository | Identity packages, keyring, mirror config, installer config, default settings, small meta packages | Keep small and signed |
-| ISO layer | Live image, installer entry point, hardware-friendly package set | Build from archiso later |
+| ISO layer | Live image, future installer entry point, hardware-friendly package set | KDE Archiso profile implemented with upstream archiso |
 | Installer layer | UEFI-first installation, systemd-boot default, ext4 default, optional Btrfs, GRUB alternative | Calamares later, no full disk encryption in first release |
 | Desktop layer | KDE Plasma defaults, first-run guidance, Flatpak/AUR/Distrobox education | Avoid heavy custom shell patches |
 | Software source layer | Explain and separate official repo, SchweisOS repo, Flatpak, AUR, Distrobox | Do not present all sources as equally trusted |
@@ -115,8 +115,10 @@ This split keeps the first distribution package set auditable. Identity can be i
 `/usr/lib/schweisos-release/os-release` and a relative `/etc/os-release` link to
 it. Standard consumers therefore see SchweisOS while Arch's `filesystem`
 package continues to own `/usr/lib/os-release` as an upstream fallback. The
-package uses no install-time rewrite. Archiso adds live-image `IMAGE_ID` and
-`IMAGE_VERSION` fields by resolving the same link during image construction.
+package uses no install-time rewrite. Installed systems keep the package-owned
+identity byte-for-byte. Live media keeps the same fields and, during image
+construction, upstream Archiso appends exactly `IMAGE_ID` and `IMAGE_VERSION`
+from the validated profile.
 
 The layer must preserve Arch package semantics. It integrates SchweisOS repositories into pacman; it does not replace pacman, hide package sources, or redefine the update model.
 
@@ -376,19 +378,17 @@ The documentation, identity package set, trust bootstrap, signed local
 repository, minimal KDE profile, and first development ISO are complete as
 engineering foundations. The next dependency-ordered sequence is:
 
-1. Reconcile the release-artifact naming contract with the versioned ISO
-   produced by the profile.
-2. Add ISO signing and verification without placing private keys on the build
+1. Add ISO signing and verification without placing private keys on the build
    host.
-3. Design and implement the installer prototype for UEFI, systemd-boot, and
+2. Design and implement the installer prototype for UEFI, systemd-boot, and
    ext4.
-4. Validate a complete installation and first boot on disposable test storage.
-5. Add the optional Btrfs path after the ext4 path is reliable.
-6. Establish a public publication endpoint and mirror operations.
-7. Implement Flatpak integration and the AUR first-use warning workflow.
-8. Add a measured gaming package/test matrix.
-9. Document the installed Distrobox/Podman baseline before any automation.
-10. Complete alpha release qualification and known-issues documentation.
+3. Validate a complete installation and first boot on disposable test storage.
+4. Add the optional Btrfs path after the ext4 path is reliable.
+5. Establish a public publication endpoint and mirror operations.
+6. Implement Flatpak integration and the AUR first-use warning workflow.
+7. Add a measured gaming package/test matrix.
+8. Document the installed Distrobox/Podman baseline before any automation.
+9. Complete alpha release qualification and known-issues documentation.
 
 Trust infrastructure remains ahead of user-facing customization so later
 features can consume an auditable release path.

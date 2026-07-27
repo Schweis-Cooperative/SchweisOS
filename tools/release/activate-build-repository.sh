@@ -194,7 +194,7 @@ cleanup() {
         rollback_source="$old_generation"
       fi
       if [[ -n "$rollback_source" ]] \
-        && mv --exchange --no-copy -- "$rollback_source" "$target_dir"; then
+        && mv -T --exchange --no-copy -- "$rollback_source" "$target_dir"; then
         rm -rf -- "$rollback_source"
       else
         printf 'ERROR: automatic repository activation rollback failed; both generations were retained.\n' >&2
@@ -226,7 +226,7 @@ if [[ -e "$target_dir" ]]; then
   rmdir -- "$old_generation"
   old_location="$stage"
   trap '' INT TERM HUP QUIT
-  mv --exchange --no-copy -- "$stage" "$target_dir"
+  mv -T --exchange --no-copy -- "$stage" "$target_dir"
   exchange_performed=true
   mv -T -- "$stage" "$old_generation"
   old_location="$old_generation"

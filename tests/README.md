@@ -137,7 +137,10 @@ space. By default it uses the ignored repository work area
 `work/validators/built-iso-identity/` instead of a possibly small `/tmp` tmpfs.
 Set `TMPDIR=/path/to/disk-backed-temp` only when the build host needs a
 different disposable extraction location. The script removes only its own
-per-run temporary directory.
+per-run temporary directory. It extracts without restoring SquashFS xattrs
+because this validator inspects package metadata, file ownership records, and
+identity files as an unprivileged post-build gate; xattr policy belongs to a
+separate explicit validator if SchweisOS adopts one.
 
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:

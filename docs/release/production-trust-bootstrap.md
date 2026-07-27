@@ -139,7 +139,9 @@ For each signed repository generation:
 12. run `validate-built-iso-identity.sh` before any boot test or release. The
     validator extracts the ISO SquashFS into its own disposable directory under
     the ignored repository `work/` tree by default; set `TMPDIR` only when the
-    build host requires another disk-backed extraction location.
+    build host requires another disk-backed extraction location. This
+    unprivileged identity gate extracts without restoring SquashFS xattrs; add a
+    separate explicit validator before making xattrs a release criterion.
 
 Failures stop at their current trust boundary. No failed candidate is published
 and no validator has a permissive production mode.

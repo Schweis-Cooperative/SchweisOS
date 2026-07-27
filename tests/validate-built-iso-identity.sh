@@ -66,7 +66,7 @@ cleanup() {
 trap cleanup EXIT
 bsdtar -xOf "$iso_path" "$squashfs_path" >"${tmp_dir}/airootfs.sfs"
 [[ -s "${tmp_dir}/airootfs.sfs" ]] || fail 'extracted airootfs SquashFS is empty'
-unsquashfs -no-progress -d "${tmp_dir}/rootfs" "${tmp_dir}/airootfs.sfs" >/dev/null
+unsquashfs -no-progress -no-xattrs -d "${tmp_dir}/rootfs" "${tmp_dir}/airootfs.sfs" >/dev/null
 rootfs="${tmp_dir}/rootfs"
 
 mapfile -t package_records < <(

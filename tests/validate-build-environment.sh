@@ -345,6 +345,9 @@ fi
 
 permission_failures=()
 required_executables=(
+    iso/profiles/kde/airootfs/usr/lib/schweisos-live/plymouth-is-stopped
+    iso/profiles/kde/airootfs/usr/lib/schweisos-live/plymouth-quit-guarded
+    iso/profiles/kde/airootfs/usr/lib/schweisos-live/plymouth-watchdog
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
     tests/install-local-bootstrap-packages.sh

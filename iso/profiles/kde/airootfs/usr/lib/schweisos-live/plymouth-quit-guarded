@@ -12,5 +12,5 @@ remove_marker() {
 /usr/bin/touch -- "$marker"
 trap remove_marker EXIT
 trap 'exit 1' HUP INT TERM
-/usr/bin/plymouth quit
+/usr/bin/plymouth quit --retain-splash
 trap - EXIT HUP INT TERM

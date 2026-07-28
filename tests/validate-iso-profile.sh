@@ -578,8 +578,8 @@ grep -Fxq 'trap remove_marker EXIT' "$plymouth_quit_guard" || \
   fail 'guarded Plymouth quit must remove its marker on failure or interruption'
 grep -Fxq "trap 'exit 1' HUP INT TERM" "$plymouth_quit_guard" || \
   fail 'guarded Plymouth quit must convert interruption into failure'
-grep -Fxq '/usr/bin/plymouth quit' "$plymouth_quit_guard" || \
-  fail 'guarded Plymouth quit must invoke the upstream client'
+grep -Fxq '/usr/bin/plymouth quit --retain-splash' "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must retain the splash during normal SDDM handoff'
 grep -Fxq 'trap - EXIT HUP INT TERM' "$plymouth_quit_guard" || \
   fail 'guarded Plymouth quit must retain its marker only after success'
 grep -Fxq 'OnFailure=schweisos-boot-debug-fallback.service' \
@@ -614,9 +614,17 @@ for watchdog_contract in \
 done
 grep -Fq 'marker=/run/schweisos-plymouth-normal-quit' "$plymouth_watchdog" || \
   fail 'Plymouth watchdog must honor the normal-handoff marker'
-grep -Fq '/usr/bin/systemctl show --property=ActiveState --value plymouth-quit.service' \
+grep -Fq '/usr/bin/systemctl show \' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must query the quit handoff service'
+grep -Fq '                --property=ActiveState \' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must inspect the quit service active state'
+grep -Fq '                --property=Result \' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must inspect the quit service result'
+grep -Fq '                --property=ExecMainStatus \' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must inspect the quit helper exit status'
+grep -Fq '[[ "$quit_result" == success && "$quit_exit_status" == 0 ]]' \
   "$plymouth_watchdog" || \
-  fail 'Plymouth watchdog must require a completed successful quit handoff'
+  fail 'Plymouth watchdog must accept only a successful normal quit handoff'
 grep -Fq '[[ -e "$marker" ]] && continue' "$plymouth_watchdog" || \
   fail 'Plymouth watchdog must recheck an in-progress handoff after sleeping'
 grep -Fxq '    /usr/bin/sleep 1' "$plymouth_watchdog" || \
@@ -628,8 +636,8 @@ grep -Fq 'health_status=$?' "$plymouth_watchdog" || \
 grep -Fxq '            exit "$health_status"' "$plymouth_watchdog" || \
   fail 'Plymouth watchdog must propagate unexpected health-helper errors'
 [[ "$(grep -Fc 'exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service' \
-  "$plymouth_watchdog")" -eq 2 ]] || \
-  fail 'Plymouth watchdog must reveal diagnostics after a stopped daemon'
+  "$plymouth_watchdog")" -eq 3 ]] || \
+  fail 'Plymouth watchdog must reveal diagnostics after failed handoff states and a stopped daemon'
 
 copied_brand_asset="$(find "$airootfs_dir" -type f \
   \( -name '*.png' -o -name '*.svg' -o -name '*.jpg' -o -name '*.jpeg' \) \

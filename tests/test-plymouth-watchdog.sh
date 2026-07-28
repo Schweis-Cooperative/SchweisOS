@@ -45,7 +45,10 @@ if [[ "${1-}" == show ]]; then
         exit "$status"
     fi
     IFS= read -r state <"${state_dir}/quit-state"
-    printf '%s\n' "$state"
+    IFS= read -r result <"${state_dir}/quit-result"
+    IFS= read -r status <"${state_dir}/quit-status"
+    printf 'ActiveState=%s\nResult=%s\nExecMainStatus=%s\n' \
+        "$state" "$result" "$status"
     exit 0
 fi
 if [[ "${1-}" == --no-block && "${2-}" == start \
@@ -68,6 +71,12 @@ fi
 printf '%s\n' "$count" >"${state_dir}/sleep-count"
 if [[ "$count" -eq 1 && -r "${state_dir}/next-quit-state" ]]; then
     cp -- "${state_dir}/next-quit-state" "${state_dir}/quit-state"
+fi
+if [[ "$count" -eq 1 && -r "${state_dir}/next-quit-result" ]]; then
+    cp -- "${state_dir}/next-quit-result" "${state_dir}/quit-result"
+fi
+if [[ "$count" -eq 1 && -r "${state_dir}/next-quit-status" ]]; then
+    cp -- "${state_dir}/next-quit-status" "${state_dir}/quit-status"
 fi
 EOF
 
@@ -110,6 +119,8 @@ prepare_case() {
     mkdir -- "$case_root"
     printf 'stopped\n' >"${case_root}/health-mode"
     printf 'inactive\n' >"${case_root}/quit-state"
+    printf 'success\n' >"${case_root}/quit-result"
+    printf '0\n' >"${case_root}/quit-status"
     sed \
         -e "s#^marker=.*#marker=${case_root}/normal-marker#" \
         -e "s#^health=.*#health=${health_stub}#" \
@@ -150,24 +161,35 @@ expect_no_fallback() {
         fail "${name}: diagnostic fallback was requested unexpectedly"
 }
 
-prepare_case marker-active
+prepare_case marker-inactive-success
 touch "${case_root}/normal-marker"
-printf 'active\n' >"${case_root}/quit-state"
 expect_status 'completed normal handoff exits cleanly' 0
-expect_no_fallback marker-active
+expect_no_fallback marker-inactive-success
 
 prepare_case marker-activating
 touch "${case_root}/normal-marker"
 printf 'activating\n' >"${case_root}/quit-state"
-printf 'active\n' >"${case_root}/next-quit-state"
+printf 'inactive\n' >"${case_root}/next-quit-state"
+printf 'success\n' >"${case_root}/next-quit-result"
+printf '0\n' >"${case_root}/next-quit-status"
 expect_status 'in-progress normal handoff waits for success' 0
 expect_no_fallback marker-activating
 
 prepare_case marker-failed
 touch "${case_root}/normal-marker"
 printf 'failed\n' >"${case_root}/quit-state"
+printf 'exit-code\n' >"${case_root}/quit-result"
+printf '1\n' >"${case_root}/quit-status"
 expect_status 'failed normal handoff reveals diagnostics' 0
 expect_fallback marker-failed
+
+prepare_case marker-inactive-failed-result
+touch "${case_root}/normal-marker"
+printf 'inactive\n' >"${case_root}/quit-state"
+printf 'exit-code\n' >"${case_root}/quit-result"
+printf '1\n' >"${case_root}/quit-status"
+expect_status 'inactive failed handoff reveals diagnostics' 0
+expect_fallback marker-inactive-failed-result
 
 prepare_case stopped-daemon
 expect_status 'absent or stopped daemon reveals diagnostics' 0

@@ -84,11 +84,12 @@ tests/test-plymouth-watchdog.sh
 ```
 
 It rewrites only the helper's absolute command and marker paths to point at
-temporary stubs. Seven scenarios cover completed normal handoff, an activating
-handoff that later succeeds, failed handoff, an absent daemon, a live daemon
-that later stops, health-helper error propagation, and systemd state-query
-error propagation. It requires fallback exactly once in failure scenarios and
-rejects false fallback or false success. It does not build or boot an ISO.
+temporary stubs. Eight scenarios cover completed normal handoff, an activating
+handoff that later succeeds, failed handoff, inactive failed handoff, an absent
+daemon, a live daemon that later stops, health-helper error propagation, and
+systemd state-query error propagation. It requires fallback exactly once in
+failure scenarios and rejects false fallback or false success. It does not
+build or boot an ISO.
 
 `validate-grub-theme.sh` validates the separately packaged, inert
 installed-system GRUB theme groundwork:

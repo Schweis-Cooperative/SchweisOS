@@ -1,8 +1,8 @@
 # SchweisOS Boot Experience
 
-Version: 0.3
+Version: 0.4
 Status: Partial implementation
-Date: 2026-07-28
+Date: 2026-07-29
 
 SchweisOS treats the live-medium boot path and the installed-system bootloader
 as separate systems.
@@ -32,7 +32,10 @@ quit-wait timeout, or a detected unexpected Plymouth daemon exit triggers the
 live-only fallback service, which quits the splash and restores console
 diagnostics. A runtime-directory path watcher provides the fast path; a
 one-second watchdog runs only until successful Plymouth handoff and detects
-hard crashes that leave a stale PID file without a path event.
+hard crashes that leave a stale PID file without a path event. A normal handoff
+is accepted only when `plymouth-quit.service` reports `Result=success` and
+`ExecMainStatus=0`, so an inactive failed oneshot cannot masquerade as a
+healthy boot.
 
 The systemd-boot menu is intentionally text-oriented. Its polish comes from
 two concise entries, a short timeout, stable console mode, and removal of
@@ -46,8 +49,10 @@ The live profile owns the Plymouth behavior. It consumes the runtime logo from
 `schweisos-branding` from the canonical source
 `branding/assets/logo/schweisos.png`.
 
-The script plugin provides a bounded fade/rise intro, a subtle pre-rendered
-breathing cycle, and a rotating loading trail sampled from the same logo. It
+The script plugin provides a bounded fade/rise intro, a color-matched ambient
+layer, a subtle pre-rendered breathing cycle, and a shallow elliptical loading
+trail sampled from the same logo. The normal quit handoff retains the final
+splash frame until SDDM takes over, reducing healthy-boot console flashes. It
 does not add a second logo or spinner asset.
 
 Build validation is deliberately end-to-end. Before `mkarchiso`, the selected

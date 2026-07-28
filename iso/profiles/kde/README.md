@@ -39,15 +39,18 @@ The following files are temporary live-media exceptions:
   runtime directory, while `schweisos-plymouth-watchdog.service` checks
   liveness once per second only until successful handoff. Live-only helpers
   under `/usr/lib/schweisos-live/` retain the normal marker only after a
-  successful quit and reject stale PID files by checking for a live
-  `plymouthd`; either detector starts the same diagnostic fallback.
+  successful retained-splash quit and reject stale PID files by checking for a
+  live `plymouthd`; either detector starts the same diagnostic fallback. The
+  watchdog accepts the handoff only when systemd reports `Result=success` and
+  `ExecMainStatus=0` for `plymouth-quit.service`.
 - `/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf` reveals
   diagnostics if the live display manager fails before Plasma appears.
 - `/usr/share/plymouth/themes/schweisos/` contains the live-only Plymouth theme.
   Its `ImageDir` points at `/usr/share/schweisos/branding`, which is installed
   by `schweisos-branding`; no logo asset is copied into the profile. The script
-  fades in and gently pulses the canonical `schweisos.png`, then derives its
-  rotating dot indicator from that same image.
+  fades in and gently pulses the canonical `schweisos.png`, derives a
+  low-opacity ambient layer from that same image, and uses its sampled pixels
+  for a shallow elliptical loading trail.
 
 The UEFI loader retains the firmware-selected console mode and shows exactly
 `SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and

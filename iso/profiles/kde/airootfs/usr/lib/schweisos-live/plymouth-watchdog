@@ -8,18 +8,41 @@ health=/usr/lib/schweisos-live/plymouth-is-stopped
 
 while true; do
     if [[ -e "$marker" ]]; then
-        quit_state="$(
-            /usr/bin/systemctl show --property=ActiveState --value plymouth-quit.service
+        quit_output="$(
+            /usr/bin/systemctl show \
+                --property=ActiveState \
+                --property=Result \
+                --property=ExecMainStatus \
+                plymouth-quit.service
         )" || exit $?
+        quit_state=
+        quit_result=
+        quit_exit_status=
+        while IFS='=' read -r key value; do
+            case "$key" in
+                ActiveState)
+                    quit_state="$value"
+                    ;;
+                Result)
+                    quit_result="$value"
+                    ;;
+                ExecMainStatus)
+                    quit_exit_status="$value"
+                    ;;
+            esac
+        done <<<"$quit_output"
         case "$quit_state" in
-            active)
-                exit 0
-                ;;
             activating)
                 /usr/bin/sleep 1
                 continue
                 ;;
-            inactive|failed|deactivating)
+            active|inactive)
+                if [[ "$quit_result" == success && "$quit_exit_status" == 0 ]]; then
+                    exit 0
+                fi
+                exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+                ;;
+            failed|deactivating)
                 exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
                 ;;
             *)

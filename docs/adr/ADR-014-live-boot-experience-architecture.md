@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.4
+Version: 1.5
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-28
+2026-07-29
 
 ## Related ADRs and DDRs
 
@@ -70,22 +70,27 @@ The profile will:
   `/usr/share/schweisos/branding/schweisos.png`, which is provided by
   `schweisos-branding` from the single canonical source at
   `branding/assets/logo/schweisos.png`;
-- use the upstream Plymouth script plugin for a bounded fade-in, subtle
-  pre-rendered scale/opacity breathing cycle, and a rotating loading-dot trail
-  sampled from the canonical logo, without adding another image source;
+- use the upstream Plymouth script plugin for a bounded fade-in, a low-opacity
+  ambient layer, a subtle pre-rendered scale/opacity breathing cycle, and an
+  elliptical loading trail sampled from the canonical logo, without adding
+  another image source;
 - replace the upstream Plymouth client commands' error-ignoring service
   prefixes in live-only drop-ins so explicit show, quit, and wait failures reach
   systemd;
-- bound guarded quit and `plymouth --wait` to 20 seconds, preserve the
-  normal-quit marker only after a successful guarded quit, and reveal
-  diagnostics automatically when
+- bound guarded quit and `plymouth --wait` to 20 seconds, retain the final
+  splash frame during a successful SDDM handoff, preserve the normal-quit
+  marker only after a successful guarded quit, and reveal diagnostics
+  automatically when
   `emergency.target` is reached, SDDM fails, a Plymouth unit fails, or the
   Plymouth runtime directory changes and no live `plymouthd` remains before
   the normal handoff;
+- accept a normal quit handoff only when `plymouth-quit.service` has completed
+  with `Result=success` and `ExecMainStatus=0`; an inactive service with a
+  failed result is treated as a failed handoff, not as success;
 - run a bounded-lifetime one-second liveness watchdog until the guarded normal
-  handoff service has completed successfully, closing both the stale-PID
-  hard-crash gap that a path event alone cannot detect and the early-marker
-  handoff race.
+  handoff service reports the explicit successful result, closing both the
+  stale-PID hard-crash gap that a path event alone cannot detect and the
+  early-marker handoff race.
 
 The theme and fallback units are live-medium profile exceptions. They are not
 installed-system policy and do not imply that SchweisOS has implemented an
@@ -156,7 +161,8 @@ Positive consequences:
 - The systemd-boot menu exposes only the reviewed normal and diagnostic paths
   and avoids an extra console-mode transition.
 - The Plymouth splash communicates ongoing work with restrained continuous
-  motion rather than a static logo or a false percentage.
+  motion, color-matched depth, and a retained final frame rather than a static
+  logo, a false percentage, or a visible console gap.
 - The debug path remains explicit and visible in systemd-boot.
 - Emergency boot, SDDM failure, Plymouth service failures, and unexpected
   Plymouth daemon exits automatically reveal diagnostics.
@@ -196,12 +202,14 @@ The ISO profile validator must fail closed if:
 - the mkinitcpio hook list omits `kms` or `plymouth`;
 - the Plymouth theme copies branding assets instead of consuming the packaged
   branding directory;
-- the theme does not use `schweisos.png`, lacks the documented fade/pulse and
-  rotating indicator primitives, or introduces a second image dependency;
+- the theme does not use `schweisos.png`, lacks the documented ambient,
+  fade/pulse, and loading-indicator primitives, or introduces a second image
+  dependency;
 - Plymouth client errors remain ignored, quit waiting is unbounded, or
   emergency/SDDM/Plymouth fallback units are missing;
-- the unexpected-exit path watcher, bounded-lifetime liveness watchdog, guarded
-  normal-quit marker, or daemon-health check is missing;
+- the unexpected-exit path watcher, bounded-lifetime liveness watchdog,
+  retained-splash normal handoff, guarded normal-quit marker, systemd
+  `Result`/`ExecMainStatus` success check, or daemon-health check is missing;
 - unexpected files enter the live overlay.
 
 The build environment gate must additionally reject SchweisOS package/source

@@ -1,8 +1,8 @@
 # DDR-001 Boot Experience
 
-Version: 1.5
+Version: 1.6
 Status: Accepted
-Date: 2026-07-28
+Date: 2026-07-29
 
 Related architecture:
 [ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
@@ -88,14 +88,17 @@ without claiming an installed boot workflow that does not exist.
 
 The normal boot path starts Plymouth with a custom SchweisOS theme. The theme:
 
-- uses a dark blue background matched to the official artwork;
+- uses a dark blue background matched to the official artwork edge tones;
 - centers the official SchweisOS logo;
 - scales the logo conservatively for different display sizes;
 - fades and rises into place without delaying boot;
-- uses a narrow, pre-rendered scale range and restrained opacity pulse for a
-  subtle breathing motion;
-- shows an eight-dot rotating trail below the logo to communicate ongoing
-  activity without claiming false percentage accuracy;
+- uses a low-opacity ambient layer derived from the same canonical logo to
+  soften the opaque source image's square edge without adding another artwork
+  source;
+- uses a narrow, pre-rendered scale range, a restrained opacity pulse, and a
+  tiny vertical drift for a subtle breathing motion;
+- shows a twelve-point elliptical loading trail below the logo to communicate
+  ongoing activity without claiming false percentage accuracy;
 - fades the indicator near the end of Plymouth's reported boot progress;
 - avoids text clutter, fake progress claims, audio, and decorative effects.
 
@@ -137,7 +140,9 @@ Upstream Plymouth service files intentionally prefix their client commands with
 `-`, which makes client errors non-fatal to systemd. Live-only drop-ins replace
 those commands without the error-ignoring prefix. Both guarded quit and
 quit-wait have an explicit 20-second limit instead of relying on an unlimited
-or changing upstream timeout.
+or changing upstream timeout. The guarded normal quit uses Plymouth's upstream
+`--retain-splash` option so the final branded frame remains visible until the
+display manager takes over, avoiding a healthy-boot console flash.
 
 The profile watches Plymouth's runtime directory and runs a one-second liveness
 watchdog until the normal handoff. A guarded quit helper writes a temporary
@@ -148,8 +153,10 @@ helper, which verifies the recorded PID and process name; this also detects a
 hard crash that leaves a stale PID file without changing directory metadata.
 When no live `plymouthd` remains, SchweisOS starts the same diagnostic fallback.
 The watchdog exits only when the marker exists and `plymouth-quit.service` has
-completed successfully; an in-progress or failed quit cannot retire it early.
-It does not poll during the live desktop session.
+completed with `Result=success` and `ExecMainStatus=0`; a merely inactive
+oneshot service is not treated as success unless systemd also reports a
+successful result. An in-progress or failed quit cannot retire it early. It
+does not poll during the live desktop session.
 
 `tests/test-plymouth-watchdog.sh` exercises that state machine with disposable
 command stubs while retaining the real helper's control flow. It covers a
@@ -250,12 +257,17 @@ The live profile uses upstream Plymouth's `script` theme module.
 The script maintains three bounded animation layers:
 
 1. An intro phase increases opacity and removes a ten-pixel vertical offset.
-2. A slow cosine wave selects one of seventeen logo images pre-rendered between
-   98% and 102% of the responsive base size. Runtime refreshes swap cached
-   images rather than continuously resampling the 1254px source.
-3. Eight sprites orbit below the logo. All use a ten-pixel sample cropped from
-   the canonical logo; a moving opacity trail produces rotation without an
-   additional spinner image or font dependency.
+2. A full-screen, low-opacity ambient layer derived from the canonical logo
+   shares the same dark-blue field as the opaque source image and reduces the
+   appearance of a separate square card.
+3. A slow cosine wave selects one of twenty-one logo images pre-rendered across
+   a narrow responsive scale range, while a tiny vertical drift prevents the
+   splash from feeling static. Runtime refreshes swap cached images rather
+   than continuously resampling the 1254px source.
+4. Twelve sprites move through a shallow elliptical loading trail below the
+   logo. All use samples cropped from the canonical logo; a moving opacity and
+   size trail produces activity without an additional spinner image or font
+   dependency.
 
 Plymouth's progress callback is used only to fade the activity indicator during
 the final portion of the handoff. The animation never displays or invents a

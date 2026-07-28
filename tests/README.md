@@ -1,8 +1,8 @@
 # Tests Directory
 
-Version: 0.6
+Version: 0.7
 Status: Active
-Date: 2026-07-27
+Date: 2026-07-28
 
 This directory owns repository-level validation that crosses package boundaries.
 
@@ -52,10 +52,11 @@ tests/validate-iso-profile.sh
 ```
 
 It validates the profile contract, package manifest, build-time pacman syntax,
-UEFI templates, mkinitcpio inputs, live-overlay allowlist, permissions,
-symlinks, and absence of signing material. Pacman parsing uses a disposable
-sysroot populated from the real bootstrap configuration files; it does not
-modify `/etc`, contact repositories, or invent endpoints. Repository
+UEFI normal/debug templates, Plymouth configuration, unexpected-exit watcher,
+automatic diagnostic fallback, mkinitcpio inputs, live-overlay allowlist,
+permissions, symlinks, and absence of signing material. Pacman parsing uses a
+disposable sysroot populated from the real bootstrap configuration files; it
+does not modify `/etc`, contact repositories, or invent endpoints. Repository
 availability remains a separate build-host preflight.
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust

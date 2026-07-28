@@ -1,8 +1,8 @@
 # Architecture Decision Records
 
-Version: 0.3
+Version: 0.4
 Status: Active
-Date: 2026-07-26
+Date: 2026-07-28
 
 ADRs record important SchweisOS technical decisions. Each ADR must include Context, Decision, Alternatives, Consequences, Status, Date, and Related ADRs.
 
@@ -21,3 +21,4 @@ ADRs record important SchweisOS technical decisions. Each ADR must include Conte
 - [ADR-011 Repository Architecture](ADR-011-repository-architecture.md)
 - [ADR-012 ISO Build Architecture](ADR-012-iso-build-architecture.md)
 - [ADR-013 ISO Build Workflow](ADR-013-iso-build-workflow.md)
+- [ADR-014 Live Boot Experience Architecture](ADR-014-live-boot-experience-architecture.md)

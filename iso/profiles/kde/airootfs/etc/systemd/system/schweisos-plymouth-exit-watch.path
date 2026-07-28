@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for unexpected Plymouth exit during SchweisOS live boot
+DefaultDependencies=no
+After=plymouth-start.service
+Before=display-manager.service
+ConditionPathExists=/run/plymouth/pid
+
+[Path]
+PathChanged=/run/plymouth
+Unit=schweisos-plymouth-exit-fallback.service

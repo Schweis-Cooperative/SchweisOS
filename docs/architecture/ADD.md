@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.4
+Version: 0.5
 Status: Active pre-alpha architecture
-Date: 2026-07-27
+Date: 2026-07-28
 
 ## Scope
 
@@ -138,6 +138,11 @@ remain separate feature packages or profile decisions when they are approved.
 This keeps identity metadata, brand assets, and desktop customization from
 becoming one unreviewable package.
 
+The KDE live ISO boot splash is one approved profile decision. Its Plymouth
+theme consumes the packaged runtime logo from `/usr/share/schweisos/branding`;
+it does not move boot behavior into `schweisos-branding` and does not copy logo
+assets into the ISO profile.
+
 ## Package Architecture
 
 SchweisOS packages must be boring on purpose. The first repository should contain only packages that define identity, trust, installability, and documented defaults.
@@ -238,8 +243,9 @@ Persistent, reusable, security-relevant, or updateable configuration belongs in 
 
 Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
 
-The current live image provides UEFI boot, KDE Plasma, networking, and a
-compact troubleshooting/user utility set. The ISO must still gain:
+The current live image provides UEFI boot, a SchweisOS systemd-boot menu,
+Plymouth splash with automatic diagnostic fallback, KDE Plasma, networking, and
+a compact troubleshooting/user utility set. The ISO must still gain:
 
 - A clear installer launcher.
 - Offline access to essential installation and troubleshooting documentation.
@@ -247,7 +253,9 @@ compact troubleshooting/user utility set. The ISO must still gain:
 
 The live-media boot path is separate from installed-system boot policy. systemd-boot remains the installed-system default on UEFI systems, while archiso owns how the medium boots. A `syslinux/` profile area is relevant only if legacy BIOS support is approved later. BIOS support and Secure Boot are not first-release requirements.
 
-Related decision: [ADR-012 ISO Build Architecture](../adr/ADR-012-iso-build-architecture.md).
+Related decisions: [ADR-012 ISO Build Architecture](../adr/ADR-012-iso-build-architecture.md),
+[ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md),
+and [DDR-001 Boot Experience](../ddr/DDR-001-boot-experience.md).
 
 ## ISO Build Workflow
 
@@ -269,6 +277,18 @@ Related decision: [ADR-013 ISO Build Workflow](../adr/ADR-013-iso-build-workflow
 The installed system defaults to systemd-boot on UEFI systems. GRUB remains an alternative where needed. This matches the project goal of a simple default with a known fallback.
 
 systemd-boot is UEFI-only, which matches the first-release UEFI priority. The installer must detect non-UEFI boot and either block unsupported installation paths or offer the documented GRUB path once it exists.
+
+The live medium uses Archiso's upstream `uefi.systemd-boot` path. Its normal
+entry is quiet and splash-enabled, while a separate debug entry keeps verbose
+kernel and systemd status visible. The live initramfs uses upstream mkinitcpio
+`kms` and `plymouth` hooks so the SchweisOS Plymouth theme can appear before the
+Plasma session. If emergency mode is reached, SDDM fails, Plymouth start/quit
+units fail, or the Plymouth runtime PID disappears before the normal quit
+handoff, the live profile quits Plymouth and restores console diagnostics.
+
+This live boot experience does not implement installed-system bootloader
+configuration. Installed-system Plymouth, bootloader installation, Secure Boot,
+and BIOS behavior remain future installer architecture.
 
 References: [systemd-boot - ArchWiki](https://wiki.archlinux.org/title/Systemd-boot), [systemd-boot manual](https://man.archlinux.org/man/core/systemd/systemd-boot.7.en).
 

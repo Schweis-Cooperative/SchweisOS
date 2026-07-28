@@ -1,0 +1,40 @@
+Window.SetBackgroundTopColor(0.020, 0.025, 0.033);
+Window.SetBackgroundBottomColor(0.010, 0.014, 0.020);
+
+logo_size = Window.GetHeight() / 5;
+if (Window.GetWidth() < Window.GetHeight()) {
+  logo_size = Window.GetWidth() / 5;
+}
+if (logo_size > 192) {
+  logo_size = 192;
+}
+if (logo_size < 96) {
+  logo_size = 96;
+}
+
+logo_source_image = Image("schweisos-logo.png");
+logo_image = logo_source_image.Scale(logo_size, logo_size);
+logo_sprite = Sprite(logo_image);
+logo_sprite.SetZ(10);
+logo_sprite.SetOpacity(0.92);
+
+fun layout_callback()
+{
+  logo_sprite.SetX((Window.GetWidth() - logo_image.GetWidth()) / 2);
+  logo_sprite.SetY((Window.GetHeight() - logo_image.GetHeight()) / 2);
+}
+
+fun boot_progress_callback(duration, progress)
+{
+  if (progress < 0) {
+    progress = 0;
+  }
+  if (progress > 1) {
+    progress = 1;
+  }
+  logo_sprite.SetOpacity(0.84 + (progress * 0.14));
+}
+
+layout_callback();
+Plymouth.SetRefreshFunction(layout_callback);
+Plymouth.SetBootProgressFunction(boot_progress_callback);

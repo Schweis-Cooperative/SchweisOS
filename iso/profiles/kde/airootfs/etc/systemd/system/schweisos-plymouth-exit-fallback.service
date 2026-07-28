@@ -1,0 +1,11 @@
+[Unit]
+Description=Reveal SchweisOS live boot diagnostics after unexpected Plymouth exit
+DefaultDependencies=no
+ConditionPathExists=!/run/plymouth/pid
+ConditionPathExists=!/run/schweisos-plymouth-normal-quit
+Conflicts=shutdown.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service

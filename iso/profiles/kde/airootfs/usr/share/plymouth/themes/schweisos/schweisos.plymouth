@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=SchweisOS
+Description=Clean SchweisOS live boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/schweisos/branding
+ScriptFile=/usr/share/plymouth/themes/schweisos/schweisos.script

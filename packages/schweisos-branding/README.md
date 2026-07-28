@@ -5,8 +5,9 @@ runtime consumers such as KDE System Information, icon themes, and generic
 desktop logo lookup.
 
 The package intentionally does not configure wallpapers, themes, boot artwork,
-Plymouth, SDDM themes, installer branding, or KDE defaults. Those areas require
-separate package ownership when they become real features.
+Plymouth, SDDM themes, installer branding, or KDE defaults. Other owners may
+consume the installed assets for approved user-facing features; those owners
+remain responsible for their own behavior and validation.
 
 ## Ownership
 

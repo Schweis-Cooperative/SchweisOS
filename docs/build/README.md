@@ -201,7 +201,8 @@ It checks:
 - UTC-stable metadata derived from a fixed `SOURCE_DATE_EPOCH`.
 - Valid, group-sorted, duplicate-free packages.
 - UEFI systemd-boot templates and supported placeholders.
-- The baseline mkinitcpio hooks and kernel preset.
+- The approved mkinitcpio hook contract and kernel preset, including the
+  live-boot `kms` and `plymouth` hook extension.
 - The explicit live-overlay allowlist and shipped permissions.
 - Symlink targets, repository endpoint absence, key material, and package
   payload absence.

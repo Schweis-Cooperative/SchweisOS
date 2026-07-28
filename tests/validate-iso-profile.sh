@@ -44,12 +44,25 @@ required_files=(
   "$pacman_config"
   "${profile_dir}/efiboot/loader/loader.conf"
   "${entry_dir}/01-schweisos-linux.conf"
+  "${entry_dir}/02-schweisos-linux-debug.conf"
   "${airootfs_dir}/etc/hostname"
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset"
+  "${airootfs_dir}/etc/plymouth/plymouthd.conf"
   "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf"
+  "${airootfs_dir}/etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf"
+  "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf"
+  "${airootfs_dir}/etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf"
+  "${airootfs_dir}/etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf"
+  "${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-fallback.service"
+  "${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-watch.path"
+  "${airootfs_dir}/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf"
+  "${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
+  "${airootfs_dir}/etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf"
   "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf"
   "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf"
+  "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
+  "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
   "$schweis_pacman_config"
   "$mirrorlist"
 )
@@ -186,6 +199,7 @@ required_packages=(
   plasma-desktop
   plasma-nm
   plasma-systemmonitor
+  plymouth
   schweisos-branding
   schweisos-keyring
   schweisos-mirrorlist
@@ -267,6 +281,13 @@ for required_policy in PackageRequired PackageTrustedOnly DatabaseRequired Datab
 done
 
 loader_config="${profile_dir}/efiboot/loader/loader.conf"
+loader_timeout="$(awk '$1 == "timeout" { print $2 }' "$loader_config")"
+loader_console_mode="$(awk '$1 == "console-mode" { print $2 }' "$loader_config")"
+loader_editor="$(awk '$1 == "editor" { print $2 }' "$loader_config")"
+[[ "$loader_timeout" == 3 ]] || fail 'loader.conf must use a short three-second timeout'
+[[ "$loader_console_mode" == max ]] || fail 'loader.conf must request the maximum supported console mode'
+[[ "$loader_editor" == no ]] || fail 'loader.conf must disable interactive command-line editing'
+
 mapfile -t default_entries < <(
   awk '$1 == "default" { print $2 }' "$loader_config"
 )
@@ -279,6 +300,8 @@ mapfile -t efi_entries < <(
   find "$entry_dir" -maxdepth 1 -type f -name '*.conf' -printf '%f\n' | sort
 )
 (( ${#efi_entries[@]} > 0 )) || fail 'no UEFI loader entries found'
+[[ "${efi_entries[*]}" == '01-schweisos-linux.conf 02-schweisos-linux-debug.conf' ]] || \
+  fail 'UEFI loader entries must provide exactly normal and debug boot paths'
 
 for entry_name in "${efi_entries[@]}"; do
   entry="${entry_dir}/${entry_name}"
@@ -305,6 +328,26 @@ for entry_name in "${efi_entries[@]}"; do
     fail "${entry_name} is missing archisobasedir"
   [[ " $options " == *' archisosearchuuid=%ARCHISO_UUID% '* ]] || \
     fail "${entry_name} is missing archisosearchuuid"
+  case "$entry_name" in
+    01-schweisos-linux.conf)
+      [[ " $options " == *' quiet '* ]] || fail 'normal boot entry must be quiet'
+      [[ " $options " == *' splash '* ]] || fail 'normal boot entry must enable Plymouth splash'
+      [[ " $options " == *' loglevel=3 '* ]] || fail 'normal boot entry must reduce kernel log verbosity'
+      [[ " $options " == *' systemd.show_status=auto '* ]] || \
+        fail 'normal boot entry must show systemd status automatically on failure'
+      [[ " $options " == *' vt.global_cursor_default=0 '* ]] || \
+        fail 'normal boot entry must hide the text cursor during graphical boot'
+      ;;
+    02-schweisos-linux-debug.conf)
+      [[ " $options " != *' quiet '* ]] || fail 'debug boot entry must not be quiet'
+      [[ " $options " != *' splash '* ]] || fail 'debug boot entry must not enable Plymouth splash'
+      [[ " $options " == *' loglevel=7 '* ]] || fail 'debug boot entry must keep verbose kernel logs'
+      [[ " $options " == *' systemd.show_status=yes '* ]] || \
+        fail 'debug boot entry must force visible systemd status'
+      [[ " $options " == *' vt.global_cursor_default=1 '* ]] || \
+        fail 'debug boot entry must keep the text cursor visible'
+      ;;
+  esac
 done
 
 printf '%s\n' '%ARCH%' '%ARCHISO_UUID%' '%INSTALL_DIR%' | sort >"${tmp_dir}/allowed.tokens"
@@ -319,9 +362,9 @@ unexpected_tokens="$(comm -13 "${tmp_dir}/allowed.tokens" "${tmp_dir}/actual.tok
 bash -c '
   set -euo pipefail
   source "$1"
-  [[ "${HOOKS[*]}" == "base udev modconf archiso block filesystems" ]]
+  [[ "${HOOKS[*]}" == "base udev modconf kms plymouth archiso block filesystems" ]]
 ' _ "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" || \
-  fail 'mkinitcpio hook list does not match the Archiso baseline contract'
+  fail 'mkinitcpio hook list does not match the approved Plymouth live-boot contract'
 
 bash -c '
   set -euo pipefail
@@ -340,17 +383,41 @@ expected_overlay_paths=(
   etc/mkinitcpio.conf.d/archiso.conf
   etc/mkinitcpio.d
   etc/mkinitcpio.d/linux.preset
+  etc/plymouth
+  etc/plymouth/plymouthd.conf
   etc/sddm.conf.d
   etc/sddm.conf.d/10-schweisos-live.conf
   etc/systemd
   etc/systemd/system
   etc/systemd/system/display-manager.service
+  etc/systemd/system/emergency.target.d
+  etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf
   etc/systemd/system/multi-user.target.wants
   etc/systemd/system/multi-user.target.wants/NetworkManager.service
+  etc/systemd/system/plymouth-quit.service.d
+  etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf
+  etc/systemd/system/plymouth-quit-wait.service.d
+  etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf
+  etc/systemd/system/plymouth-start.service.d
+  etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf
+  etc/systemd/system/schweisos-plymouth-exit-fallback.service
+  etc/systemd/system/schweisos-plymouth-exit-watch.path
+  etc/systemd/system/sddm.service.d
+  etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf
+  etc/systemd/system/schweisos-boot-debug-fallback.service
+  etc/systemd/system/sysinit.target.d
+  etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf
   etc/sysusers.d
   etc/sysusers.d/schweisos-live.conf
   etc/tmpfiles.d
   etc/tmpfiles.d/schweisos-live.conf
+  usr
+  usr/share
+  usr/share/plymouth
+  usr/share/plymouth/themes
+  usr/share/plymouth/themes/schweisos
+  usr/share/plymouth/themes/schweisos/schweisos.plymouth
+  usr/share/plymouth/themes/schweisos/schweisos.script
 )
 printf '%s\n' "${expected_overlay_paths[@]}" | sort >"${tmp_dir}/overlay.expected"
 find "$airootfs_dir" -mindepth 1 -printf '%P\n' | sort >"${tmp_dir}/overlay.actual"
@@ -378,8 +445,69 @@ live_hostname="$(<"${airootfs_dir}/etc/hostname")"
 [[ "$sddm_config" == $'[Autologin]\nUser=live\nSession=plasma.desktop' ]] || \
   fail 'unexpected SDDM live-session configuration'
 
+plymouth_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/plymouth/plymouthd.conf")"
+[[ "$plymouth_config" == $'[Daemon]\nTheme=schweisos\nShowDelay=0' ]] || \
+  fail 'unexpected Plymouth daemon configuration'
+
+plymouth_theme="${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
+plymouth_script="${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
+grep -Fxq 'ModuleName=script' "$plymouth_theme" || fail 'Plymouth theme must use the upstream script plugin'
+grep -Fxq 'ImageDir=/usr/share/schweisos/branding' "$plymouth_theme" || \
+  fail 'Plymouth theme must consume the packaged SchweisOS branding directory'
+grep -Fxq 'ScriptFile=/usr/share/plymouth/themes/schweisos/schweisos.script' "$plymouth_theme" || \
+  fail 'Plymouth theme script path is unexpected'
+grep -Fq 'Image("schweisos-logo.png")' "$plymouth_script" || \
+  fail 'Plymouth script must use the canonical packaged SchweisOS logo'
+grep -Fq 'usr/share/schweisos/branding/schweisos-logo.png' \
+  "${project_root}/packages/schweisos-branding/PKGBUILD" || \
+  fail 'schweisos-branding must install the logo path consumed by Plymouth'
+
+debug_fallback_service="${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
+grep -Fxq 'ExecStart=-/usr/bin/plymouth quit' "$debug_fallback_service" || \
+  fail 'debug fallback must reveal logs by quitting Plymouth'
+grep -Fxq 'ExecStart=-/usr/bin/setterm -cursor on' "$debug_fallback_service" || \
+  fail 'debug fallback must restore the text cursor'
+grep -Fxq 'Wants=schweisos-boot-debug-fallback.service' \
+  "${airootfs_dir}/etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf" || \
+  fail 'emergency.target must pull in the debug fallback'
+grep -Fxq 'Wants=schweisos-plymouth-exit-watch.path' \
+  "${airootfs_dir}/etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf" || \
+  fail 'sysinit.target must start the Plymouth unexpected-exit watcher'
+for plymouth_dropin in \
+  "${airootfs_dir}/etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf" \
+  "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf" \
+  "${airootfs_dir}/etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf"; do
+  grep -Fxq 'OnFailure=schweisos-boot-debug-fallback.service' "$plymouth_dropin" || \
+    fail "Plymouth failure drop-in is missing OnFailure fallback: ${plymouth_dropin}"
+done
+grep -Fxq 'ExecStartPre=/usr/bin/touch /run/schweisos-plymouth-normal-quit' \
+  "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf" || \
+  fail 'normal Plymouth quit must mark expected splash shutdown before removing the PID'
+grep -Fxq 'OnFailure=schweisos-boot-debug-fallback.service' \
+  "${airootfs_dir}/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf" || \
+  fail 'SDDM failure must reveal boot diagnostics'
+
+plymouth_exit_watch="${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-watch.path"
+plymouth_exit_fallback="${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-fallback.service"
+grep -Fxq 'PathChanged=/run/plymouth' "$plymouth_exit_watch" || \
+  fail 'Plymouth unexpected-exit watcher must observe the runtime directory'
+grep -Fxq 'Unit=schweisos-plymouth-exit-fallback.service' "$plymouth_exit_watch" || \
+  fail 'Plymouth unexpected-exit watcher must start the fallback service'
+grep -Fxq 'ConditionPathExists=!/run/plymouth/pid' "$plymouth_exit_fallback" || \
+  fail 'Plymouth unexpected-exit fallback must require the runtime PID to be absent'
+grep -Fxq 'ConditionPathExists=!/run/schweisos-plymouth-normal-quit' "$plymouth_exit_fallback" || \
+  fail 'Plymouth unexpected-exit fallback must ignore normal quit handoff'
+grep -Fxq 'ExecStart=/usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service' \
+  "$plymouth_exit_fallback" || \
+  fail 'Plymouth unexpected-exit fallback must start the diagnostic fallback'
+
+copied_brand_asset="$(find "$airootfs_dir" -type f \
+  \( -name '*.png' -o -name '*.svg' -o -name '*.jpg' -o -name '*.jpeg' \) \
+  -print -quit)"
+[[ -z "$copied_brand_asset" ]] || \
+  fail "branding asset copied into ISO profile instead of referenced from package: ${copied_brand_asset}"
+
 for forbidden_path in \
-  "${airootfs_dir}/usr" \
   "${airootfs_dir}/etc/passwd" \
   "${airootfs_dir}/etc/shadow"; do
   [[ ! -e "$forbidden_path" ]] || fail "forbidden airootfs payload found: ${forbidden_path}"
@@ -409,18 +537,20 @@ upstream_status='Archiso 88 static contract target; installed baseline unavailab
 upstream_baseline='/usr/share/archiso/configs/baseline/airootfs/etc'
 if [[ -f "${upstream_baseline}/mkinitcpio.conf.d/archiso.conf" \
       && -f "${upstream_baseline}/mkinitcpio.d/linux.preset" ]]; then
-  cmp -s "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" \
-    "${upstream_baseline}/mkinitcpio.conf.d/archiso.conf" || \
-    fail 'archiso.conf differs from the installed Archiso baseline'
   cmp -s "${airootfs_dir}/etc/mkinitcpio.d/linux.preset" \
     "${upstream_baseline}/mkinitcpio.d/linux.preset" || \
     fail 'linux.preset differs from the installed Archiso baseline'
-  upstream_status='installed baseline matched'
+  upstream_status='installed baseline matched except approved kms/plymouth hook extension'
 fi
 
 git -C "$project_root" diff --check -- \
+  docs/adr \
+  docs/architecture/ADD.md \
+  docs/ddr \
+  docs/README.md \
   iso/profiles/kde \
   iso/README.md \
+  packages/schweisos-branding/README.md \
   scripts/build-iso.sh \
   tests/validate-iso-profile.sh \
   tests/README.md \

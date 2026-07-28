@@ -120,8 +120,10 @@ At the time this handoff was written, the repository contained:
   `archlinux-keyring`.
 - Disposable pacman validation that uses SchweisOS trust for SchweisOS
   artifacts and official Arch trust only for upstream dependency resolution.
-- A minimal branding package; no complete theme, wallpaper, Plymouth, SDDM
-  theme, installer branding, or bootloader artwork.
+- A minimal branding package and profile-owned live ISO boot experience using
+  systemd-boot, Plymouth, and automatic diagnostic fallback; no complete
+  desktop theme, wallpaper, SDDM theme, installer branding, or installed-system
+  bootloader artwork.
 - Distrobox and rootless Podman in the live package set, without SchweisOS
   automation.
 

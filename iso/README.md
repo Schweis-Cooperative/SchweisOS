@@ -33,19 +33,20 @@ small upstream-compatible profile:
 - `packages.x86_64` lists the minimum Arch and SchweisOS packages for the
   planned KDE live environment.
 - `pacman.conf` is used only while resolving packages for image assembly.
-- `efiboot/` contains the minimum systemd-boot loader configuration required by
-  the selected upstream boot mode.
+- `efiboot/` contains the systemd-boot loader configuration required by the
+  selected upstream boot mode, including normal and debug live entries.
 - `airootfs/` contains only the declarative plumbing required for an ephemeral
-  KDE live account, SDDM autologin, and NetworkManager startup.
+  KDE live account, SDDM autologin, NetworkManager startup, Plymouth selection,
+  and automatic diagnostic fallback.
 
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
-`efiboot/loader/` files are a minimal adaptation of the current upstream
-archiso templates and use only archiso-supported template identifiers.
+`efiboot/loader/` files are a small adaptation of the current upstream archiso
+templates and use only archiso-supported template identifiers.
 
-Installer integration, KDE defaults, branding, and boot artwork are
-intentionally absent. The live-only overlay and its removal condition are
-documented in `profiles/kde/README.md`; documentation is kept outside
-`airootfs/` so it is not copied into the live root filesystem.
+Installer integration, KDE defaults, wallpapers, SDDM theming, and installed
+system boot policy are intentionally absent. The live-only overlay and its
+removal condition are documented in `profiles/kde/README.md`; documentation is
+kept outside `airootfs/` so it is not copied into the live root filesystem.
 
 ## Repository Integration
 
@@ -73,7 +74,8 @@ git diff --check
 ```
 
 The dedicated validator owns the complete profile contract, including package
-ordering, permissions, UEFI and mkinitcpio inputs, airootfs minimality,
+ordering, permissions, UEFI normal/debug entries, Plymouth integration,
+automatic diagnostic fallback, mkinitcpio inputs, airootfs minimality,
 host-independent pacman parsing, symlink targets, and secret scanning.
 
 The profile contract and repository-backed build path have produced a

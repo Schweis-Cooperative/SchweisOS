@@ -4,6 +4,7 @@ linux
 linux-firmware
 mkinitcpio
 mkinitcpio-archiso
+plymouth
 zstd
 
 # CPU microcode is hardware-specific and must be selected by the installer or

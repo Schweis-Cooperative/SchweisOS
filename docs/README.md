@@ -1,27 +1,31 @@
 # SchweisOS Documentation Index
 
-Version: 0.4
+Version: 0.5
 Status: Active
-Date: 2026-07-27
+Date: 2026-07-28
 
-This directory is the source of truth for SchweisOS engineering decisions. Important decisions must not remain only in chat history; they must be written into the relevant document and, when architectural, recorded as an ADR.
+This directory is the source of truth for SchweisOS engineering and design
+decisions. Important decisions must not remain only in chat history; they must
+be written into the relevant document and, when architectural, recorded as an
+ADR.
 
 ## Required Reading Order
 
 1. [Project Vision](../VISION.md)
 2. [Architecture Design Document](architecture/ADD.md)
 3. [Architecture Decision Records](adr/README.md)
-4. [Security Model](security/security-model.md)
-5. [Packaging Guide](packaging/packaging-guide.md)
-6. [Package Repository Workflow](release/repository-workflow.md)
-7. [Release Signing Workflow](release/release-signing-workflow.md)
-8. [Release Artifact Pipeline](release/release-artifact-pipeline.md)
-9. [Release Engineering Guide](release/release-engineering-guide.md)
-10. [ISO Build Workflow](build/README.md)
-11. [Testing Strategy](testing/testing-strategy.md)
-12. [Developer Handbook](developer/developer-handbook.md)
-13. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
-14. [Product Roadmap](roadmap/product-roadmap.md)
+4. [Design Decision Records](ddr/README.md)
+5. [Security Model](security/security-model.md)
+6. [Packaging Guide](packaging/packaging-guide.md)
+7. [Package Repository Workflow](release/repository-workflow.md)
+8. [Release Signing Workflow](release/release-signing-workflow.md)
+9. [Release Artifact Pipeline](release/release-artifact-pipeline.md)
+10. [Release Engineering Guide](release/release-engineering-guide.md)
+11. [ISO Build Workflow](build/README.md)
+12. [Testing Strategy](testing/testing-strategy.md)
+13. [Developer Handbook](developer/developer-handbook.md)
+14. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
+15. [Product Roadmap](roadmap/product-roadmap.md)
 
 Historical operational snapshots remain useful evidence but are not active
 requirements:
@@ -37,6 +41,9 @@ requirements:
   templates, license texts, and immutable historical records may use their
   native format.
 - Every major technical decision must have an ADR.
+- Every durable user-facing design decision must have a DDR. DDRs complement
+  ADRs; they do not replace ADRs for architecture, security, packaging, or
+  release-engineering decisions.
 - ADD updates must link to the ADRs that justify them.
 - Roadmap updates must describe scope, not promises.
 - Security-impacting changes must update the Security Model.

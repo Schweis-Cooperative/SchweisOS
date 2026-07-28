@@ -1,0 +1,16 @@
+[Unit]
+Description=Reveal SchweisOS live boot diagnostics when graphical boot cannot continue
+Documentation=man:plymouth(1)
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=emergency.service emergency.target
+
+[Service]
+Type=oneshot
+StandardInput=tty-force
+StandardOutput=journal+console
+StandardError=journal+console
+TTYPath=/dev/console
+ExecStart=-/usr/bin/plymouth quit
+ExecStart=-/usr/bin/setterm -cursor on
+RemainAfterExit=yes

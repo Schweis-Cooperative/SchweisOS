@@ -58,20 +58,20 @@ json_number_or_null() {
 }
 
 json_value() {
-    local key=$1
+    local filter=$1
     local file=$2
-    sed -nE 's/^[[:space:]]*"'"$key"'"[[:space:]]*:[[:space:]]*"?([^",}]*)"?[,]?[[:space:]]*$/\1/p' "$file" | head -n 1
+    jq -r "$filter" "$file"
 }
 
 for tool in awk basename b2sum chmod cp date dirname find git grep install mkdir mktemp mv \
-    realpath rm sed sha256sum sort stat wc; do
+    jq realpath rm sed sha256sum sort stat wc; do
     require_tool "$tool"
 done
 
 release_id=''
 iso_input=''
 build_manifest_input=''
-profile='kde'
+profile=''
 output_root=''
 
 while (( $# > 0 )); do
@@ -115,10 +115,12 @@ done
     fail 'release id must use YYYY.MM.DD format'
 [[ -n "$iso_input" ]] || fail '--iso is required'
 [[ -n "$build_manifest_input" ]] || fail '--build-manifest is required'
-[[ "$profile" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile name is invalid'
+[[ -z "$profile" || "$profile" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile name is invalid'
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "${script_dir}/.." && pwd -P)"
+build_manifest_validator="${repo_root}/tests/validate-iso-build-manifest.sh"
+[[ -x "$build_manifest_validator" ]] || fail 'build manifest validator is unavailable'
 
 if [[ -z "$output_root" ]]; then
     output_root="${repo_root}/release"
@@ -142,45 +144,42 @@ release_dir="${output_root}/${release_id}"
 [[ ! -e "$release_dir" && ! -L "$release_dir" ]] || \
     fail "release already exists: ${release_id}"
 
-iso_path="$(realpath -m -- "$iso_input")"
-build_manifest_path="$(realpath -m -- "$build_manifest_input")"
+[[ -f "$iso_input" && ! -L "$iso_input" ]] || fail 'ISO must be a regular non-symlink file'
+[[ -f "$build_manifest_input" && ! -L "$build_manifest_input" ]] || \
+    fail 'build manifest must be a regular non-symlink file'
+iso_path="$(realpath -e -- "$iso_input")"
+build_manifest_path="$(realpath -e -- "$build_manifest_input")"
 [[ -f "$iso_path" && ! -L "$iso_path" ]] || fail 'ISO must be a regular file'
 [[ -s "$iso_path" ]] || fail 'ISO artifact is empty'
 [[ -f "$build_manifest_path" && ! -L "$build_manifest_path" ]] || \
     fail 'build manifest must be a regular file'
 
 iso_filename="$(basename -- "$iso_path")"
-[[ "$iso_filename" =~ ^schweisos-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-x86_64\.iso$ ]] || \
-    fail 'ISO filename does not match the SchweisOS release artifact contract'
+[[ "$iso_filename" == "schweisos-${release_id}-x86_64.iso" ]] || \
+    fail 'ISO filename does not match the requested release identifier'
+"$build_manifest_validator" --release "$build_manifest_path" "$iso_path" >/dev/null || \
+    fail 'build manifest or ISO binding validation failed'
 
-build_schema="$(json_value schema "$build_manifest_path")"
-build_status="$(json_value status "$build_manifest_path")"
-build_timestamp="$(json_value build_timestamp_utc "$build_manifest_path")"
-expected_iso_name="$(json_value expected_iso_name "$build_manifest_path")"
-git_commit="$(json_value commit "$build_manifest_path")"
-dirty_at_start="$(json_value dirty_at_start "$build_manifest_path")"
-dirty_at_finish="$(json_value dirty_at_finish "$build_manifest_path")"
-archiso_version="$(json_value archiso_version "$build_manifest_path")"
-source_date_epoch="$(json_value source_date_epoch "$build_manifest_path")"
-environment_validation="$(json_value build_environment "$build_manifest_path")"
-profile_validation="$(json_value iso_profile "$build_manifest_path")"
-artifact_validation="$(json_value artifact "$build_manifest_path")"
+build_timestamp="$(json_value '.build_timestamp_utc' "$build_manifest_path")"
+git_commit="$(json_value '.git.commit' "$build_manifest_path")"
+archiso_version="$(json_value '.archiso_version' "$build_manifest_path")"
+source_date_epoch="$(json_value '.source_date_epoch' "$build_manifest_path")"
+build_profile="$(json_value '.profile' "$build_manifest_path")"
+environment_validation="$(json_value '.validation.build_environment' "$build_manifest_path")"
+profile_validation="$(json_value '.validation.iso_profile' "$build_manifest_path")"
+built_identity_validation="$(json_value '.validation.built_iso_identity' "$build_manifest_path")"
+built_boot_validation="$(json_value '.validation.built_iso_boot' "$build_manifest_path")"
+artifact_validation="$(json_value '.validation.artifact' "$build_manifest_path")"
 
-[[ "$build_schema" == schweisos.iso-build-manifest.v1 ]] || \
-    fail 'build manifest schema is unsupported'
-[[ "$build_status" == success ]] || fail 'build manifest is not successful'
-[[ "$expected_iso_name" == "$iso_filename" ]] || \
-    fail 'ISO filename does not match the build manifest'
-[[ "$dirty_at_start" == false && "$dirty_at_finish" == false ]] || \
-    fail 'build manifest does not describe a clean Git tree'
-[[ "$environment_validation" == pass && "$profile_validation" == pass && "$artifact_validation" == pass ]] || \
-    fail 'build manifest validators did not all pass'
-[[ "$git_commit" =~ ^[0-9a-f]{40,64}$ ]] || fail 'build manifest Git commit is invalid'
-[[ "$build_timestamp" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || \
-    fail 'build timestamp must be UTC ISO-8601'
+if [[ -n "$profile" && "$profile" != "$build_profile" ]]; then
+    fail 'requested profile does not match the build manifest'
+fi
+profile=$build_profile
 
 iso_size="$(stat -c %s -- "$iso_path")"
 [[ "$iso_size" =~ ^[1-9][0-9]*$ ]] || fail 'ISO size is invalid'
+iso_sha256="$(sha256sum -- "$iso_path" | awk 'NR == 1 { print $1 }')"
+[[ "$iso_sha256" =~ ^[0-9a-f]{64}$ ]] || fail 'ISO SHA256 is invalid'
 
 staging_parent="$(mktemp --directory --tmpdir="$output_root" ".${release_id}.tmp.XXXXXX")"
 tmp_dir="${staging_parent}/${release_id}"
@@ -233,9 +232,9 @@ generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 release_manifest="${tmp_dir}/manifests/release-manifest.json"
 {
     printf '{\n'
-    printf '  "schema": "schweisos.release-artifact-manifest.v1",\n'
-    printf '  "schema_version": 1,\n'
-    printf '  "release_format_version": "1",\n'
+    printf '  "schema": "schweisos.release-artifact-manifest.v2",\n'
+    printf '  "schema_version": 2,\n'
+    printf '  "release_format_version": "2",\n'
     printf '  "release_id": %s,\n' "$(json_string "$release_id")"
     printf '  "generated_at_utc": %s,\n' "$(json_string "$generated_at")"
     printf '  "build_timestamp_utc": %s,\n' "$(json_string "$build_timestamp")"
@@ -252,11 +251,13 @@ release_manifest="${tmp_dir}/manifests/release-manifest.json"
     printf '  "archiso_version": %s,\n' "$(json_string_or_null "$archiso_version")"
     printf '  "source_date_epoch": %s,\n' "$(json_number_or_null "$source_date_epoch")"
     printf '  "validator_versions": {\n'
-    printf '    "release_artifact_validator": "1"\n'
+    printf '    "release_artifact_validator": "2"\n'
     printf '  },\n'
     printf '  "validator_results": {\n'
     printf '    "build_environment": %s,\n' "$(json_string "$environment_validation")"
     printf '    "iso_profile": %s,\n' "$(json_string "$profile_validation")"
+    printf '    "built_iso_identity": %s,\n' "$(json_string "$built_identity_validation")"
+    printf '    "built_iso_boot": %s,\n' "$(json_string "$built_boot_validation")"
     printf '    "artifact": %s,\n' "$(json_string "$artifact_validation")"
     printf '    "release_artifacts": "pass"\n'
     printf '  }\n'
@@ -274,6 +275,8 @@ notes_path="${tmp_dir}/RELEASE_NOTES.md"
     printf 'Validator summary:\n\n'
     printf '%s\n' "- Build environment: \`${environment_validation}\`"
     printf '%s\n' "- ISO profile: \`${profile_validation}\`"
+    printf '%s\n' "- Built ISO identity: \`${built_identity_validation}\`"
+    printf '%s\n' "- Built ISO boot: \`${built_boot_validation}\`"
     printf '%s\n' "- Build artifact: \`${artifact_validation}\`"
     printf '%s\n\n' '- Release artifacts: `pass`'
     printf 'Checksum summary:\n\n'

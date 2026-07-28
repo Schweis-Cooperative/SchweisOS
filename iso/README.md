@@ -30,22 +30,28 @@ canonical location.
 small upstream-compatible profile:
 
 - `profiledef.sh` declares image metadata and UEFI systemd-boot policy.
-- `packages.x86_64` lists the minimum Arch and SchweisOS packages for the
-  planned KDE live environment.
+- `packages.x86_64` lists the minimum Arch and SchweisOS packages for the KDE
+  live environment.
 - `pacman.conf` is used only while resolving packages for image assembly.
 - `efiboot/` contains the systemd-boot loader configuration required by the
   selected upstream boot mode, including only the normal and debug live
   entries.
-- `airootfs/` contains only the declarative plumbing required for an ephemeral
-  KDE live account, SDDM autologin, NetworkManager startup, Plymouth selection,
-  canonical-logo animation, and automatic diagnostic fallback.
+- `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
+  SDDM autologin, NetworkManager startup, Plymouth selection,
+  canonical-logo animation, neutral noninteractive first-boot defaults, and
+  automatic diagnostic fallback. This includes three short audited Bash
+  helpers whose behavior is meaningful only during live boot.
 
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
 templates and use only archiso-supported template identifiers.
 The text-oriented loader keeps the firmware console mode, disables automatic
 entries and editing, and exposes `SchweisOS Live` plus
-`SchweisOS Live (Debug)`. Graphical presentation begins in Plymouth.
+`SchweisOS Live (Debug)`. The source contract configures graphical
+presentation to begin in Plymouth.
+Both entries disable interactive `systemd-firstboot`; the live overlay matches
+upstream Archiso's `C.UTF-8` and UTC defaults and configures SDDM to hand the
+ephemeral account directly to Plasma.
 
 Installer integration, KDE defaults, wallpapers, SDDM theming, and installed
 system boot policy are intentionally absent. The live-only overlay and its
@@ -74,6 +80,7 @@ From the repository root:
 
 ```sh
 tests/validate-iso-profile.sh
+tests/test-plymouth-watchdog.sh
 git diff --check
 ```
 
@@ -82,10 +89,25 @@ ordering, permissions, UEFI normal/debug entries, Plymouth integration,
 automatic diagnostic fallback, mkinitcpio inputs, airootfs minimality,
 host-independent pacman parsing, symlink targets, and secret scanning.
 
-The profile contract and repository-backed build path have produced a
-development ISO on a canonical Arch build host. A clean build still requires
-current Archiso tooling, the five signed live SchweisOS foundation packages,
-the signed
-repository database in release mode, and every validator to pass. Construction,
-post-build SquashFS inspection, manual boot testing, installer testing, ISO
-signing, and publication remain distinct release-engineering gates.
+`tests/test-plymouth-watchdog.sh` exercises the real watchdog control flow with
+disposable command stubs. It verifies successful and in-progress normal
+handoff, failed handoff, absent and later-stopped daemons, and propagation of
+health-helper and systemd-query errors. It does not boot an image or claim that
+a renderer displayed pixels.
+
+`tests/validate-built-iso-identity.sh` and
+`tests/validate-built-iso-boot.sh` are complementary post-build gates. On a
+completed image they extract the SquashFS and initramfs and prove the effective
+distribution identity, signed branding package version, canonical logo,
+Plymouth script/runtime, first-boot defaults, systemd fallback units, and
+Plasma handoff inputs. The wrapper requires both before publishing checksums.
+
+There is no current successful ISO evidence for the newly changed first-boot
+payload, Plymouth watchdog, built-boot validator, or exact v2 manifest
+contract. A fresh production-host build must create that evidence later. The
+older local ISO and its failed or legacy manifests do not validate the current
+profile. A clean build still requires current Archiso tooling, the five signed
+live SchweisOS foundation packages, the signed repository database in release
+mode, and every validator to pass. Construction, both post-build inspections,
+manual boot testing, installer testing, ISO signing, and publication remain
+distinct release-engineering gates.

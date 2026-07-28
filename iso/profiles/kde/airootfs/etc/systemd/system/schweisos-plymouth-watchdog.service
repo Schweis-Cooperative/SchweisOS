@@ -1,0 +1,11 @@
+[Unit]
+Description=Monitor Plymouth during SchweisOS live boot
+DefaultDependencies=no
+After=plymouth-start.service
+Before=display-manager.service
+Conflicts=shutdown.target
+OnFailure=schweisos-boot-debug-fallback.service
+
+[Service]
+Type=exec
+ExecStart=/usr/lib/schweisos-live/plymouth-watchdog

@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.2
+Version: 1.4
 
 ## Status
 
@@ -57,6 +57,9 @@ The profile will:
   boot entry;
 - keep a separate debug entry without `quiet` or `splash`, with verbose kernel
   logging and visible systemd status;
+- set `systemd.firstboot=no` on both entries, provide the upstream Archiso
+  `LANG=C.UTF-8` and UTC live defaults, and reserve locale, timezone, keymap,
+  account, and storage choices for the future installer;
 - include the upstream Arch `plymouth` package in the live package set;
 - add upstream mkinitcpio `kms` and `plymouth` hooks to the live initramfs hook
   chain;
@@ -70,10 +73,19 @@ The profile will:
 - use the upstream Plymouth script plugin for a bounded fade-in, subtle
   pre-rendered scale/opacity breathing cycle, and a rotating loading-dot trail
   sampled from the canonical logo, without adding another image source;
-- reveal diagnostics automatically by quitting Plymouth when `emergency.target`
-  is reached, SDDM fails, Plymouth start/quit units fail, or the Plymouth
-  runtime directory changes and the PID is absent before the normal quit
-  handoff marker is written.
+- replace the upstream Plymouth client commands' error-ignoring service
+  prefixes in live-only drop-ins so explicit show, quit, and wait failures reach
+  systemd;
+- bound guarded quit and `plymouth --wait` to 20 seconds, preserve the
+  normal-quit marker only after a successful guarded quit, and reveal
+  diagnostics automatically when
+  `emergency.target` is reached, SDDM fails, a Plymouth unit fails, or the
+  Plymouth runtime directory changes and no live `plymouthd` remains before
+  the normal handoff;
+- run a bounded-lifetime one-second liveness watchdog until the guarded normal
+  handoff service has completed successfully, closing both the stale-PID
+  hard-crash gap that a path event alone cannot detect and the early-marker
+  handoff race.
 
 The theme and fallback units are live-medium profile exceptions. They are not
 installed-system policy and do not imply that SchweisOS has implemented an
@@ -90,8 +102,9 @@ configuration with its own ADR update.
 - `iso/profiles/kde/packages.x86_64` owns live image package composition,
   including the `plymouth` package.
 - `iso/profiles/kde/airootfs/` owns the live-only Plymouth selection, theme,
-  mkinitcpio hook extension, unexpected-exit watcher, and failure fallback
-  services.
+  mkinitcpio hook extension, neutral first-boot defaults, guarded handoff
+  helpers, path watcher, bounded-lifetime liveness watchdog, and failure
+  fallback services.
 - `schweisos-branding` owns only the runtime logo file consumed by the theme.
 - `branding/assets/logo/schweisos.png` is the one canonical source artwork
   owner for SchweisOS boot and runtime logo consumers.
@@ -147,6 +160,13 @@ Positive consequences:
 - The debug path remains explicit and visible in systemd-boot.
 - Emergency boot, SDDM failure, Plymouth service failures, and unexpected
   Plymouth daemon exits automatically reveal diagnostics.
+- The live system no longer stops at `systemd-firstboot`; successful graphical
+  boot proceeds through SDDM autologin directly to Plasma.
+- Source/package version drift and missing canonical branding payloads stop the
+  build before Archiso can compose a stale splash.
+- Post-build validation proves that the built root and initramfs contain the
+  reviewed theme, script runtime, and canonical logo before checksums are
+  published.
 - The implementation uses upstream Arch packages and hooks.
 - The official logo has one canonical source and one runtime package owner.
 - Installed-system boot policy remains unimplemented and honestly documented.
@@ -159,6 +179,10 @@ Negative consequences:
   until a reusable boot-theme package is justified.
 - Static validation cannot prove visual quality; manual boot and hardware
   qualification remain required before release claims.
+- The path watcher and one-second watchdog can prove that the recorded PID is
+  not a live `plymouthd`, but no static validator can prove that a running
+  graphics stack is producing visible pixels. The explicit debug entry and
+  Escape-to-details behavior remain necessary recovery surfaces.
 
 ## Validation
 
@@ -167,14 +191,22 @@ The ISO profile validator must fail closed if:
 - `plymouth` is missing from the live package set;
 - the normal boot entry is not quiet/splash-enabled;
 - the debug boot entry hides logs;
+- either entry permits interactive `systemd-firstboot`, or the live root omits
+  the Archiso `C.UTF-8` and UTC defaults;
 - the mkinitcpio hook list omits `kms` or `plymouth`;
 - the Plymouth theme copies branding assets instead of consuming the packaged
   branding directory;
 - the theme does not use `schweisos.png`, lacks the documented fade/pulse and
   rotating indicator primitives, or introduces a second image dependency;
-- emergency or Plymouth failure fallback units are missing;
-- the unexpected-exit watcher or normal-quit marker is missing;
+- Plymouth client errors remain ignored, quit waiting is unbounded, or
+  emergency/SDDM/Plymouth fallback units are missing;
+- the unexpected-exit path watcher, bounded-lifetime liveness watchdog, guarded
+  normal-quit marker, or daemon-health check is missing;
 - unexpected files enter the live overlay.
 
-The change must not run `mkarchiso`, build an ISO, generate release artifacts,
-or claim boot validation without an actual boot test.
+The build environment gate must additionally reject SchweisOS package/source
+version drift in every mode and reject a resolved branding package whose
+canonical logo path or hash differs from repository source. After `mkarchiso`,
+the built-ISO boot validator must inspect the SquashFS and initramfs before
+checksums are published. These static gates do not replace a VM or hardware
+boot test.

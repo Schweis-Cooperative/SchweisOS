@@ -1,8 +1,8 @@
 # SchweisOS Engineering Master Prompt
 
-Version: 1.0
+Version: 1.1
 Status: Active conversation handoff
-Date: 2026-07-27
+Date: 2026-07-28
 
 Use the prompt below at the beginning of a new Codex conversation. It provides
 process and safety context, but it does not replace repository discovery. The
@@ -113,7 +113,8 @@ At the time this handoff was written, the repository contained:
   GRUB and is not part of the live ISO.
 - A date-based `YYYY.MM.DD` release and image contract.
 - A fail-closed build wrapper that validates the host and profile before
-  invoking `mkarchiso`, then records checksums and privacy-minimized manifests.
+  invoking `mkarchiso`, validates built identity and boot/initramfs composition,
+  then records checksums and privacy-minimized manifests.
 - Separate unsigned local-bootstrap repository tooling and signed production
   repository tooling.
 - An admitted production public certificate, a certification-only primary,
@@ -124,10 +125,12 @@ At the time this handoff was written, the repository contained:
 - Disposable pacman validation that uses SchweisOS trust for SchweisOS
   artifacts and official Arch trust only for upstream dependency resolution.
 - A minimal branding package and profile-owned live ISO boot experience using
-  systemd-boot, Plymouth, and automatic diagnostic fallback; no complete
-  desktop theme, wallpaper, SDDM theme, installer branding, or activated
-  installed-system bootloader workflow. The optional GRUB presentation exists
-  only as the inert package described above.
+  systemd-boot, Plymouth, automatic diagnostic fallback, and a noninteractive
+  SDDM handoff directly to Plasma. The live defaults are `C.UTF-8`/UTC and both
+  entries disable interactive `systemd-firstboot`. There is no complete desktop
+  theme, wallpaper, SDDM theme, installer branding, or activated installed-
+  system bootloader workflow. The optional GRUB presentation exists only as the
+  inert package described above.
 - Distrobox and rootless Podman in the live package set, without SchweisOS
   automation.
 
@@ -213,8 +216,9 @@ layers.
 - Treat `cache/`, `logs/`, `out/`, `work/`, package build directories, signing
   homes, and secret-key transfer files as generated/private state, not source.
 - After building, verify the artifact name, uniqueness, size, SHA256, manifest,
-  SquashFS package inventory, and effective distribution identity before any
-  boot test.
+  SquashFS package inventory, effective distribution identity, resolved loader
+  entries, live systemd units, and Plymouth theme/logo payload inside the
+  initramfs before any boot test.
 - Static/SquashFS inspection does not replace VM and hardware validation.
 - Never start QEMU, KVM, VirtualBox, VMware, or another VM unless explicitly
   requested.

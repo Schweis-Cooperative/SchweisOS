@@ -1,6 +1,6 @@
 # ADR-013 ISO Build Workflow
 
-Version: 1.3
+Version: 1.5
 
 ## Status
 
@@ -15,6 +15,7 @@ Accepted
 - ADR-008 Documentation First
 - ADR-011 Repository Architecture
 - ADR-012 ISO Build Architecture
+- ADR-014 Live Boot Experience Architecture
 
 ## Context
 
@@ -32,11 +33,13 @@ The canonical build workflow is:
 
 ```text
 version-controlled repository
-  -> validated ISO profile
+  -> validated host, signed repository payloads, and ISO profile
   -> prepared build directories
   -> mkarchiso using explicit work, output, and cache paths
-  -> generated ISO artifacts
-  -> static inspection and later boot testing
+  -> generated ISO candidate
+  -> built identity, SquashFS, initramfs, and boot-unit inspection
+  -> verified checksums and build manifest
+  -> later VM and hardware boot testing
   -> release signing and publication outside the build script
 ```
 
@@ -65,13 +68,15 @@ The machine-readable source of truth for direct build-host dependencies is
 - `archiso`
 - `bash`
 - `git`
+- `mkinitcpio`
 - `pacman`
 - `sudo`
 - `util-linux`
 
 This list records packages SchweisOS consumes directly: upstream Archiso,
-shell execution, source-state capture, pacman configuration and trust queries,
-narrow privilege escalation, and build locking or mount inspection. Dependencies
+shell execution, source-state capture, post-build initramfs inspection, pacman
+configuration and trust queries, narrow privilege escalation, and build locking
+or mount inspection. Dependencies
 such as `arch-install-scripts`, `dosfstools`, `e2fsprogs`, `erofs-utils`,
 `libarchive`, `libisoburn`, `mtools`, and `squashfs-tools` are intentionally not
 duplicated in the manifest. They are runtime dependencies of Arch's `archiso`
@@ -114,7 +119,9 @@ logs/
   iso/
 ```
 
-The future build script may allow these paths to be overridden, but defaults must be relative to the repository root and must not use hardcoded user-specific absolute paths.
+The implemented wrapper fixes these paths relative to the repository root. A
+future override, if approved, must preserve that portability and must not place
+user-specific absolute paths in version-controlled configuration.
 
 Directory responsibilities:
 
@@ -126,7 +133,8 @@ Directory responsibilities:
 | `cache/pacman/` | Build-local package cache | No |
 | `logs/iso/` | Build logs and validation notes | No |
 
-Official release artifacts may later be copied from `out/iso/` to designated artifact storage after validation. The output directory itself is not artifact storage.
+Validated release candidates are staged from `out/iso/` by the separate release
+artifact pipeline. The output directory itself is not artifact storage.
 
 ## Ownership Boundaries
 
@@ -150,6 +158,10 @@ Build tooling may define:
 - log capture
 - output naming checks
 - post-build artifact inspection
+- fail-closed comparison of source package versions and resolved repository
+  payloads before construction
+- built-image identity and boot-composition validation before checksum
+  publication
 - single-writer locking for generated build state
 - per-attempt manifests and a latest-attempt manifest view
 
@@ -222,7 +234,7 @@ Logs must not contain signing secrets, private keys, tokens, mirror credentials,
 
 `mkarchiso` requires privileged operations to create and populate the live filesystem image.
 
-The future build workflow should:
+The build workflow:
 
 - Run host validation without root where possible.
 - Escalate only for the `mkarchiso` execution step and any directly required cleanup of root-owned build state.
@@ -232,32 +244,34 @@ The future build workflow should:
 
 Root privilege is a build mechanism, not a reason to broaden script responsibility.
 
-## Future `scripts/build-iso.sh`
+## Implemented `scripts/build-iso.sh`
 
-A future `scripts/build-iso.sh` should be a small wrapper around the documented workflow.
+`scripts/build-iso.sh` is a small wrapper around the documented workflow.
 
-It should:
+It:
 
-- Determine the repository root.
-- Select an explicit profile, initially `iso/profiles/kde`.
-- Verify required host commands and packages where practical.
-- Verify the profile files expected by ADR-012.
-- Create `work/`, `out/`, `cache/`, and `logs/` subdirectories.
-- Support a clean mode for generated build state.
-- Record git commit and tool versions.
-- Invoke `mkarchiso` with explicit work and output directories.
-- Capture logs in `logs/iso/`.
-- Print the generated artifact paths.
-- Exit non-zero on validation or build failure.
-- Prevent concurrent wrappers from sharing work, output, cache, or manifest
+- Determines the repository root.
+- Selects an explicit profile, initially `iso/profiles/kde`.
+- Verifies required host commands and packages.
+- Verifies the profile files expected by ADR-012 and ADR-014.
+- Creates `work/`, `out/`, `cache/`, and `logs/` subdirectories.
+- Supports a clean mode for generated build state.
+- Records the Git commit and tool versions.
+- Invokes `mkarchiso` with explicit work and output directories.
+- Captures logs in `logs/iso/`.
+- Prints the generated artifact paths.
+- Exits non-zero on validation or build failure.
+- Prevents concurrent wrappers from sharing work, output, cache, or manifest
   state.
-- Validate generated artifact identity and checksums and atomically record a
-  privacy-minimized build manifest.
+- Validates generated artifact identity, live root, initramfs boot payload, and
+  checksums, then atomically records a privacy-minimized build manifest.
 
 It must not:
 
 - Build SchweisOS packages.
-- Run `makepkg` for package sources.
+- Run a `makepkg` package build. Read-only `makepkg --printsrcinfo` queries are
+  permitted solely to compare canonical source versions with the signed
+  repository and built image.
 - Modify PKGBUILDs.
 - Generate signing keys.
 - Sign packages, repositories, or ISOs.
@@ -276,6 +290,9 @@ Key rules:
 
 - Signing secrets must not be stored in the repository, ISO profile, `airootfs/`, package cache, or generic build logs.
 - Official builds must consume packages through the trust model defined by ADR-011.
+- Development builds may relax only the separately documented repository
+  database-signature requirement; signed package/source version drift and
+  canonical payload drift remain fatal in every mode.
 - Local unsigned development repositories must not be used for public release ISOs.
 - Build outputs must be inspected before signing or publication.
 - Package cache contents must not override repository trust decisions.
@@ -307,7 +324,7 @@ Positive consequences:
 - Generated state is separated from source files.
 - Build logs become useful release evidence.
 - Package and ISO lifecycles remain separate.
-- The future build script can stay small and auditable.
+- The build script stays small and auditable.
 - The architecture scales from one maintainer to CI without changing ownership boundaries.
 
 Negative consequences:
@@ -315,7 +332,8 @@ Negative consequences:
 - Early builds require a properly prepared Arch host.
 - The workflow is stricter than ad hoc `mkarchiso` experimentation.
 - Full reproducibility cannot be claimed until repository snapshotting and repeated build comparisons exist.
-- Separate signing and publication workflows must still be designed.
+- ISO detached signing and external publication remain incomplete even though
+  package and repository signing are operational as separate workflows.
 
 ## Validation
 
@@ -324,4 +342,6 @@ For this architecture change:
 - `docs/adr/README.md` must include ADR-013.
 - `docs/architecture/ADD.md` must reference the ISO build workflow.
 - `docs/build/README.md` must describe build host requirements and the workflow.
+- Built-ISO identity and boot validators must fail before checksum publication
+  when the composed image differs from reviewed package/profile sources.
 - `git diff --check` must pass.

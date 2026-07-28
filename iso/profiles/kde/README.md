@@ -16,6 +16,11 @@ The following files are temporary live-media exceptions:
 - `/etc/plymouth/plymouthd.conf` selects the SchweisOS live Plymouth theme.
 - `/etc/hostname` gives the ephemeral live system the portable hostname
   `schweisos`; installed-system hostnames remain an installer and user choice.
+- `/etc/locale.conf` and `/etc/localtime` retain upstream Archiso's neutral
+  `LANG=C.UTF-8` and UTC live defaults. Both loader entries also set
+  `systemd.firstboot=no`, so generic first-boot questions cannot block SDDM;
+  installed locale, keymap, timezone, and account choices remain
+  installer-owned.
 - `/etc/sysusers.d/schweisos-live.conf` declares the ephemeral `live` account
   without embedding a password or password hash.
 - `/etc/tmpfiles.d/schweisos-live.conf` creates `/home/live` after the account
@@ -26,11 +31,16 @@ The following files are temporary live-media exceptions:
 - `/etc/systemd/system/multi-user.target.wants/NetworkManager.service` enables
   the packaged NetworkManager unit for live networking.
 - `/etc/systemd/system/schweisos-boot-debug-fallback.service` and its
-  `emergency.target` and Plymouth unit drop-ins quit Plymouth when graphical
-  boot cannot continue, restoring the normal diagnostic console.
+  `emergency.target` and Plymouth unit drop-ins propagate otherwise ignored
+  Plymouth client errors, bound quit waiting to 20 seconds, and quit Plymouth
+  when graphical boot cannot continue, restoring the normal diagnostic
+  console.
 - `/etc/systemd/system/schweisos-plymouth-exit-watch.path` watches Plymouth's
-  runtime directory. If the PID is absent before the normal quit handoff marker,
-  it starts the same diagnostic fallback.
+  runtime directory, while `schweisos-plymouth-watchdog.service` checks
+  liveness once per second only until successful handoff. Live-only helpers
+  under `/usr/lib/schweisos-live/` retain the normal marker only after a
+  successful quit and reject stale PID files by checking for a live
+  `plymouthd`; either detector starts the same diagnostic fallback.
 - `/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf` reveals
   diagnostics if the live display manager fails before Plasma appears.
 - `/usr/share/plymouth/themes/schweisos/` contains the live-only Plymouth theme.
@@ -50,8 +60,11 @@ files must exist before the kernel package creates the image. The remaining
 files should move to a narrowly scoped, live-only package if one is designed
 and approved later.
 
-All executable behavior remains in upstream packages and systemd units. The
-overlay contains no custom binaries, package archives, copied branding assets,
-installer payload, first-run wizard, timezone wizard, or secrets. Keeping this
-README outside `airootfs/` prevents profile documentation from being copied to
-`/README.md` in the live filesystem.
+The three short Bash helpers are the only profile-owned executables. They are
+live-only systemd helpers, not reusable installed-system behavior: one guards
+the normal Plymouth quit marker, one checks whether a recorded PID still
+belongs to a live `plymouthd`, and one performs the boot-bounded liveness
+check. The overlay contains no custom binary, package
+archive, copied branding asset, installer payload, first-run wizard, timezone
+wizard, or secret. Keeping this README outside `airootfs/` prevents profile
+documentation from being copied to `/README.md` in the live filesystem.

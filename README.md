@@ -18,15 +18,18 @@ contains:
 - Five live/repository foundation packages plus an inert, separately packaged
   SchweisOS GRUB theme for future installer integration.
 - A KDE Archiso profile and a fail-closed ISO build wrapper.
-- A restrained two-entry systemd-boot menu and animated Plymouth live splash
-  with automatic diagnostic fallback.
+- A restrained two-entry systemd-boot menu, animated Plymouth live splash,
+  automatic diagnostic fallback, and a noninteractive handoff directly to the
+  Plasma live session.
 - A packaged graphical GRUB theme that is not yet installer-activated or part
   of the live ISO.
 - Production public trust material, role-separated signing tooling, and signed
   repository tooling.
 - Disposable pacman, package, repository, ISO-profile, release-artifact, and
   built-image validators.
-- A development ISO whose SquashFS identity has been verified as SchweisOS.
+- Pre- and post-build gates that generate per-build SquashFS, initramfs,
+  identity, and checksum evidence. An old or copied ISO outside that pipeline
+  is not release evidence.
 
 This is still a pre-alpha engineering state. There is no installer, public
 mirror network, public release channel, Secure Boot support, disk encryption,

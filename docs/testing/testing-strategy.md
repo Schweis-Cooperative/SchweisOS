@@ -1,8 +1,8 @@
 # SchweisOS Testing Strategy
 
-Version: 0.4
+Version: 0.5
 Status: Draft
-Date: 2026-07-27
+Date: 2026-07-28
 
 ## Goal
 
@@ -60,7 +60,10 @@ Each release candidate should record:
 Post-build SquashFS inspection is mandatory but does not replace a boot test.
 It must verify the installed `schweisos-release` version, effective
 `/etc/os-release` link and fields, package ownership, and the expected live
-package set before a VM or hardware test begins.
+package set before a VM or hardware test begins. It must also inspect the built
+initramfs for the selected Plymouth theme, script runtime, and exact canonical
+logo, and verify that live first-boot defaults cannot interrupt the SDDM/Plasma
+handoff.
 
 ## Built-ISO Identity Contract
 
@@ -77,6 +80,19 @@ SquashFS xattrs while extracting because it is an unprivileged identity and
 package-metadata gate, not a Linux capability/xattr policy gate. Manual SquashFS
 evidence may support investigation, but it does not replace the automated
 post-build validator.
+
+## Built-ISO Boot Composition Contract
+
+`tests/validate-built-iso-boot.sh` closes the gap between reviewed source and
+the signed package versions selected by pacman. It checks the built
+systemd-boot entries, installed branding record and payload hash, live
+locale/timezone defaults, systemd fallback units, Plasma session, and the
+actual initramfs contents. It also runs `systemd-analyze verify` against the
+merged unit set in the extracted live root.
+
+This gate proves composition, not pixels or successful hardware initialization.
+A VM and hardware boot remain necessary to observe animation, renderer
+selection, SDDM autologin, and the final Plasma desktop.
 
 ## Gaming Validation
 

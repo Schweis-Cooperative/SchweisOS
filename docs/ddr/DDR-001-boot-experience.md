@@ -1,6 +1,6 @@
 # DDR-001 Boot Experience
 
-Version: 1.2
+Version: 1.5
 Status: Accepted
 Date: 2026-07-28
 
@@ -21,10 +21,11 @@ The experience should communicate:
 - trustworthy;
 - transparent when something goes wrong.
 
-The implemented portion of this decision covers the KDE live ISO boot
-experience. It also defines the visual direction of the packaged GRUB theme,
-but it does not implement installed-system bootloader activation, installer
-behavior, Secure Boot, BIOS boot, or installed-system Plymouth policy.
+The repository-source portion of this decision covers the configured KDE live
+ISO boot experience. It also defines the visual direction of the packaged GRUB
+theme, but it does not implement installed-system bootloader activation,
+installer behavior, Secure Boot, BIOS boot, or installed-system Plymouth
+policy.
 
 ## UX Philosophy
 
@@ -118,40 +119,78 @@ The debug entry intentionally does not use `quiet` or `splash`. It keeps verbose
 kernel logging and visible systemd status. If a user wants the raw Linux boot
 surface immediately, it is one boot-menu choice away.
 
+Both entries use `systemd.firstboot=no`. The live root supplies the same neutral
+`LANG=C.UTF-8` and UTC defaults as upstream Archiso. This prevents the generic
+systemd locale, keymap, timezone, and root-password questionnaire from blocking
+the graphical live session; those choices belong to the future installer.
+
 ### Automatic Failure Reveal
 
 The design principle is simple: hide routine noise, never hide failure.
 
 The live profile adds a debug fallback service that quits Plymouth and restores
 the text cursor. It is pulled in by `emergency.target` and attached as
-`OnFailure=` handling for the Plymouth start and quit units and SDDM.
+`OnFailure=` handling for the Plymouth start, quit, bounded quit-wait, and SDDM
+units.
 
-The profile also watches Plymouth's runtime directory. The normal
-`plymouth-quit.service` writes a temporary normal-quit marker before it removes
-the splash. If the runtime directory changes, the PID is absent, and that marker
-does not exist, SchweisOS treats it as an unexpected Plymouth exit and starts
-the same diagnostic fallback.
+Upstream Plymouth service files intentionally prefix their client commands with
+`-`, which makes client errors non-fatal to systemd. Live-only drop-ins replace
+those commands without the error-ignoring prefix. Both guarded quit and
+quit-wait have an explicit 20-second limit instead of relying on an unlimited
+or changing upstream timeout.
 
-This means:
+The profile watches Plymouth's runtime directory and runs a one-second liveness
+watchdog until the normal handoff. A guarded quit helper writes a temporary
+normal-handoff marker before requesting quit, removes it on failure or
+interruption, and retains it only after success. A directory change provides
+the fast detection path. The watchdog independently invokes the same health
+helper, which verifies the recorded PID and process name; this also detects a
+hard crash that leaves a stale PID file without changing directory metadata.
+When no live `plymouthd` remains, SchweisOS starts the same diagnostic fallback.
+The watchdog exits only when the marker exists and `plymouth-quit.service` has
+completed successfully; an in-progress or failed quit cannot retire it early.
+It does not poll during the live desktop session.
 
-- a healthy boot stays polished;
-- emergency mode reveals diagnostics;
-- Plymouth startup or shutdown failure reveals diagnostics;
-- unexpected Plymouth daemon exit before the normal handoff reveals diagnostics;
-- display-manager failure reveals diagnostics;
+`tests/test-plymouth-watchdog.sh` exercises that state machine with disposable
+command stubs while retaining the real helper's control flow. It covers a
+completed handoff, an activating handoff that later succeeds, a failed
+handoff, an absent daemon, a live daemon that later stops, a health-helper
+error, and a systemd state-query error. The last two errors propagate to
+systemd instead of becoming false success.
+
+Once composed into an image and runtime-qualified, the configured contract is
+intended to mean:
+
+- a healthy boot remains on the polished path;
+- emergency mode is configured to reveal diagnostics;
+- Plymouth startup or shutdown failure is configured to reveal diagnostics;
+- unexpected Plymouth daemon exit before the normal handoff is configured to
+  reveal diagnostics;
+- display-manager failure is configured to reveal diagnostics;
 - the fallback is best-effort and non-destructive;
 - the original failure remains visible through systemd and the console.
 
+A running Plymouth daemon can still have a renderer or hardware-specific
+failure that is not observable through unit state alone. The build gate prevents
+known missing-theme and missing-image failures, while the visible debug entry,
+automatic systemd failure status, and Plymouth Escape-to-details behavior keep
+manual diagnosis available.
+
 ### Direct Plasma Live Session
 
-The live ISO should arrive at Plasma without a timezone wizard, text first-run
-configuration, or manual setup screen. The current SDDM live autologin remains
-the correct behavior for the live medium.
+The live profile is configured to reach Plasma without a timezone wizard, text
+first-run configuration, root-password prompt, or manual setup screen. The
+profile's neutral locale/timezone files and `systemd.firstboot=no` own the
+pre-SDDM contract; SDDM autologin owns the configured final handoff to the
+`live` Plasma session.
 
 Installer decisions belong to the future graphical installer, not to the live
 boot path.
 
-## Boot Flow
+## Configured Boot Flow
+
+The following diagrams describe the reviewed source contract. They are not
+evidence that the current payload has completed a VM or hardware boot.
 
 ```text
 UEFI firmware
@@ -161,6 +200,7 @@ UEFI firmware
   -> mkinitcpio kms + plymouth hooks
   -> SchweisOS Plymouth theme
   -> Archiso mounts live root
+  -> neutral C.UTF-8/UTC live defaults; interactive systemd-firstboot disabled
   -> systemd starts live services
   -> SDDM autologin
   -> Plasma desktop
@@ -190,13 +230,14 @@ UEFI
 Only the theme payload exists today. Installer activation and the remaining
 installed-system stages are not implemented.
 
-The failure path is:
+The configured failure path is:
 
 ```text
 normal boot
   -> Plymouth starts
   -> boot cannot continue, SDDM fails, Plymouth unit fails,
-     or Plymouth PID disappears before normal quit
+     quit waiting reaches its bound, or no live Plymouth daemon remains
+     before normal quit
   -> schweisos-boot-debug-fallback.service
   -> Plymouth quits
   -> normal console diagnostics remain visible
@@ -226,8 +267,10 @@ The profile provides:
 - `/usr/share/plymouth/themes/schweisos/schweisos.plymouth`;
 - `/usr/share/plymouth/themes/schweisos/schweisos.script`;
 - a mkinitcpio hook list that includes upstream `kms` and `plymouth`;
-- a systemd path watcher for Plymouth runtime directory changes;
-- a normal-quit marker written by `plymouth-quit.service`;
+- a systemd path watcher for Plymouth runtime directory changes and a
+  one-second, boot-bounded liveness watchdog;
+- a guarded normal-quit helper, daemon-health helper, and watchdog helper under
+  `/usr/lib/schweisos-live/`;
 - fallback drop-ins for emergency mode, Plymouth unit failures, and SDDM
   failure.
 
@@ -235,6 +278,23 @@ The theme metadata points `ImageDir` at `/usr/share/schweisos/branding`, which
 is installed by `schweisos-branding`. The ISO profile owns the boot theme logic;
 the branding package owns the runtime path; the source artwork has exactly one
 canonical path: `branding/assets/logo/schweisos.png`.
+
+The build environment requires the resolved signed branding package to match
+the source PKGBUILD version and canonical logo hash. After image construction,
+`validate-built-iso-boot.sh` compares the built root and initramfs theme, script,
+logo, live defaults, and systemd units with their canonical sources. This
+prevents a source-only update from producing a gradient-only splash from a stale
+repository package.
+
+## Evidence Status
+
+There is no current successful ISO evidence for the newly changed first-boot
+payload, Plymouth watchdog, built-boot validator, or exact v2 manifest
+contract. The production build host must create that evidence later by running
+the complete build pipeline. The older local ISO and its failed or legacy
+manifests do not validate these changes. Static profile checks and the
+disposable watchdog behavior test prove source contracts, not visible pixels,
+SDDM success, Plasma arrival, or hardware compatibility.
 
 ## Non-Goals
 

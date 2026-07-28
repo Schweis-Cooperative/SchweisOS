@@ -1,0 +1,276 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Validate the boot payload that mkarchiso actually embedded. Static source
+# validation cannot prove that the active signed repository supplied the
+# current branding package or that mkinitcpio copied its external ImageDir.
+set -euo pipefail
+
+export LC_ALL=C
+export PATH=/usr/bin:/bin
+
+fail() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+(( $# == 1 )) || fail 'usage: validate-built-iso-boot.sh ISO_PATH'
+iso_path=$1
+
+for tool in awk bash bsdtar chmod cmp find git grep lsinitcpio makepkg mkdir \
+    mktemp readlink rm sha256sum sort stat systemd-analyze unsquashfs; do
+    type -P "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
+done
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+project_root="$(cd -- "${script_dir}/.." && pwd -P)"
+git_root="$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null)" || \
+    fail 'repository root is unavailable'
+git_root="$(cd -- "$git_root" && pwd -P)"
+[[ "$git_root" == "$project_root" ]] || fail 'validator is not running from the repository root'
+
+[[ -f "$iso_path" && ! -L "$iso_path" && -s "$iso_path" ]] || \
+    fail 'ISO artifact is missing, empty, or unsafe'
+iso_path="$(readlink -f -- "$iso_path")"
+
+profile_dir="${project_root}/iso/profiles/kde"
+profiledef="${profile_dir}/profiledef.sh"
+branding_dir="${project_root}/packages/schweisos-branding"
+canonical_logo="${project_root}/branding/assets/logo/schweisos.png"
+[[ -f "$profiledef" && -f "$canonical_logo" ]] || fail 'canonical boot sources are missing'
+
+branding_srcinfo="$(cd -- "$branding_dir" && makepkg --printsrcinfo)"
+branding_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$branding_srcinfo")"
+branding_pkgrel="$(awk -F ' = ' '$1 == "\tpkgrel" { print $2; exit }' <<<"$branding_srcinfo")"
+branding_epoch="$(awk -F ' = ' '$1 == "\tepoch" { print $2; exit }' <<<"$branding_srcinfo")"
+[[ -n "$branding_pkgver" && -n "$branding_pkgrel" ]] || \
+    fail 'source schweisos-branding version is unreadable'
+expected_branding_version="${branding_pkgver}-${branding_pkgrel}"
+if [[ -n "$branding_epoch" && "$branding_epoch" != 0 ]]; then
+    expected_branding_version="${branding_epoch}:${expected_branding_version}"
+fi
+
+install_dir="$(
+    SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n" "$install_dir"' _ "$profiledef"
+)"
+[[ "$install_dir" =~ ^[a-z0-9._-]+$ ]] || fail 'invalid Archiso install directory'
+squashfs_member="${install_dir}/x86_64/airootfs.sfs"
+initramfs_member="${install_dir}/boot/x86_64/initramfs-linux.img"
+
+iso_listing="$(bsdtar -tf "$iso_path")" || fail 'ISO archive is unreadable'
+for member in \
+    "$squashfs_member" \
+    "$initramfs_member" \
+    loader/loader.conf \
+    loader/entries/01-schweisos-linux.conf \
+    loader/entries/02-schweisos-linux-debug.conf; do
+    member_count="$(awk -v expected="$member" '$0 == expected { count++ } END { print count + 0 }' \
+        <<<"$iso_listing")"
+    [[ "$member_count" -eq 1 ]] || fail "ISO must contain exactly one ${member}"
+done
+
+mapfile -t iso_loader_entries < <(
+    awk '/^loader\/entries\/[^/]+\.conf$/ { print }' <<<"$iso_listing" | sort
+)
+[[ "${iso_loader_entries[*]}" == \
+    'loader/entries/01-schweisos-linux.conf loader/entries/02-schweisos-linux-debug.conf' ]] || \
+    fail 'ISO contains an unexpected systemd-boot entry set'
+
+tmp_parent="${TMPDIR:-${project_root}/work/validators/built-iso-boot}"
+[[ -n "$tmp_parent" && "$tmp_parent" != / ]] || fail 'unsafe temporary directory parent'
+mkdir -p -- "$tmp_parent"
+[[ -d "$tmp_parent" && ! -L "$tmp_parent" ]] || \
+    fail 'temporary directory parent is missing or unsafe'
+tmp_parent="$(readlink -f -- "$tmp_parent")"
+tmp_dir="$(mktemp -d "${tmp_parent%/}/schweisos-built-iso-boot.XXXXXXXXXX")"
+cleanup() {
+    [[ -n "${tmp_dir:-}" && -d "$tmp_dir" ]] || return 0
+    chmod -R u+rwX -- "$tmp_dir" 2>/dev/null || true
+    rm -rf -- "$tmp_dir"
+}
+trap cleanup EXIT
+
+bsdtar -xOf "$iso_path" loader/loader.conf >"${tmp_dir}/loader.conf" || \
+    fail 'unable to extract loader/loader.conf'
+cmp -s "${profile_dir}/efiboot/loader/loader.conf" "${tmp_dir}/loader.conf" || \
+    fail 'built loader.conf differs from the validated profile source'
+
+for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
+    entry_member="loader/entries/${entry_name}"
+    entry_file="${tmp_dir}/${entry_name}"
+    bsdtar -xOf "$iso_path" "$entry_member" >"$entry_file" || \
+        fail "unable to extract ${entry_member}"
+    cmp -s "${profile_dir}/efiboot/loader/entries/${entry_name}" "$entry_file" || \
+        fail "built ${entry_name} differs from the validated profile source"
+    options="$(awk '$1 == "options" { $1 = ""; sub(/^[[:space:]]+/, ""); print }' "$entry_file")"
+    firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
+    [[ "$firstboot_options" == systemd.firstboot=no ]] || \
+        fail "${entry_name} does not disable interactive systemd-firstboot exactly once"
+    case "$entry_name" in
+        01-schweisos-linux.conf)
+            [[ " $options " == *' quiet '* && " $options " == *' splash '* \
+                && " $options " == *' systemd.show_status=auto '* ]] || \
+                fail 'built normal entry does not preserve the quiet diagnostic-aware contract'
+            ;;
+        02-schweisos-linux-debug.conf)
+            [[ " $options " != *' quiet '* && " $options " != *' splash '* \
+                && " $options " == *' systemd.show_status=yes '* ]] || \
+                fail 'built debug entry does not preserve the visible diagnostic contract'
+            ;;
+    esac
+done
+
+bsdtar -xOf "$iso_path" "$squashfs_member" >"${tmp_dir}/airootfs.sfs" || \
+    fail 'unable to extract the airootfs SquashFS'
+[[ -s "${tmp_dir}/airootfs.sfs" ]] || fail 'extracted airootfs SquashFS is empty'
+unsquashfs -no-progress -no-xattrs -d "${tmp_dir}/rootfs" \
+    "${tmp_dir}/airootfs.sfs" >/dev/null
+rootfs="${tmp_dir}/rootfs"
+
+mapfile -t branding_records < <(
+    find "${rootfs}/var/lib/pacman/local" -mindepth 1 -maxdepth 1 -type d \
+        -name 'schweisos-branding-*' -print | sort
+)
+(( ${#branding_records[@]} == 1 )) || \
+    fail "expected one installed schweisos-branding record; found ${#branding_records[@]}"
+branding_desc="${branding_records[0]}/desc"
+branding_files="${branding_records[0]}/files"
+installed_branding_name="$(awk '$0 == "%NAME%" { getline; print; exit }' "$branding_desc")"
+installed_branding_version="$(awk '$0 == "%VERSION%" { getline; print; exit }' "$branding_desc")"
+[[ "$installed_branding_name" == schweisos-branding ]] || \
+    fail 'installed schweisos-branding metadata is invalid'
+[[ "$installed_branding_version" == "$expected_branding_version" ]] || \
+    fail "ISO contains schweisos-branding ${installed_branding_version}; source requires ${expected_branding_version}"
+grep -Fxq 'usr/share/schweisos/branding/schweisos.png' "$branding_files" || \
+    fail 'installed schweisos-branding does not own the canonical runtime logo'
+
+runtime_logo="${rootfs}/usr/share/schweisos/branding/schweisos.png"
+[[ -f "$runtime_logo" && ! -L "$runtime_logo" ]] || \
+    fail 'canonical runtime logo is missing or not a regular file'
+cmp -s "$canonical_logo" "$runtime_logo" || \
+    fail 'runtime logo does not match the canonical repository artwork'
+[[ ! -e "${rootfs}/usr/share/schweisos/branding/schweisos-logo.png" \
+    && ! -L "${rootfs}/usr/share/schweisos/branding/schweisos-logo.png" ]] || \
+    fail 'stale runtime logo path is present in the built ISO'
+
+rootfs_payloads=(
+    etc/hostname
+    etc/locale.conf
+    etc/plymouth/plymouthd.conf
+    etc/sddm.conf.d/10-schweisos-live.conf
+    etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf
+    etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf
+    etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf
+    etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf
+    etc/systemd/system/schweisos-boot-debug-fallback.service
+    etc/systemd/system/schweisos-plymouth-exit-fallback.service
+    etc/systemd/system/schweisos-plymouth-exit-watch.path
+    etc/systemd/system/schweisos-plymouth-watchdog.service
+    etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf
+    etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf
+    etc/sysusers.d/schweisos-live.conf
+    etc/tmpfiles.d/schweisos-live.conf
+    usr/lib/schweisos-live/plymouth-is-stopped
+    usr/lib/schweisos-live/plymouth-quit-guarded
+    usr/lib/schweisos-live/plymouth-watchdog
+    usr/share/plymouth/themes/schweisos/schweisos.plymouth
+    usr/share/plymouth/themes/schweisos/schweisos.script
+)
+for relative_path in "${rootfs_payloads[@]}"; do
+    source_path="${profile_dir}/airootfs/${relative_path}"
+    built_path="${rootfs}/${relative_path}"
+    [[ -f "$source_path" && ! -L "$source_path" \
+        && -f "$built_path" && ! -L "$built_path" ]] || \
+        fail "built live-boot payload is missing: ${relative_path}"
+    cmp -s "$source_path" "$built_path" || \
+        fail "built live-boot payload differs from source: ${relative_path}"
+    [[ "$(stat -c %a -- "$source_path")" == "$(stat -c %a -- "$built_path")" ]] || \
+        fail "built live-boot payload mode differs from source: ${relative_path}"
+done
+
+[[ "$(stat -c %a -- "${rootfs}/usr/lib/schweisos-live/plymouth-is-stopped")" == 755 \
+    && "$(stat -c %a -- "${rootfs}/usr/lib/schweisos-live/plymouth-quit-guarded")" == 755 \
+    && "$(stat -c %a -- "${rootfs}/usr/lib/schweisos-live/plymouth-watchdog")" == 755 ]] || \
+    fail 'built Plymouth fallback helpers are not executable'
+[[ "$(<"${rootfs}/etc/locale.conf")" == LANG=C.UTF-8 ]] || \
+    fail 'built live root does not use the Archiso C.UTF-8 locale baseline'
+[[ -L "${rootfs}/etc/localtime" \
+    && "$(readlink -- "${rootfs}/etc/localtime")" == /usr/share/zoneinfo/UTC ]] || \
+    fail 'built live root does not use the neutral UTC timezone baseline'
+[[ -L "${rootfs}/etc/systemd/system/display-manager.service" \
+    && "$(readlink -- "${rootfs}/etc/systemd/system/display-manager.service")" \
+        == /usr/lib/systemd/system/sddm.service ]] || \
+    fail 'built live root does not enable SDDM'
+for plymouth_activation in \
+    sysinit.target.wants/plymouth-start.service:../plymouth-start.service \
+    multi-user.target.wants/plymouth-quit.service:../plymouth-quit.service \
+    multi-user.target.wants/plymouth-quit-wait.service:../plymouth-quit-wait.service; do
+    activation_path="${plymouth_activation%%:*}"
+    activation_target="${plymouth_activation#*:}"
+    built_activation="${rootfs}/usr/lib/systemd/system/${activation_path}"
+    [[ -L "$built_activation" && "$(readlink -- "$built_activation")" == "$activation_target" ]] || \
+        fail "built live root is missing Plymouth activation: ${activation_path}"
+done
+[[ -f "${rootfs}/usr/share/wayland-sessions/plasma.desktop" \
+    && -x "${rootfs}/usr/bin/startplasma-wayland" ]] || \
+    fail 'built live root is missing the Plasma Wayland session'
+
+if ! systemd-analyze --root="$rootfs" --man=no --generators=no verify \
+    plymouth-start.service \
+    plymouth-quit.service \
+    plymouth-quit-wait.service \
+    schweisos-boot-debug-fallback.service \
+    schweisos-plymouth-exit-fallback.service \
+    schweisos-plymouth-exit-watch.path \
+    schweisos-plymouth-watchdog.service \
+    sddm.service \
+    emergency.target; then
+    fail 'built live-root boot units failed systemd verification'
+fi
+
+bsdtar -xOf "$iso_path" "$initramfs_member" >"${tmp_dir}/initramfs-linux.img" || \
+    fail 'unable to extract the live initramfs'
+[[ -s "${tmp_dir}/initramfs-linux.img" ]] || fail 'extracted live initramfs is empty'
+initramfs_config="$(lsinitcpio --config "${tmp_dir}/initramfs-linux.img")" || \
+    fail 'unable to read the live initramfs configuration'
+grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso block filesystems)' \
+    <<<"$initramfs_config" || fail 'built initramfs does not contain the approved Plymouth hook order'
+
+mkdir -p "${tmp_dir}/initramfs-root"
+(
+    cd -- "${tmp_dir}/initramfs-root"
+    lsinitcpio --extract --cpio "${tmp_dir}/initramfs-linux.img" >/dev/null
+) || fail 'unable to extract the main live initramfs'
+initramfs_root="${tmp_dir}/initramfs-root"
+
+initramfs_payloads=(
+    etc/plymouth/plymouthd.conf
+    usr/share/plymouth/themes/schweisos/schweisos.plymouth
+    usr/share/plymouth/themes/schweisos/schweisos.script
+)
+for relative_path in "${initramfs_payloads[@]}"; do
+    source_path="${profile_dir}/airootfs/${relative_path}"
+    initramfs_path="${initramfs_root}/${relative_path}"
+    [[ -f "$initramfs_path" && ! -L "$initramfs_path" ]] || \
+        fail "initramfs payload is missing: ${relative_path}"
+    cmp -s "$source_path" "$initramfs_path" || \
+        fail "initramfs payload differs from source: ${relative_path}"
+done
+initramfs_logo="${initramfs_root}/usr/share/schweisos/branding/schweisos.png"
+[[ -f "$initramfs_logo" && ! -L "$initramfs_logo" ]] || \
+    fail 'initramfs is missing the canonical Plymouth logo'
+cmp -s "$canonical_logo" "$initramfs_logo" || \
+    fail 'initramfs Plymouth logo does not match the canonical repository artwork'
+[[ ! -e "${initramfs_root}/usr/share/schweisos/branding/schweisos-logo.png" \
+    && ! -L "${initramfs_root}/usr/share/schweisos/branding/schweisos-logo.png" ]] || \
+    fail 'initramfs contains the stale runtime logo path'
+[[ -f "${initramfs_root}/usr/lib/plymouth/script.so" \
+    && -x "${initramfs_root}/usr/bin/plymouth" ]] || \
+    fail 'initramfs is missing the Plymouth script runtime'
+
+printf 'Built ISO boot validation passed.\n'
+printf '  ISO: %s\n' "$(basename -- "$iso_path")"
+printf '  branding: schweisos-branding %s\n' "$installed_branding_version"
+printf '  logo SHA256: %s\n' "$(sha256sum -- "$runtime_logo" | awk '{ print $1 }')"
+printf '  live defaults: LANG=C.UTF-8, UTC, systemd-firstboot disabled\n'
+printf '  initramfs: Plymouth theme, script plugin, and canonical logo verified\n'

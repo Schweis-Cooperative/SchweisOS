@@ -49,6 +49,7 @@ required_files=(
   "${entry_dir}/01-schweisos-linux.conf"
   "${entry_dir}/02-schweisos-linux-debug.conf"
   "${airootfs_dir}/etc/hostname"
+  "${airootfs_dir}/etc/locale.conf"
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset"
   "${airootfs_dir}/etc/plymouth/plymouthd.conf"
@@ -59,11 +60,15 @@ required_files=(
   "${airootfs_dir}/etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf"
   "${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-fallback.service"
   "${airootfs_dir}/etc/systemd/system/schweisos-plymouth-exit-watch.path"
+  "${airootfs_dir}/etc/systemd/system/schweisos-plymouth-watchdog.service"
   "${airootfs_dir}/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf"
   "${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
   "${airootfs_dir}/etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf"
   "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf"
   "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf"
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped"
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded"
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
   "$schweis_pacman_config"
@@ -101,19 +106,35 @@ done < <(find "$profile_dir" -type d -print0 | sort -z)
 
 while IFS= read -r -d '' file; do
   mode="$(stat -c '%a' -- "$file")"
-  [[ "$mode" == '644' ]] || fail "regular file must be mode 0644: ${file} (${mode})"
+  case "$file" in
+    "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped" | \
+    "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded" | \
+    "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog")
+      [[ "$mode" == '755' ]] || fail "live helper must be mode 0755: ${file} (${mode})"
+      ;;
+    *)
+      [[ "$mode" == '644' ]] || fail "regular file must be mode 0644: ${file} (${mode})"
+      ;;
+  esac
 done < <(find "$profile_dir" -type f -print0 | sort -z)
 
 world_writable="$(find "$profile_dir" \( -type d -o -type f \) -perm -0002 -print -quit)"
 [[ -z "$world_writable" ]] || fail "world-writable profile path found: ${world_writable}"
 
-unexpected_executable="$(find "$profile_dir" -type f -perm /111 -print -quit)"
+unexpected_executable="$(find "$profile_dir" -type f -perm /111 \
+  ! -path "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped" \
+  ! -path "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded" \
+  ! -path "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog" \
+  -print -quit)"
 [[ -z "$unexpected_executable" ]] || fail "unexpected executable profile file: ${unexpected_executable}"
 
 bash -n \
   "$profiledef" \
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" \
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset" \
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped" \
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded" \
+  "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog" \
   "${BASH_SOURCE[0]}"
 
 profile_snapshot() {
@@ -338,6 +359,9 @@ for entry_name in "${efi_entries[@]}"; do
     fail "${entry_name} is missing archisobasedir"
   [[ " $options " == *' archisosearchuuid=%ARCHISO_UUID% '* ]] || \
     fail "${entry_name} is missing archisosearchuuid"
+  firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
+  [[ "$firstboot_options" == 'systemd.firstboot=no' ]] || \
+    fail "${entry_name} must disable interactive systemd-firstboot exactly once"
   case "$entry_name" in
     01-schweisos-linux.conf)
       [[ "$entry_title" == 'SchweisOS Live' ]] || fail 'normal boot entry title is unexpected'
@@ -391,6 +415,8 @@ bash -c '
 expected_overlay_paths=(
   etc
   etc/hostname
+  etc/locale.conf
+  etc/localtime
   etc/mkinitcpio.conf.d
   etc/mkinitcpio.conf.d/archiso.conf
   etc/mkinitcpio.d
@@ -414,6 +440,7 @@ expected_overlay_paths=(
   etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf
   etc/systemd/system/schweisos-plymouth-exit-fallback.service
   etc/systemd/system/schweisos-plymouth-exit-watch.path
+  etc/systemd/system/schweisos-plymouth-watchdog.service
   etc/systemd/system/sddm.service.d
   etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf
   etc/systemd/system/schweisos-boot-debug-fallback.service
@@ -424,6 +451,11 @@ expected_overlay_paths=(
   etc/tmpfiles.d
   etc/tmpfiles.d/schweisos-live.conf
   usr
+  usr/lib
+  usr/lib/schweisos-live
+  usr/lib/schweisos-live/plymouth-is-stopped
+  usr/lib/schweisos-live/plymouth-quit-guarded
+  usr/lib/schweisos-live/plymouth-watchdog
   usr/share
   usr/share/plymouth
   usr/share/plymouth/themes
@@ -438,19 +470,25 @@ overlay_difference="$(comm -3 "${tmp_dir}/overlay.expected" "${tmp_dir}/overlay.
 
 display_manager_link="${airootfs_dir}/etc/systemd/system/display-manager.service"
 network_manager_link="${airootfs_dir}/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
+localtime_link="${airootfs_dir}/etc/localtime"
 [[ -L "$display_manager_link" ]] || fail 'display-manager.service must be a symlink'
 [[ "$(readlink -- "$display_manager_link")" == '/usr/lib/systemd/system/sddm.service' ]] || \
   fail 'display-manager.service has an unexpected target'
 [[ -L "$network_manager_link" ]] || fail 'NetworkManager.service must be a symlink'
 [[ "$(readlink -- "$network_manager_link")" == '/usr/lib/systemd/system/NetworkManager.service' ]] || \
   fail 'NetworkManager.service has an unexpected target'
-[[ "$(find "$airootfs_dir" -type l | wc -l)" -eq 2 ]] || fail 'airootfs must contain exactly two symlinks'
+[[ -L "$localtime_link" ]] || fail '/etc/localtime must be a symlink'
+[[ "$(readlink -- "$localtime_link")" == '/usr/share/zoneinfo/UTC' ]] || \
+  fail '/etc/localtime must select the neutral live-media UTC baseline'
+[[ "$(find "$airootfs_dir" -type l | wc -l)" -eq 3 ]] || fail 'airootfs must contain exactly three symlinks'
 
 sysusers_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf")"
 tmpfiles_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf")"
 sddm_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf")"
 live_hostname="$(<"${airootfs_dir}/etc/hostname")"
+live_locale="$(<"${airootfs_dir}/etc/locale.conf")"
 [[ "$live_hostname" == schweisos ]] || fail 'unexpected live hostname'
+[[ "$live_locale" == 'LANG=C.UTF-8' ]] || fail 'live locale must match the Archiso C.UTF-8 baseline'
 [[ "$sysusers_line" == 'u live 1000 "SchweisOS Live User" /home/live /usr/bin/bash' ]] || \
   fail 'unexpected live sysusers declaration'
 [[ "$tmpfiles_line" == 'd /home/live 0750 live live -' ]] || fail 'unexpected live home declaration'
@@ -497,6 +535,13 @@ grep -Fq 'usr/share/schweisos/branding/schweisos.png' \
   fail 'schweisos-branding source symlink does not resolve to the canonical logo'
 
 debug_fallback_service="${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
+plymouth_start_dropin="${airootfs_dir}/etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf"
+plymouth_quit_dropin="${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf"
+plymouth_quit_wait_dropin="${airootfs_dir}/etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf"
+plymouth_quit_guard="${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded"
+plymouth_stopped_check="${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped"
+plymouth_watchdog="${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog"
+plymouth_watchdog_service="${airootfs_dir}/etc/systemd/system/schweisos-plymouth-watchdog.service"
 grep -Fxq 'ExecStart=-/usr/bin/plymouth quit' "$debug_fallback_service" || \
   fail 'debug fallback must reveal logs by quitting Plymouth'
 grep -Fxq 'ExecStart=-/usr/bin/setterm -cursor on' "$debug_fallback_service" || \
@@ -504,19 +549,39 @@ grep -Fxq 'ExecStart=-/usr/bin/setterm -cursor on' "$debug_fallback_service" || 
 grep -Fxq 'Wants=schweisos-boot-debug-fallback.service' \
   "${airootfs_dir}/etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf" || \
   fail 'emergency.target must pull in the debug fallback'
-grep -Fxq 'Wants=schweisos-plymouth-exit-watch.path' \
+grep -Fxq 'Wants=schweisos-plymouth-exit-watch.path schweisos-plymouth-watchdog.service' \
   "${airootfs_dir}/etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf" || \
-  fail 'sysinit.target must start the Plymouth unexpected-exit watcher'
-for plymouth_dropin in \
-  "${airootfs_dir}/etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf" \
-  "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf" \
-  "${airootfs_dir}/etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf"; do
+  fail 'sysinit.target must start both Plymouth unexpected-exit detectors'
+for plymouth_dropin in "$plymouth_start_dropin" "$plymouth_quit_dropin" "$plymouth_quit_wait_dropin"; do
   grep -Fxq 'OnFailure=schweisos-boot-debug-fallback.service' "$plymouth_dropin" || \
     fail "Plymouth failure drop-in is missing OnFailure fallback: ${plymouth_dropin}"
 done
-grep -Fxq 'ExecStartPre=/usr/bin/touch /run/schweisos-plymouth-normal-quit' \
-  "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf" || \
-  fail 'normal Plymouth quit must mark expected splash shutdown before removing the PID'
+[[ "$(grep -Fxc 'ExecStartPost=' "$plymouth_start_dropin")" -eq 1 ]] || \
+  fail 'Plymouth start drop-in must clear the vendor error-ignoring post-start command'
+grep -Fxq 'ExecStartPost=/usr/bin/plymouth show-splash' "$plymouth_start_dropin" || \
+  fail 'Plymouth show-splash failure must propagate to systemd'
+[[ "$(grep -Fxc 'ExecStart=' "$plymouth_quit_dropin")" -eq 1 ]] || \
+  fail 'Plymouth quit drop-in must clear the vendor error-ignoring command'
+grep -Fxq 'ExecStart=/usr/lib/schweisos-live/plymouth-quit-guarded' "$plymouth_quit_dropin" || \
+  fail 'Plymouth quit must use the guarded normal-handoff helper'
+grep -Fxq 'TimeoutStartSec=20s' "$plymouth_quit_dropin" || \
+  fail 'guarded Plymouth quit must have a finite timeout'
+[[ "$(grep -Fxc 'ExecStart=' "$plymouth_quit_wait_dropin")" -eq 1 ]] || \
+  fail 'Plymouth quit-wait drop-in must clear the vendor error-ignoring command'
+grep -Fxq 'ExecStart=/usr/bin/plymouth --wait' "$plymouth_quit_wait_dropin" || \
+  fail 'Plymouth quit-wait failure must propagate to systemd'
+grep -Fxq 'TimeoutStartSec=20s' "$plymouth_quit_wait_dropin" || \
+  fail 'Plymouth quit-wait must have a finite timeout'
+grep -Fq 'marker=/run/schweisos-plymouth-normal-quit' "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must own the normal-handoff marker'
+grep -Fxq 'trap remove_marker EXIT' "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must remove its marker on failure or interruption'
+grep -Fxq "trap 'exit 1' HUP INT TERM" "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must convert interruption into failure'
+grep -Fxq '/usr/bin/plymouth quit' "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must invoke the upstream client'
+grep -Fxq 'trap - EXIT HUP INT TERM' "$plymouth_quit_guard" || \
+  fail 'guarded Plymouth quit must retain its marker only after success'
 grep -Fxq 'OnFailure=schweisos-boot-debug-fallback.service' \
   "${airootfs_dir}/etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf" || \
   fail 'SDDM failure must reveal boot diagnostics'
@@ -527,13 +592,44 @@ grep -Fxq 'PathChanged=/run/plymouth' "$plymouth_exit_watch" || \
   fail 'Plymouth unexpected-exit watcher must observe the runtime directory'
 grep -Fxq 'Unit=schweisos-plymouth-exit-fallback.service' "$plymouth_exit_watch" || \
   fail 'Plymouth unexpected-exit watcher must start the fallback service'
-grep -Fxq 'ConditionPathExists=!/run/plymouth/pid' "$plymouth_exit_fallback" || \
-  fail 'Plymouth unexpected-exit fallback must require the runtime PID to be absent'
 grep -Fxq 'ConditionPathExists=!/run/schweisos-plymouth-normal-quit' "$plymouth_exit_fallback" || \
   fail 'Plymouth unexpected-exit fallback must ignore normal quit handoff'
+grep -Fxq 'ExecCondition=/usr/lib/schweisos-live/plymouth-is-stopped' "$plymouth_exit_fallback" || \
+  fail 'Plymouth unexpected-exit fallback must reject a live daemon and stale PID files safely'
+grep -Fq '[[ "$comm" == plymouthd ]] || exit 0' "$plymouth_stopped_check" || \
+  fail 'Plymouth health check must identify the live daemon process'
 grep -Fxq 'ExecStart=/usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service' \
   "$plymouth_exit_fallback" || \
   fail 'Plymouth unexpected-exit fallback must start the diagnostic fallback'
+for watchdog_contract in \
+  'DefaultDependencies=no' \
+  'After=plymouth-start.service' \
+  'Before=display-manager.service' \
+  'Conflicts=shutdown.target' \
+  'OnFailure=schweisos-boot-debug-fallback.service' \
+  'Type=exec' \
+  'ExecStart=/usr/lib/schweisos-live/plymouth-watchdog'; do
+  grep -Fxq "$watchdog_contract" "$plymouth_watchdog_service" || \
+    fail "Plymouth watchdog service contract is missing: ${watchdog_contract}"
+done
+grep -Fq 'marker=/run/schweisos-plymouth-normal-quit' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must honor the normal-handoff marker'
+grep -Fq '/usr/bin/systemctl show --property=ActiveState --value plymouth-quit.service' \
+  "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must require a completed successful quit handoff'
+grep -Fq '[[ -e "$marker" ]] && continue' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must recheck an in-progress handoff after sleeping'
+grep -Fxq '    /usr/bin/sleep 1' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must use the bounded one-second liveness interval'
+grep -Fxq '    "$health"' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must invoke the daemon-health helper'
+grep -Fq 'health_status=$?' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must preserve health-helper error status'
+grep -Fxq '            exit "$health_status"' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must propagate unexpected health-helper errors'
+[[ "$(grep -Fc 'exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service' \
+  "$plymouth_watchdog")" -eq 2 ]] || \
+  fail 'Plymouth watchdog must reveal diagnostics after a stopped daemon'
 
 copied_brand_asset="$(find "$airootfs_dir" -type f \
   \( -name '*.png' -o -name '*.svg' -o -name '*.jpg' -o -name '*.jpeg' \) \
@@ -556,6 +652,12 @@ key_material="$(find "$profile_dir" -type f \
 package_payload="$(find "$airootfs_dir" -type f -name '*.pkg.tar*' -print -quit)"
 [[ -z "$package_payload" ]] || fail "package payload found in airootfs: ${package_payload}"
 
+watchdog_behavior_test="${project_root}/tests/test-plymouth-watchdog.sh"
+[[ -x "$watchdog_behavior_test" && ! -L "$watchdog_behavior_test" ]] || \
+  fail 'Plymouth watchdog behavior test is missing or unsafe'
+"$watchdog_behavior_test" >/dev/null || \
+  fail 'Plymouth watchdog behavior tests failed'
+
 if grep -rIEq --exclude='*.pkg.tar.*' \
   'BEGIN (PGP |OPENSSH |RSA |DSA |EC |ENCRYPTED )?(PUBLIC|PRIVATE) KEY( BLOCK)?' \
   "$profile_dir"; then
@@ -570,11 +672,17 @@ fi
 upstream_status='Archiso 88 static contract target; installed baseline unavailable'
 upstream_baseline='/usr/share/archiso/configs/baseline/airootfs/etc'
 if [[ -f "${upstream_baseline}/mkinitcpio.conf.d/archiso.conf" \
-      && -f "${upstream_baseline}/mkinitcpio.d/linux.preset" ]]; then
+      && -f "${upstream_baseline}/mkinitcpio.d/linux.preset" \
+      && -f "${upstream_baseline}/locale.conf" \
+      && -L "${upstream_baseline}/localtime" ]]; then
   cmp -s "${airootfs_dir}/etc/mkinitcpio.d/linux.preset" \
     "${upstream_baseline}/mkinitcpio.d/linux.preset" || \
     fail 'linux.preset differs from the installed Archiso baseline'
-  upstream_status='installed baseline matched except approved kms/plymouth hook extension'
+  cmp -s "${airootfs_dir}/etc/locale.conf" "${upstream_baseline}/locale.conf" || \
+    fail 'locale.conf differs from the installed Archiso baseline'
+  [[ "$(readlink -- "${upstream_baseline}/localtime")" == "$(readlink -- "$localtime_link")" ]] || \
+    fail 'localtime differs from the installed Archiso baseline'
+  upstream_status='installed baseline matched except approved live boot and Plymouth extensions'
 fi
 
 git -C "$project_root" diff --check -- \

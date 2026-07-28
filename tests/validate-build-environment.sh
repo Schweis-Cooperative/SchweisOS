@@ -26,6 +26,7 @@ if ! git_root="$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null)" 
     exit 1
 fi
 profile_dir="${project_root}/iso/profiles/kde"
+canonical_logo="${project_root}/branding/assets/logo/schweisos.png"
 dependency_validator="${project_root}/tests/validate-build-dependencies.sh"
 iso_build_mode="${SCHWEISOS_ISO_BUILD_MODE:-development}"
 
@@ -62,6 +63,27 @@ case "$iso_build_mode" in
         record_fail "build mode: invalid SCHWEISOS_ISO_BUILD_MODE ${iso_build_mode}"
         ;;
 esac
+
+if [[ "$iso_build_mode" == release ]]; then
+    release_input_failures=()
+    if ! release_git_status="$(git -C "$project_root" status --porcelain 2>/dev/null)"; then
+        release_input_failures+=('git-state-unavailable')
+    elif [[ -n "$release_git_status" ]]; then
+        release_input_failures+=('git-tree-dirty')
+    fi
+    release_epoch=${SOURCE_DATE_EPOCH-}
+    if [[ ! "$release_epoch" =~ ^[0-9]+$ ]] \
+        || ! date --utc --date="@${release_epoch}" +%Y-%m-%dT%H:%M:%SZ >/dev/null 2>&1; then
+        release_input_failures+=('SOURCE_DATE_EPOCH-missing-or-invalid')
+    fi
+    if (( ${#release_input_failures[@]} == 0 )); then
+        record_pass 'release inputs: clean source and explicit valid SOURCE_DATE_EPOCH'
+    else
+        record_fail "release inputs: $(join_by_space "${release_input_failures[@]}")"
+    fi
+else
+    record_pass 'release inputs: not required in development mode'
+fi
 
 os_release=/etc/os-release
 [[ -r "$os_release" ]] || os_release=/usr/lib/os-release
@@ -178,11 +200,14 @@ required_files=(
     release/README.md
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
+    tests/test-plymouth-watchdog.sh
     tests/validate-grub-theme.sh
     tests/validate-build-dependencies.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
+    tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-iso-build-manifest.sh
     tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
@@ -323,9 +348,12 @@ required_executables=(
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
     tests/install-local-bootstrap-packages.sh
+    tests/test-plymouth-watchdog.sh
     tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh
+    tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-iso-build-manifest.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
     tests/validate-grub-theme.sh
@@ -484,6 +512,10 @@ if (( input_manifest_ready )); then
                 [[ "$target" == '/usr/lib/systemd/system/NetworkManager.service' ]] || \
                     symlink_failures+=("${relative_link}:unexpected-target")
                 ;;
+            iso/profiles/kde/airootfs/etc/localtime)
+                [[ "$target" == '/usr/share/zoneinfo/UTC' ]] || \
+                    symlink_failures+=("${relative_link}:unexpected-target")
+                ;;
             *)
                 if [[ "$target" == /* ]]; then
                     symlink_failures+=("${relative_link}:unexpected-absolute-target")
@@ -625,9 +657,15 @@ else
     fi
 fi
 
-if (( repository_ready )) && ! type -P bsdtar >/dev/null 2>&1; then
-    repository_ready=0
-    repository_failure='repository database reader unavailable: bsdtar'
+if (( repository_ready )); then
+    repository_reader_failures=()
+    for repository_tool in bsdtar sha256sum; do
+        type -P "$repository_tool" >/dev/null 2>&1 || repository_reader_failures+=("$repository_tool")
+    done
+    if (( ${#repository_reader_failures[@]} > 0 )); then
+        repository_ready=0
+        repository_failure="repository payload reader unavailable $(join_by_space "${repository_reader_failures[@]}")"
+    fi
 fi
 
 repository_db_path=''
@@ -707,7 +745,9 @@ if (( repository_ready )); then
             continue
         fi
         expected_version="${source_pkgver}-${source_pkgrel}"
-        [[ -z "$source_epoch" ]] || expected_version="${source_epoch}:${expected_version}"
+        if [[ -n "$source_epoch" && "$source_epoch" != 0 ]]; then
+            expected_version="${source_epoch}:${expected_version}"
+        fi
 
         if ! repository_desc_path="$(bsdtar -tf "$repository_db_path" 2>/dev/null | awk -v package="$package" '
             /\/desc$/ {
@@ -737,11 +777,54 @@ if (( repository_ready )); then
 
     if (( ${#repository_version_failures[@]} > 0 )); then
         repository_version_failure="repository package/source mismatch $(join_by_space "${repository_version_failures[@]}")"
-        if [[ "$iso_build_mode" == release ]]; then
+        repository_ready=0
+        repository_failure="$repository_version_failure"
+    fi
+fi
+
+if (( repository_ready )); then
+    branding_desc_path="$(bsdtar -tf "$repository_db_path" 2>/dev/null | awk '
+        /\/desc$/ {
+            entry = $0
+            sub(/\/desc$/, "", entry)
+            if (index(entry, "schweisos-branding-") == 1) {
+                matches[++count] = $0
+            }
+        }
+        END { if (count == 1) print matches[1]; else exit 1 }
+    ')" || branding_desc_path=''
+    if [[ -z "$branding_desc_path" ]] \
+        || ! branding_info="$(bsdtar -xOf "$repository_db_path" "$branding_desc_path" 2>/dev/null)"; then
+        repository_ready=0
+        repository_failure='schweisos-branding repository metadata is unavailable'
+    else
+        branding_filename="$(awk 'previous == "%FILENAME%" { print; exit } { previous = $0 }' <<<"$branding_info")"
+        branding_package_path="${repository_root}/${branding_filename}"
+        if [[ -z "$branding_filename" || ! -f "$branding_package_path" || -L "$branding_package_path" ]] \
+            || ! branding_listing="$(bsdtar -tf "$branding_package_path" 2>/dev/null)"; then
             repository_ready=0
-            repository_failure="$repository_version_failure"
+            repository_failure='schweisos-branding package payload is unavailable'
         else
-            record_warn "repository integration: ${repository_version_failure}"
+            branding_logo_path='usr/share/schweisos/branding/schweisos.png'
+            branding_logo_count="$(awk -v expected="$branding_logo_path" \
+                '$0 == expected { count++ } END { print count + 0 }' <<<"$branding_listing")"
+            stale_logo_count="$(awk \
+                '$0 == "usr/share/schweisos/branding/schweisos-logo.png" { count++ } END { print count + 0 }' \
+                <<<"$branding_listing")"
+            branding_logo_details="$(bsdtar -tvf "$branding_package_path" "$branding_logo_path" 2>/dev/null || true)"
+            if [[ "$branding_logo_count" -ne 1 || "$stale_logo_count" -ne 0 \
+                || "$branding_logo_details" != -* ]]; then
+                repository_ready=0
+                repository_failure='schweisos-branding package does not contain exactly one canonical regular logo payload'
+            elif ! packaged_logo_sha256="$(
+                bsdtar -xOf "$branding_package_path" "$branding_logo_path" 2>/dev/null \
+                    | sha256sum | awk '{ print $1 }'
+            )" || ! source_logo_sha256="$(sha256sum -- "$canonical_logo" 2>/dev/null | awk '{ print $1 }')" \
+                || [[ ! "$packaged_logo_sha256" =~ ^[0-9a-f]{64}$ \
+                    || "$packaged_logo_sha256" != "$source_logo_sha256" ]]; then
+                repository_ready=0
+                repository_failure='schweisos-branding canonical logo payload does not match the repository source'
+            fi
         fi
     fi
 fi

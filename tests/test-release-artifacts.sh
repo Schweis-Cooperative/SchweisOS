@@ -15,7 +15,7 @@ require_tool() {
     type -P "$1" >/dev/null 2>&1 || fail "required tool not found: $1"
 }
 
-for tool in b2sum chmod cp date find git mkdir mktemp rm sed sha256sum stat; do
+for tool in b2sum chmod cp date find git ln mkdir mktemp rm sed sha256sum stat; do
     require_tool "$tool"
 done
 
@@ -36,6 +36,7 @@ cleanup() {
 trap cleanup EXIT
 
 pass_count=0
+zero_blake2b="$(printf '%0128d' 0)"
 
 current_commit="$(git -C "$project_root" rev-parse --verify HEAD)"
 release_id='2026.07.27'
@@ -43,11 +44,17 @@ iso_name="schweisos-${release_id}-x86_64.iso"
 
 write_fixture() {
     local case_dir=$1
+    local fixture_size
+    local fixture_sha256
+    local fixture_blake2b
     mkdir -p -- "${case_dir}/out" "${case_dir}/logs" "${case_dir}/release"
     printf 'SchweisOS disposable ISO fixture\n' >"${case_dir}/out/${iso_name}"
+    fixture_size="$(stat -c %s -- "${case_dir}/out/${iso_name}")"
+    fixture_sha256="$(sha256sum -- "${case_dir}/out/${iso_name}" | sed -nE 's/^([0-9a-f]{64})[[:space:]].*/\1/p')"
+    fixture_blake2b="$(b2sum -- "${case_dir}/out/${iso_name}" | sed -nE 's/^([0-9a-f]{128})[[:space:]].*/\1/p')"
     cat >"${case_dir}/logs/build-manifest.json" <<EOF
 {
-  "schema": "schweisos.iso-build-manifest.v1",
+  "schema": "schweisos.iso-build-manifest.v2",
   "build_id": "test",
   "build_timestamp_utc": "2026-07-25T00:00:00Z",
   "finished_at_utc": "2026-07-25T00:01:00Z",
@@ -59,17 +66,31 @@ write_fixture() {
     "dirty_at_start": false,
     "dirty_at_finish": false
   },
+  "host": {
+    "id": "arch",
+    "architecture": "x86_64"
+  },
   "archiso_version": "test",
   "source_date_epoch": 1784937600,
+  "epoch_origin": "environment",
+  "build_mode": "release",
+  "profile": "kde",
   "expected_iso_name": "${iso_name}",
   "validation": {
     "build_environment": "pass",
     "iso_profile": "pass",
+    "built_iso_identity": "pass",
+    "built_iso_boot": "pass",
     "artifact": "pass"
   },
   "mkarchiso_exit_code": 0,
+  "artifact_candidate_count": 1,
   "artifact": {
-    "name": "${iso_name}"
+    "name": "${iso_name}",
+    "size_bytes": ${fixture_size},
+    "sha256": "${fixture_sha256}",
+    "blake2b_512": "${fixture_blake2b}",
+    "sha256_file": "${iso_name}.sha256"
   },
   "build_log": "build-test.log",
   "failure_code": null
@@ -163,6 +184,172 @@ expect_failure 'creator rejects empty ISO' "$creator" \
     --iso "${case_dir}/out/${iso_name}" \
     --build-manifest "${case_dir}/logs/build-manifest.json" \
     --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/symlink-iso-input"
+write_fixture "$case_dir"
+ln -s -- "${case_dir}/out/${iso_name}" "${case_dir}/out/symlink.iso"
+expect_failure 'creator rejects symlink ISO input' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/symlink.iso" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/symlink-build-manifest-input"
+write_fixture "$case_dir"
+ln -s -- "${case_dir}/logs/build-manifest.json" "${case_dir}/logs/symlink-build-manifest.json"
+expect_failure 'creator rejects symlink build manifest input' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/symlink-build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/legacy-build-manifest"
+write_fixture "$case_dir"
+sed -i 's/schweisos\.iso-build-manifest\.v2/schweisos.iso-build-manifest.v1/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects legacy build manifest' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/ambiguous-build-manifest"
+write_fixture "$case_dir"
+sed -i '/"status": "success",/a\\  "status": "success",' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects duplicate build manifest key' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/extra-build-manifest-field"
+write_fixture "$case_dir"
+sed -i '1a\\  "unexpected": "value",' "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects extra build manifest field' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/development-build-manifest"
+write_fixture "$case_dir"
+sed -i 's/"build_mode": "release"/"build_mode": "development"/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects development build manifest' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/failed-built-identity"
+write_fixture "$case_dir"
+sed -i 's/"built_iso_identity": "pass"/"built_iso_identity": "fail"/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects failed built ISO identity validation' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/failed-built-boot"
+write_fixture "$case_dir"
+sed -i 's/"built_iso_boot": "pass"/"built_iso_boot": "fail"/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects failed built ISO boot validation' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/build-size-mismatch"
+write_fixture "$case_dir"
+sed -i 's/"size_bytes": [0-9]*/"size_bytes": 1/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects build manifest size mismatch' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/build-sha256-mismatch"
+write_fixture "$case_dir"
+sed -i 's/"sha256": "[0-9a-f]\{64\}"/"sha256": "0000000000000000000000000000000000000000000000000000000000000000"/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects build manifest SHA256 mismatch' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/build-blake2b-mismatch"
+write_fixture "$case_dir"
+sed -i "s/\"blake2b_512\": \"[0-9a-f]\\{128\\}\"/\"blake2b_512\": \"${zero_blake2b}\"/" \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects build manifest BLAKE2b mismatch' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/same-size-iso-mismatch"
+write_fixture "$case_dir"
+sed -i '1s/^S/X/' "${case_dir}/out/${iso_name}"
+expect_failure 'creator rejects same-size changed ISO' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/release-id-mismatch"
+write_fixture "$case_dir"
+expect_failure 'creator rejects ISO release identifier mismatch' "$creator" \
+    --release-id 2026.07.28 \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
+case_dir="${tmp_root}/profile-mismatch"
+write_fixture "$case_dir"
+expect_failure 'creator rejects profile provenance mismatch' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --profile other \
+    --output-root "${case_dir}/release"
+
+release_dir="$(prepare_release copied-build-manifest-tamper)"
+sed -i 's/"built_iso_boot": "pass"/"built_iso_boot": "fail"/' \
+    "${release_dir}/manifests/build-manifest.json"
+expect_failure 'validator rejects copied build manifest tamper' "$validator" "$release_dir"
+
+release_dir="$(prepare_release copied-build-sha256-tamper)"
+sed -i 's/"sha256": "[0-9a-f]\{64\}"/"sha256": "0000000000000000000000000000000000000000000000000000000000000000"/' \
+    "${release_dir}/manifests/build-manifest.json"
+expect_failure 'validator rejects copied build manifest SHA256 tamper' "$validator" "$release_dir"
+
+release_dir="$(prepare_release copied-build-blake2b-tamper)"
+sed -i "s/\"blake2b_512\": \"[0-9a-f]\\{128\\}\"/\"blake2b_512\": \"${zero_blake2b}\"/" \
+    "${release_dir}/manifests/build-manifest.json"
+expect_failure 'validator rejects copied build manifest BLAKE2b tamper' "$validator" "$release_dir"
+
+release_dir="$(prepare_release release-manifest-cross-field-tamper)"
+sed -i 's/"git_commit": "[0-9a-f]\{40,64\}"/"git_commit": "0000000000000000000000000000000000000000"/' \
+    "${release_dir}/manifests/release-manifest.json"
+expect_failure 'validator rejects release/build manifest mismatch' "$validator" "$release_dir"
+
+release_dir="$(prepare_release release-validator-version-tamper)"
+sed -i 's/"release_artifact_validator": "2"/"release_artifact_validator": "1"/' \
+    "${release_dir}/manifests/release-manifest.json"
+expect_failure 'validator rejects release validator version mismatch' "$validator" "$release_dir"
+
+release_dir="$(prepare_release release-notes-tamper)"
+printf 'tampered\n' >"${release_dir}/RELEASE_NOTES.md"
+expect_failure 'validator rejects release notes tamper' "$validator" "$release_dir"
+
+release_dir="$(prepare_release release-log-tamper)"
+printf 'tampered\n' >"${release_dir}/logs/release-artifacts.log"
+expect_failure 'validator rejects release log tamper' "$validator" "$release_dir"
 
 case_dir="${tmp_root}/duplicate-output"
 write_fixture "$case_dir"

@@ -1,0 +1,45 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -u
+
+marker=/run/schweisos-plymouth-normal-quit
+health=/usr/lib/schweisos-live/plymouth-is-stopped
+
+while true; do
+    if [[ -e "$marker" ]]; then
+        quit_state="$(
+            /usr/bin/systemctl show --property=ActiveState --value plymouth-quit.service
+        )" || exit $?
+        case "$quit_state" in
+            active)
+                exit 0
+                ;;
+            activating)
+                /usr/bin/sleep 1
+                continue
+                ;;
+            inactive|failed|deactivating)
+                exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+                ;;
+            *)
+                exit 2
+                ;;
+        esac
+    fi
+
+    /usr/bin/sleep 1
+    [[ -e "$marker" ]] && continue
+    "$health"
+    health_status=$?
+    case "$health_status" in
+        0)
+            exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+            ;;
+        1)
+            ;;
+        *)
+            exit "$health_status"
+            ;;
+    esac
+done

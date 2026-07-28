@@ -1,6 +1,9 @@
 archiso
 bash
+diffutils
 git
+jq
+mkinitcpio
 pacman
 sudo
 util-linux

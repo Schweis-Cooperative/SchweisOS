@@ -143,6 +143,8 @@ final_exit_code=''
 failure_code=''
 environment_validation=not_run
 profile_validation=not_run
+built_identity_validation=not_run
+built_boot_validation=not_run
 artifact_validation=not_run
 mkarchiso_exit_code=''
 source_date_epoch=''
@@ -201,7 +203,7 @@ write_manifest_target() {
 
     if ! {
         printf '{\n'
-        printf '  "schema": "schweisos.iso-build-manifest.v1",\n'
+        printf '  "schema": "schweisos.iso-build-manifest.v2",\n'
         printf '  "build_id": %s,\n' "$(json_string "$build_id")"
         printf '  "build_timestamp_utc": %s,\n' "$(json_string "$start_timestamp")"
         printf '  "finished_at_utc": %s,\n' "$(json_string_or_null "$finished_timestamp")"
@@ -220,10 +222,14 @@ write_manifest_target() {
         printf '  "archiso_version": %s,\n' "$(json_string_or_null "$archiso_version")"
         printf '  "source_date_epoch": %s,\n' "$(json_number_or_null "$source_date_epoch")"
         printf '  "epoch_origin": %s,\n' "$(json_string_or_null "$epoch_origin")"
+        printf '  "build_mode": %s,\n' "$(json_string "$iso_build_mode")"
+        printf '  "profile": "kde",\n'
         printf '  "expected_iso_name": %s,\n' "$(json_string_or_null "$expected_iso_name")"
         printf '  "validation": {\n'
         printf '    "build_environment": %s,\n' "$(json_string "$environment_validation")"
         printf '    "iso_profile": %s,\n' "$(json_string "$profile_validation")"
+        printf '    "built_iso_identity": %s,\n' "$(json_string "$built_identity_validation")"
+        printf '    "built_iso_boot": %s,\n' "$(json_string "$built_boot_validation")"
         printf '    "artifact": %s\n' "$(json_string "$artifact_validation")"
         printf '  },\n'
         printf '  "mkarchiso_exit_code": %s,\n' "$(json_number_or_null "$mkarchiso_exit_code")"
@@ -347,15 +353,27 @@ info 'Work directory: work/iso/kde'
 info 'Output directory: out/iso'
 info 'Package cache: cache/pacman'
 if [[ "$git_dirty_json" == true ]]; then
-    warn 'The git working tree is dirty; this build cannot be an official release artifact.'
+    if [[ "$iso_build_mode" == release ]]; then
+        failure_code=release_source_not_clean
+        error 'Release mode requires a clean Git working tree.'
+        exit 1
+    fi
+    warn 'The git working tree is dirty; this development build cannot be release evidence.'
 elif [[ "$git_dirty_json" == false ]]; then
     info 'Git working tree: clean'
 else
-    warn 'Git working tree state could not be determined.'
+    if [[ "$iso_build_mode" == release ]]; then
+        failure_code=release_source_state_unknown
+        error 'Release mode requires a verifiably clean Git working tree.'
+        exit 1
+    fi
+    warn 'Git working tree state could not be determined for this development build.'
 fi
 
 environment_validator="${repo_root}/tests/validate-build-environment.sh"
 profile_validator="${repo_root}/tests/validate-iso-profile.sh"
+built_identity_validator="${repo_root}/tests/validate-built-iso-identity.sh"
+built_boot_validator="${repo_root}/tests/validate-built-iso-boot.sh"
 
 current_stage=build_environment_validation
 checkpoint_manifest
@@ -397,6 +415,10 @@ fi
 if [[ -n "$requested_epoch" ]]; then
     effective_epoch=$requested_epoch
     epoch_origin=environment
+elif [[ "$iso_build_mode" == release ]]; then
+    failure_code=release_epoch_required
+    error 'Release mode requires an explicit SOURCE_DATE_EPOCH.'
+    exit 1
 else
     effective_epoch="$(date +%s)"
     epoch_origin=development_default
@@ -632,6 +654,34 @@ if [[ ! "$artifact_size" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
+current_stage=built_iso_identity_validation
+checkpoint_manifest
+if ! "$built_identity_validator" "$artifact_path"; then
+    built_identity_validation=fail
+    artifact_validation=fail
+    failure_code=built_iso_identity_validation_failed
+    checkpoint_manifest
+    error 'Built ISO identity validation failed; checksums were not published.'
+    exit 1
+fi
+built_identity_validation=pass
+checkpoint_manifest
+
+current_stage=built_iso_boot_validation
+checkpoint_manifest
+if ! "$built_boot_validator" "$artifact_path"; then
+    built_boot_validation=fail
+    artifact_validation=fail
+    failure_code=built_iso_boot_validation_failed
+    checkpoint_manifest
+    error 'Built ISO boot validation failed; checksums were not published.'
+    exit 1
+fi
+built_boot_validation=pass
+checkpoint_manifest
+
+current_stage=artifact_checksum_validation
+checkpoint_manifest
 if ! sha256_tmp="$(mktemp --tmpdir="$out_dir" ".${expected_iso_name}.sha256.XXXXXX")"; then
     artifact_validation=fail
     failure_code=sha256_generation_failed

@@ -1,8 +1,8 @@
 # Build Environment Readiness
 
-Version: 1.1
+Version: 1.3
 Status: Historical snapshot; blockers resolved
-Date: 2026-07-27
+Date: 2026-07-28
 
 ## Purpose
 
@@ -27,15 +27,21 @@ its direct build-host requirements in
 
 - `archiso`
 - `bash`
+- `diffutils`
 - `git`
+- `jq`
+- `mkinitcpio`
 - `pacman`
 - `sudo`
 - `util-linux`
 
-The direct set is deliberately small. `archiso` owns its changing upstream
-dependency graph; SchweisOS owns the additional commands it invokes directly.
-The validator still checks all required transitive commands and their exact
-package owners, so this separation does not weaken the build gate.
+The direct set is deliberately small. `diffutils` supplies the directly used
+`cmp` byte-comparison interface, `jq` owns exact JSON-schema validation and
+structured manifest reads, and `mkinitcpio` supplies the directly used
+post-build `lsinitcpio` inspection command. `archiso` owns its changing upstream
+dependency graph; SchweisOS owns these additional build and validation
+interfaces. The validator still checks all required transitive commands and
+their exact package owners, so this separation does not weaken the build gate.
 
 Reference metadata:
 
@@ -48,7 +54,7 @@ Reference metadata:
 | Failing check | Classification | Why it fails | Code change required | Host preparation required | Infrastructure required | Expected owner |
 | --- | --- | --- | --- | --- | --- | --- |
 | Canonical host identity | Host issue | `/etc/os-release` identifies the development host as `endeavouros`, not `arch`. A derivative is not the canonical release host defined by ADR-013. | No | Use a canonical Arch Linux x86_64 build host. | No | Build host |
-| Direct package presence | Dependency issue | `archiso` is not installed. The other five direct packages are present. | No; the manifest and validator are now canonical. | Install the manifest-defined package set through normal trusted Arch package management on the canonical host. | No | Build host |
+| Direct package presence | Dependency issue | Under the original six-package contract, `archiso` was not installed and the other five direct packages were present. The active contract has since expanded to nine packages for `cmp`, `jq`, and `lsinitcpio`. | No; the active manifest and validator are now canonical. | Install the current manifest-defined package set through normal trusted Arch package management on the canonical host. | No | Build host |
 | Required command availability | Dependency issue | `mkarchiso`, `mkfs.erofs`, `mksquashfs`, `pacstrap`, and `xorriso` are absent because `archiso` and parts of its upstream dependency chain are absent. | No | Satisfy the direct manifest through official Arch packages; verify that upstream dependencies provide the commands. | No | Build host |
 | Full-upgrade state | Host issue | `pacman -Quq`, using the host's existing synchronization databases, reports 174 pending updates. The validator intentionally does not refresh databases. | No | Synchronize and fully upgrade the canonical host, then run the validator again. | No | Build host |
 | Readiness document layout | Repository issue | During implementation, the environment validator correctly reported this required document as missing. This deliverable resolves the repository defect. | Completed in this sprint | No | No | Developer |
@@ -104,11 +110,15 @@ validate-build-dependencies.sh
   -> validate-build-environment.sh
   -> validate-iso-profile.sh
   -> mkarchiso
+  -> validate-built-iso-identity.sh
+  -> validate-built-iso-boot.sh
+  -> checksum validation and final v2 build manifest
 ```
 
 `validate-build-environment.sh` invokes the full dependency validator itself;
 the expanded sequence above makes the ownership boundary explicit. A failure
-at any gate prevents `mkarchiso`.
+in either pre-build gate prevents `mkarchiso`; a completed-image failure stops
+checksum publication and final build success.
 
 ## Resolution
 
@@ -120,8 +130,12 @@ The recorded blockers were later resolved without weakening the gates:
   local production repository.
 - Production public trust was admitted through `schweisos-keyring`.
 - Disposable pacman validation preserved separate Arch and SchweisOS trust.
-- The build-host, profile, repository, and post-build identity gates passed,
-  and a versioned KDE development ISO was produced and inspected.
+- An earlier pipeline produced a versioned KDE development ISO and exercised
+  the then-existing identity checks.
 
 This resolution does not imply a public mirror, ISO signature, installer,
-stable release, or public release readiness. Those remain separate gates.
+stable release, or public release readiness. It also is not successful ISO
+evidence for the current first-boot, Plymouth-watchdog, built-boot, or exact-v2
+manifest contracts. A fresh production-host build must create that evidence
+later; the older local ISO and its failed or legacy manifests cannot satisfy
+the current gates.

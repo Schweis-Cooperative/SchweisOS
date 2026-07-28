@@ -1,6 +1,6 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.7
+Version: 0.9
 Status: Active pre-alpha architecture
 Date: 2026-07-28
 
@@ -255,14 +255,23 @@ Persistent, reusable, security-relevant, or updateable configuration belongs in 
 
 Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
 
-The current live image provides UEFI boot, a two-entry SchweisOS systemd-boot
-menu, an animated canonical-logo Plymouth splash with automatic diagnostic
-fallback, KDE Plasma, networking, and a compact troubleshooting/user utility
-set. The ISO must still gain:
+The current KDE live-profile source is configured for UEFI boot, a two-entry
+SchweisOS systemd-boot menu, an animated canonical-logo Plymouth splash with
+automatic diagnostic fallback, a noninteractive SDDM handoff to KDE Plasma,
+networking, and a compact troubleshooting/user utility set. Neutral
+`C.UTF-8`/UTC defaults are scoped only to the intended ephemeral live system;
+installer-owned locale and timezone choices remain future work. The ISO must
+still gain:
 
 - A clear installer launcher.
 - Offline access to essential installation and troubleshooting documentation.
 - Release-grade boot and hardware validation.
+
+These are source and composition contracts, not a runtime boot-success claim.
+No current successful ISO evidence covers the newly changed first-boot payload,
+Plymouth watchdog, built-boot validator, or exact v2 manifest contract. A fresh
+production-host build must produce that evidence later, followed by separate VM
+and hardware qualification.
 
 The live-media boot path is separate from installed-system boot policy. systemd-boot remains the installed-system default on UEFI systems, while archiso owns how the medium boots. A `syslinux/` profile area is relevant only if legacy BIOS support is approved later. BIOS support and Secure Boot are not first-release requirements.
 
@@ -301,18 +310,21 @@ The package does not activate itself, generate `grub.cfg`, or install a
 bootloader. The installer must ensure that the fully resolved theme is readable
 from the selected boot filesystem before setting `GRUB_THEME`.
 
-The live medium uses Archiso's upstream `uefi.systemd-boot` path. Its normal
-entry is quiet and splash-enabled, while a separate debug entry keeps verbose
-kernel and systemd status visible. Automatic loader entries are disabled so
-the live-medium menu stays limited to those two audited choices; the
+The live profile configures Archiso's upstream `uefi.systemd-boot` path. Its
+normal entry is quiet and splash-enabled, while a separate debug entry keeps
+verbose kernel and systemd status visible. Automatic loader entries are
+disabled so the live-medium menu is limited to those two audited choices; the
 firmware-selected console mode is retained to avoid an extra visual mode
-transition. The live initramfs uses upstream mkinitcpio `kms` and `plymouth`
+transition. The initramfs source uses upstream mkinitcpio `kms` and `plymouth`
 hooks so the SchweisOS Plymouth theme can appear before the Plasma session. The
-theme uses bounded fade, pulse, scale, and rotating-indicator motion derived
-only from the canonical logo. If emergency mode is reached, SDDM fails,
-Plymouth start/quit units fail, or the Plymouth runtime PID disappears before
-the normal quit handoff, the live profile quits Plymouth and restores console
-diagnostics.
+theme source defines bounded fade, pulse, scale, and rotating-indicator motion
+derived only from the canonical logo. Both entries disable interactive
+`systemd-firstboot`; the live-root source carries upstream Archiso's neutral
+`C.UTF-8`/UTC defaults. The live-only units are configured to quit Plymouth and
+restore console diagnostics if emergency mode is reached, SDDM fails, a
+Plymouth client failure propagates, the bounded quit wait expires, or the
+runtime path watcher or boot-bounded liveness watchdog finds no live Plymouth
+daemon before the normal quit handoff.
 
 This live boot experience and the packaged GRUB theme do not implement
 installed-system bootloader configuration. Installed-system Plymouth,
@@ -426,21 +438,23 @@ Detailed policy: [Security Model](../security/security-model.md).
 ## Development Sequence
 
 The documentation, identity package set, trust bootstrap, signed local
-repository, minimal KDE profile, and first development ISO are complete as
-engineering foundations. The next dependency-ordered sequence is:
+repository, minimal KDE profile, and ISO build/validation source are available
+as engineering foundations. The next dependency-ordered sequence is:
 
-1. Add ISO signing and verification without placing private keys on the build
+1. Produce fresh production-host ISO evidence with both completed-image gates
+   and the exact v2 manifest contract; do not reuse the older local ISO.
+2. Add ISO signing and verification without placing private keys on the build
    host.
-2. Design and implement the installer prototype for UEFI, systemd-boot, and
+3. Design and implement the installer prototype for UEFI, systemd-boot, and
    ext4, then integrate the optional packaged GRUB theme only through the
    installer-owned GRUB path.
-3. Validate a complete installation and first boot on disposable test storage.
-4. Add the optional Btrfs path after the ext4 path is reliable.
-5. Establish a public publication endpoint and mirror operations.
-6. Implement Flatpak integration and the AUR first-use warning workflow.
-7. Add a measured gaming package/test matrix.
-8. Document the installed Distrobox/Podman baseline before any automation.
-9. Complete alpha release qualification and known-issues documentation.
+4. Validate a complete installation and first boot on disposable test storage.
+5. Add the optional Btrfs path after the ext4 path is reliable.
+6. Establish a public publication endpoint and mirror operations.
+7. Implement Flatpak integration and the AUR first-use warning workflow.
+8. Add a measured gaming package/test matrix.
+9. Document the installed Distrobox/Podman baseline before any automation.
+10. Complete alpha release qualification and known-issues documentation.
 
 Trust infrastructure remains ahead of user-facing customization so later
 features can consume an auditable release path.

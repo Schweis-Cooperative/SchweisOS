@@ -1,6 +1,6 @@
 # Tests Directory
 
-Version: 0.9
+Version: 1.2
 Status: Active
 Date: 2026-07-28
 
@@ -28,6 +28,12 @@ exact installed packages; required commands; and command package ownership. It
 does not refresh databases, install packages, resolve providers as substitutes,
 or modify the host. It has no mode that skips host checks.
 
+The current direct set is `archiso`, `bash`, `diffutils`, `git`, `jq`,
+`mkinitcpio`, `pacman`, `sudo`, and `util-linux`. In particular, `diffutils`
+owns the directly used `cmp` interface, `jq` owns exact JSON-schema validation
+and structured manifest reads, and `mkinitcpio` owns the directly used
+`lsinitcpio` interface.
+
 `validate-build-environment.sh` is the network-free, non-destructive ISO build
 host gate:
 
@@ -43,9 +49,12 @@ layout and permissions, prohibited `--force` use, symlinks, secrets, private
 signing material, and SchweisOS repository readiness. For local `file://`
 SchweisOS endpoints, it also
 checks that every database entry has a present package file and detached `.sig`
-sidecar before Archiso is invoked. It neither mutates host package state nor
-runs the profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate
-before every other substantive build step.
+sidecar before Archiso is invoked. All five source/repository package versions
+must match in every mode. The selected branding package must also contain the
+single canonical regular runtime logo, omit the stale runtime path, and match
+the source logo SHA256. It neither mutates host package state nor runs the
+profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate before
+every other substantive build step.
 
 `validate-iso-profile.sh` performs profile-only static validation of the KDE
 Archiso profile without requiring Archiso itself or network access:
@@ -56,14 +65,30 @@ tests/validate-iso-profile.sh
 
 It validates the profile contract, package manifest, build-time pacman syntax,
 UEFI normal/debug templates and exact titles, loader entry suppression,
-canonical-logo Plymouth animation primitives, unexpected-exit watcher,
-automatic diagnostic fallback, mkinitcpio inputs, live-overlay allowlist,
-permissions, symlinks, and absence of signing material. It also proves that the
-branding package source resolves to `branding/assets/logo/schweisos.png` and
-that the theme has no second image dependency. Pacman parsing uses a disposable
-sysroot populated from the real bootstrap configuration files; it does not
-modify `/etc`, contact repositories, or invent endpoints. Repository
-availability remains a separate build-host preflight.
+canonical-logo Plymouth animation primitives, dual unexpected-exit detectors,
+propagated client failures, bounded quit waiting, guarded automatic diagnostic
+fallback, noninteractive first-boot defaults, mkinitcpio inputs, live-overlay
+allowlist, permissions, symlinks, and absence of signing material. It also
+proves that the branding package source resolves to
+`branding/assets/logo/schweisos.png` and that the theme has no second image
+dependency. Pacman parsing uses a disposable sysroot populated from the real
+bootstrap configuration files; it does not modify `/etc`, contact repositories,
+or invent endpoints. Repository availability remains a separate build-host
+preflight.
+
+`test-plymouth-watchdog.sh` performs disposable behavioral validation of the
+real watchdog control flow:
+
+```bash
+tests/test-plymouth-watchdog.sh
+```
+
+It rewrites only the helper's absolute command and marker paths to point at
+temporary stubs. Seven scenarios cover completed normal handoff, an activating
+handoff that later succeeds, failed handoff, an absent daemon, a live daemon
+that later stops, health-helper error propagation, and systemd state-query
+error propagation. It requires fallback exactly once in failure scenarios and
+rejects false fallback or false success. It does not build or boot an ISO.
 
 `validate-grub-theme.sh` validates the separately packaged, inert
 installed-system GRUB theme groundwork:
@@ -164,6 +189,60 @@ because this validator inspects package metadata, file ownership records, and
 identity files as an unprivileged post-build gate; xattr policy belongs to a
 separate explicit validator if SchweisOS adopts one.
 
+`validate-built-iso-boot.sh` performs the complementary post-build composition
+check without booting a VM:
+
+```bash
+tests/validate-built-iso-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
+```
+
+It verifies the two resolved systemd-boot entries, disabled interactive
+firstboot, the exact installed `schweisos-branding` version and canonical logo
+hash, C.UTF-8/UTC live defaults, SDDM/Plasma handoff inputs, live fallback unit
+payloads including the boot-bounded watchdog, merged systemd unit validity, and
+the Plymouth configuration, script plugin, theme, and canonical logo inside
+the actual initramfs. A stale signed
+branding package therefore fails before the wrapper publishes checksums even
+if source-only profile validation passes.
+
+The validator uses `work/validators/built-iso-boot/` by default and, like the
+identity validator, can require several GiB of disk-backed temporary space.
+`scripts/build-iso.sh` invokes both built-ISO validators after `mkarchiso` and
+before checksum publication.
+
+`validate-iso-build-manifest.sh` owns the completed successful build-manifest
+contract:
+
+```bash
+tests/validate-iso-build-manifest.sh logs/iso/build-manifest.json
+tests/validate-iso-build-manifest.sh \
+  logs/iso/build-manifest.json \
+  out/iso/schweisos-2026.07.27-x86_64.iso
+```
+
+The build manifest uses `schweisos.iso-build-manifest.v2` and records both
+post-build validators explicitly. The validator requires canonical JSON that
+byte-matches `jq --indent 2`, exact top-level and nested key sets, correct
+types, a clean completed build, one artifact candidate, all five gates as
+`pass`, and internally consistent artifact and sidecar names. Missing, extra,
+duplicate, ambiguous, legacy, failed, dirty, or partially completed manifests
+are rejected. In `--release` mode it additionally requires
+`build_mode=release`, `epoch_origin=environment`, canonical Arch x86_64 host
+provenance, and a non-null BLAKE2b-512 value.
+
+With the optional ISO argument, the validator recomputes and binds the exact
+artifact basename, byte size, SHA256, and BLAKE2b-512 when the manifest
+records it. Release staging always uses `--release` mode, so BLAKE2b-512 is
+mandatory and bound to the ISO bytes. It additionally requires the requested
+release identifier to reproduce the ISO filename exactly and derives the
+profile from the build manifest; an optional caller profile is only an
+equality assertion.
+
+There is no current successful ISO evidence for the newly changed first-boot
+payload, Plymouth watchdog, built-boot validator, or exact v2 manifest
+contract. These commands document the required production-host gates for a
+fresh future build; an older local ISO is not evidence for them.
+
 `validate-release-artifacts.sh` validates one prepared release artifact
 directory without building, signing, publishing, or touching host configuration:
 
@@ -171,9 +250,11 @@ directory without building, signing, publishing, or touching host configuration:
 tests/validate-release-artifacts.sh release/YYYY.MM.DD
 ```
 
-It checks the canonical release layout, exactly one ISO, mandatory SHA256
-verification, mandatory BLAKE2b-512 verification, manifest consistency, release
-notes, unexpected files, permissions, symlink attacks, path traversal, and
+It checks the canonical release layout, exactly one date-bound ISO, mandatory
+SHA256 verification, mandatory BLAKE2b-512 verification, canonical exact-schema
+build and release manifests, copied-manifest-to-ISO binding, profile and
+cross-manifest provenance, exact regenerated release notes and artifact log,
+unexpected files, permissions, symlink attacks, path traversal, and
 private-information patterns.
 
 `test-release-artifacts.sh` runs disposable release artifact scenarios using
@@ -183,7 +264,11 @@ temporary fixture files:
 tests/test-release-artifacts.sh
 ```
 
-It covers successful validation, missing checksums, invalid checksums, empty
-ISO fixtures, duplicate ISOs, corrupt manifests, unexpected files, symlink
-attacks, path traversal, permission violations, JSON validation, and atomic
-duplicate-output rejection. It never invokes `mkarchiso`.
+It covers successful validation, missing or invalid checksums, empty and
+duplicate ISO fixtures, corrupt manifests, unexpected files, symlink attacks,
+path traversal, permission violations, symlink input rejection, development,
+legacy, duplicate-key, and extra-field manifest rejection, explicit post-build
+gate failures, basename/size/SHA/BLAKE2b binding, release-identifier and
+profile mismatch, cross-manifest tampering, release notes/log tampering,
+validator-version mismatch, and atomic duplicate-output rejection. It never
+invokes `mkarchiso`.

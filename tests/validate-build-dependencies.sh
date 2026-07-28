@@ -53,7 +53,10 @@ join_by_space() {
 canonical_packages=(
     archiso
     bash
+    diffutils
     git
+    jq
+    mkinitcpio
     pacman
     sudo
     util-linux
@@ -62,8 +65,10 @@ canonical_packages=(
 declare -A expected_command_owner=(
     [awk]=gawk
     [bash]=bash
+    [b2sum]=coreutils
     [bsdtar]=libarchive
     [chmod]=coreutils
+    [cmp]=diffutils
     [date]=coreutils
     [df]=coreutils
     [dirname]=coreutils
@@ -74,6 +79,8 @@ declare -A expected_command_owner=(
     [git]=git
     [grep]=grep
     [head]=coreutils
+    [jq]=jq
+    [lsinitcpio]=mkinitcpio
     [mkarchiso]=archiso
     [mkfs.erofs]=erofs-utils
     [mkfs.ext4]=e2fsprogs
@@ -95,10 +102,13 @@ declare -A expected_command_owner=(
     [sort]=coreutils
     [stat]=coreutils
     [sudo]=sudo
+    [systemd-analyze]=systemd
     [tee]=coreutils
+    [timeout]=coreutils
     [uname]=coreutils
     [uniq]=coreutils
     [unlink]=coreutils
+    [unsquashfs]=squashfs-tools
     [wc]=coreutils
     [xorriso]=libisoburn
 )

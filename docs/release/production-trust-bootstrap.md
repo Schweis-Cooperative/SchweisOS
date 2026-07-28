@@ -1,8 +1,8 @@
 # SchweisOS Production Trust Bootstrap
 
-Version: 1.1
+Version: 1.2
 Status: Public trust admitted; operational pipeline implemented
-Date: 2026-07-27
+Date: 2026-07-28
 
 ## Purpose
 
@@ -37,6 +37,7 @@ accepted policy + reviewed repository commit
                                                -> disposable pacman validation
                                                     -> release-mode mkarchiso
                                                          -> built-ISO identity validation
+                                                              -> built-ISO boot validation
 ```
 
 The two ceremony outputs meet only through fingerprints recorded in
@@ -63,6 +64,7 @@ The repository provides these complete, fail-closed transitions:
 | Signed repository to disposable pacman client | `tests/validate-signed-repository-client.sh` |
 | Complete repository to build-host source | `tools/release/activate-build-repository.sh` |
 | Built ISO to effective identity proof | `tests/validate-built-iso-identity.sh` |
+| Built ISO to live boot-payload proof | `tests/validate-built-iso-boot.sh` |
 
 The admission command renders the operational keyring PKGBUILD and removes all
 bootstrap sentinels. No checksum, source link, install hook, or package-layout
@@ -136,12 +138,16 @@ For each signed repository generation:
    local source with `activate-build-repository.sh`;
 11. run the existing build validators and `SCHWEISOS_ISO_BUILD_MODE=release`
    build entry point;
-12. run `validate-built-iso-identity.sh` before any boot test or release. The
-    validator extracts the ISO SquashFS into its own disposable directory under
-    the ignored repository `work/` tree by default; set `TMPDIR` only when the
-    build host requires another disk-backed extraction location. This
-    unprivileged identity gate extracts without restoring SquashFS xattrs; add a
-    separate explicit validator before making xattrs a release criterion.
+12. require both `validate-built-iso-identity.sh` and
+    `validate-built-iso-boot.sh` before any boot test or release. The build
+    wrapper runs them before checksum publication. They extract the ISO into
+    their own disposable directories under the ignored repository `work/` tree
+    by default; set `TMPDIR` only when the build host requires another
+    disk-backed extraction location. The identity gate extracts without
+    restoring SquashFS xattrs; add a separate explicit validator before making
+    xattrs a release criterion. The boot gate verifies the selected branding
+    package and logo, live defaults, merged systemd units, Plasma handoff
+    inputs, and actual Plymouth initramfs payload.
 
 Failures stop at their current trust boundary. No failed candidate is published
 and no validator has a permissive production mode.

@@ -42,7 +42,9 @@ required_files=(
   "${project_root}/tools/release/sign-repository-metadata.sh"
   "${project_root}/tools/release/validate-release-repository.sh"
   "${project_root}/tools/release/README.md"
+  "${project_root}/tests/validate-built-iso-boot.sh"
   "${project_root}/tests/validate-built-iso-identity.sh"
+  "${project_root}/tests/validate-iso-build-manifest.sh"
   "${project_root}/tests/validate-keyring-package.sh"
   "${project_root}/tests/validate-signed-repository-client.sh"
   "${project_root}/docs/release/offline-ceremony-checklist.md"
@@ -106,7 +108,9 @@ bash -n \
   "${project_root}/tools/release/activate-build-repository.sh" \
   "${project_root}/tools/release/sign-repository-metadata.sh" \
   "${project_root}/tools/release/validate-release-repository.sh" \
+  "${project_root}/tests/validate-built-iso-boot.sh" \
   "${project_root}/tests/validate-built-iso-identity.sh" \
+  "${project_root}/tests/validate-iso-build-manifest.sh" \
   "${project_root}/tests/validate-keyring-package.sh" \
   "${project_root}/tests/validate-signed-repository-client.sh" \
   "${BASH_SOURCE[0]}"
@@ -127,7 +131,9 @@ for executable in \
   "${project_root}/tools/release/activate-build-repository.sh" \
   "${project_root}/tools/release/sign-repository-metadata.sh" \
   "${project_root}/tools/release/validate-release-repository.sh" \
+  "${project_root}/tests/validate-built-iso-boot.sh" \
   "${project_root}/tests/validate-built-iso-identity.sh" \
+  "${project_root}/tests/validate-iso-build-manifest.sh" \
   "${project_root}/tests/validate-keyring-package.sh" \
   "${project_root}/tests/validate-signed-repository-client.sh" \
   "${BASH_SOURCE[0]}"; do

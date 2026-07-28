@@ -633,6 +633,36 @@ if (( repository_ready )); then
 fi
 
 if (( repository_ready )); then
+    repository_artifact_failures=()
+    while IFS= read -r repository_desc_path; do
+        if ! repository_info="$(bsdtar -xOf "$repository_db_path" "$repository_desc_path" 2>/dev/null)"; then
+            repository_artifact_failures+=("${repository_desc_path}:metadata-unreadable")
+            continue
+        fi
+        repository_name="$(awk 'previous == "%NAME%" { print; exit } { previous = $0 }' <<<"$repository_info")"
+        repository_filename="$(awk 'previous == "%FILENAME%" { print; exit } { previous = $0 }' <<<"$repository_info")"
+        if [[ -z "$repository_name" || -z "$repository_filename" ]]; then
+            repository_artifact_failures+=("${repository_desc_path}:metadata-incomplete")
+            continue
+        fi
+        package_path="${repository_root}/${repository_filename}"
+        package_signature="${package_path}.sig"
+        if [[ ! -f "$package_path" || -L "$package_path" || ! -s "$package_path" ]]; then
+            repository_artifact_failures+=("${repository_name}:package-missing")
+            continue
+        fi
+        if [[ ! -f "$package_signature" || -L "$package_signature" || ! -s "$package_signature" ]]; then
+            repository_artifact_failures+=("${repository_name}:signature-missing")
+        fi
+    done < <(bsdtar -tf "$repository_db_path" 2>/dev/null | sed -n '/\/desc$/p' | sort)
+
+    if (( ${#repository_artifact_failures[@]} > 0 )); then
+        repository_ready=0
+        repository_failure="SchweisOS repository package/signature files incomplete $(join_by_space "${repository_artifact_failures[@]}")"
+    fi
+fi
+
+if (( repository_ready )); then
     repository_version_failures=()
     for package in "${identity_packages[@]}"; do
         package_dir="${project_root}/packages/${package}"

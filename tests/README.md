@@ -40,8 +40,10 @@ PASS/FAIL report for canonical Arch x86_64 identity, known upgrade state,
 ADR-013 dependencies and command provenance, pacman
 trust policy, at least 20 GiB free space, generated path safety, repository
 layout and permissions, symlinks, secrets, private signing material, and
-SchweisOS repository readiness. It neither mutates host package state nor runs
-the profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate
+SchweisOS repository readiness. For local `file://` SchweisOS endpoints, it also
+checks that every database entry has a present package file and detached `.sig`
+sidecar before Archiso is invoked. It neither mutates host package state nor
+runs the profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate
 before every other substantive build step.
 
 `validate-iso-profile.sh` performs profile-only static validation of the KDE

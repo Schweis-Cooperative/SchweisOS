@@ -134,6 +134,13 @@ database signature policy in the generated build-local configuration. This
 distinction lets local Archiso builds consume the unsigned bootstrap
 `schweisos.db` without changing release or runtime trust policy.
 
+The development exception does not allow unsigned package artifacts. When the
+configured SchweisOS endpoint is a local `file://` repository, the build
+environment validator reads `schweisos.db` before `mkarchiso` and fails if any
+database entry lacks its referenced package file or detached `.sig` sidecar.
+This keeps missing package signatures from surfacing later as an interactive
+pacman transaction failure.
+
 The wrapper never cleans ISO output. An existing ISO or ISO checksum must be
 archived or removed explicitly before another build so stale output cannot be
 mistaken for newly generated evidence.
@@ -173,6 +180,8 @@ prints one concise PASS/FAIL summary covering:
 - Credential patterns and private signing-key material in Git-visible inputs.
 - Installed SchweisOS host integration, a configured publication source,
   and conservative repository signature policy.
+- For a local `file://` SchweisOS endpoint, the presence of each package file
+  and detached `.sig` sidecar referenced by `schweisos.db`.
 - SchweisOS identity package versions in the configured repository. In
   `SCHWEISOS_ISO_BUILD_MODE=development`, source/repository version drift is
   reported as a warning so local identity work can build against the current

@@ -35,7 +35,13 @@ The following files are temporary live-media exceptions:
   diagnostics if the live display manager fails before Plasma appears.
 - `/usr/share/plymouth/themes/schweisos/` contains the live-only Plymouth theme.
   Its `ImageDir` points at `/usr/share/schweisos/branding`, which is installed
-  by `schweisos-branding`; no logo asset is copied into the profile.
+  by `schweisos-branding`; no logo asset is copied into the profile. The script
+  fades in and gently pulses the canonical `schweisos.png`, then derives its
+  rotating dot indicator from that same image.
+
+The UEFI loader retains the firmware-selected console mode and shows exactly
+`SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and
+interactive kernel-command-line editing are disabled for the live medium.
 
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction or create a passwordless automatic

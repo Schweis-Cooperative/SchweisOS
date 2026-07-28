@@ -22,6 +22,9 @@ done
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 profile_dir="${project_root}/iso/profiles/kde"
 release_package_dir="${project_root}/packages/schweisos-release"
+branding_package_dir="${project_root}/packages/schweisos-branding"
+canonical_logo="${project_root}/branding/assets/logo/schweisos.png"
+branding_package_source="${branding_package_dir}/schweisos.png"
 airootfs_dir="${profile_dir}/airootfs"
 entry_dir="${profile_dir}/efiboot/loader/entries"
 profiledef="${profile_dir}/profiledef.sh"
@@ -65,6 +68,8 @@ required_files=(
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
   "$schweis_pacman_config"
   "$mirrorlist"
+  "$canonical_logo"
+  "$branding_package_source"
 )
 
 for directory in "${required_directories[@]}"; do
@@ -284,9 +289,13 @@ loader_config="${profile_dir}/efiboot/loader/loader.conf"
 loader_timeout="$(awk '$1 == "timeout" { print $2 }' "$loader_config")"
 loader_console_mode="$(awk '$1 == "console-mode" { print $2 }' "$loader_config")"
 loader_editor="$(awk '$1 == "editor" { print $2 }' "$loader_config")"
+loader_auto_entries="$(awk '$1 == "auto-entries" { print $2 }' "$loader_config")"
+loader_auto_firmware="$(awk '$1 == "auto-firmware" { print $2 }' "$loader_config")"
 [[ "$loader_timeout" == 3 ]] || fail 'loader.conf must use a short three-second timeout'
-[[ "$loader_console_mode" == max ]] || fail 'loader.conf must request the maximum supported console mode'
+[[ "$loader_console_mode" == keep ]] || fail 'loader.conf must preserve the firmware console mode'
 [[ "$loader_editor" == no ]] || fail 'loader.conf must disable interactive command-line editing'
+[[ "$loader_auto_entries" == no ]] || fail 'loader.conf must suppress automatic operating-system entries'
+[[ "$loader_auto_firmware" == no ]] || fail 'loader.conf must suppress the automatic firmware entry'
 
 mapfile -t default_entries < <(
   awk '$1 == "default" { print $2 }' "$loader_config"
@@ -318,6 +327,7 @@ for entry_name in "${efi_entries[@]}"; do
   kernel_path="$(awk '$1 == "linux" { print $2 }' "$entry")"
   initramfs_path="$(awk '$1 == "initrd" { print $2 }' "$entry")"
   entry_order="$(awk '$1 == "sort-key" { print $2 }' "$entry")"
+  entry_title="$(awk '$1 == "title" { $1 = ""; sub(/^[[:space:]]+/, ""); print }' "$entry")"
   options="$(awk '$1 == "options" { $1 = ""; sub(/^[[:space:]]+/, ""); print }' "$entry")"
   [[ "$entry_order" == "$filename_order" ]] || fail "sort-key does not match ${entry_name}"
   [[ "$kernel_path" == '/%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux' ]] || \
@@ -330,6 +340,7 @@ for entry_name in "${efi_entries[@]}"; do
     fail "${entry_name} is missing archisosearchuuid"
   case "$entry_name" in
     01-schweisos-linux.conf)
+      [[ "$entry_title" == 'SchweisOS Live' ]] || fail 'normal boot entry title is unexpected'
       [[ " $options " == *' quiet '* ]] || fail 'normal boot entry must be quiet'
       [[ " $options " == *' splash '* ]] || fail 'normal boot entry must enable Plymouth splash'
       [[ " $options " == *' loglevel=3 '* ]] || fail 'normal boot entry must reduce kernel log verbosity'
@@ -339,6 +350,7 @@ for entry_name in "${efi_entries[@]}"; do
         fail 'normal boot entry must hide the text cursor during graphical boot'
       ;;
     02-schweisos-linux-debug.conf)
+      [[ "$entry_title" == 'SchweisOS Live (Debug)' ]] || fail 'debug boot entry title is unexpected'
       [[ " $options " != *' quiet '* ]] || fail 'debug boot entry must not be quiet'
       [[ " $options " != *' splash '* ]] || fail 'debug boot entry must not enable Plymouth splash'
       [[ " $options " == *' loglevel=7 '* ]] || fail 'debug boot entry must keep verbose kernel logs'
@@ -456,11 +468,33 @@ grep -Fxq 'ImageDir=/usr/share/schweisos/branding' "$plymouth_theme" || \
   fail 'Plymouth theme must consume the packaged SchweisOS branding directory'
 grep -Fxq 'ScriptFile=/usr/share/plymouth/themes/schweisos/schweisos.script' "$plymouth_theme" || \
   fail 'Plymouth theme script path is unexpected'
-grep -Fq 'Image("schweisos-logo.png")' "$plymouth_script" || \
+grep -Fq 'Image("schweisos.png")' "$plymouth_script" || \
   fail 'Plymouth script must use the canonical packaged SchweisOS logo'
-grep -Fq 'usr/share/schweisos/branding/schweisos-logo.png' \
+mapfile -t plymouth_images < <(
+  grep -Eo 'Image\("[^"]+"\)' "$plymouth_script" | sort -u
+)
+[[ "${plymouth_images[*]}" == 'Image("schweisos.png")' ]] || \
+  fail 'Plymouth script must not introduce another image dependency'
+for animation_primitive in \
+  'SetRefreshFunction(refresh_callback)' \
+  'Math.Cos' \
+  'Math.Sin' \
+  '.Scale(' \
+  '.Crop(' \
+  'SetOpacity(' \
+  'spinner.phase'; do
+  grep -Fq "$animation_primitive" "$plymouth_script" || \
+    fail "Plymouth animation primitive is missing: ${animation_primitive}"
+done
+grep -Fq 'usr/share/schweisos/branding/schweisos.png' \
   "${project_root}/packages/schweisos-branding/PKGBUILD" || \
   fail 'schweisos-branding must install the logo path consumed by Plymouth'
+[[ -L "$branding_package_source" ]] || \
+  fail 'schweisos-branding source must be a symlink to the canonical logo'
+[[ "$(readlink -- "$branding_package_source")" == '../../branding/assets/logo/schweisos.png' ]] || \
+  fail 'schweisos-branding source symlink does not target the canonical logo'
+[[ "$(readlink -f -- "$branding_package_source")" == "$canonical_logo" ]] || \
+  fail 'schweisos-branding source symlink does not resolve to the canonical logo'
 
 debug_fallback_service="${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
 grep -Fxq 'ExecStart=-/usr/bin/plymouth quit' "$debug_fallback_service" || \

@@ -173,7 +173,7 @@ expected_payload=(
   usr/lib/schweisos-release/release.json
   usr/share/icons/hicolor/1024x1024/apps/schweisos.png
   usr/share/pixmaps/schweisos.png
-  usr/share/schweisos/branding/schweisos-logo.png
+  usr/share/schweisos/branding/schweisos.png
   usr/share/doc/schweisos-keyring/future-keys.md
   usr/share/doc/schweisos-keyring/keyring-policy.md
   usr/share/pacman/keyrings

@@ -1,27 +1,111 @@
-Window.SetBackgroundTopColor(0.020, 0.025, 0.033);
-Window.SetBackgroundBottomColor(0.010, 0.014, 0.020);
+Window.SetBackgroundTopColor(0.027, 0.071, 0.145);
+Window.SetBackgroundBottomColor(0.020, 0.063, 0.129);
 
-logo_size = Window.GetHeight() / 5;
+animation.frame = 0;
+animation.progress = 0;
+animation.intro = 0;
+
+logo.source_image = Image("schweisos.png");
+logo.base_size = Window.GetHeight() / 3.4;
 if (Window.GetWidth() < Window.GetHeight()) {
-  logo_size = Window.GetWidth() / 5;
+  logo.base_size = Window.GetWidth() / 3.4;
 }
-if (logo_size > 192) {
-  logo_size = 192;
+if (logo.base_size > 300) {
+  logo.base_size = 300;
 }
-if (logo_size < 96) {
-  logo_size = 96;
+if (logo.base_size < 150) {
+  logo.base_size = 150;
 }
 
-logo_source_image = Image("schweisos-logo.png");
-logo_image = logo_source_image.Scale(logo_size, logo_size);
-logo_sprite = Sprite(logo_image);
-logo_sprite.SetZ(10);
-logo_sprite.SetOpacity(0.92);
+# Pre-render a narrow scale range once. Refreshes only swap images, avoiding
+# repeated resampling of the canonical 1254px logo during early boot.
+logo.frame_count = 17;
+for (index = 0; index < logo.frame_count; index++) {
+  scale = 0.98 + (index * 0.0025);
+  frame_size = Math.Int(logo.base_size * scale);
+  logo.image[index] = logo.source_image.Scale(frame_size, frame_size);
+}
+logo.current_frame = 8;
+logo.sprite = Sprite(logo.image[logo.current_frame]);
+logo.sprite.SetZ(10);
+logo.sprite.SetOpacity(0);
+
+# The loading dots are sampled from the white eye in the canonical logo.
+# This keeps the entire visual composition dependent on one source image.
+spinner.dot_image = logo.source_image.Crop(624, 325, 32, 32).Scale(10, 10);
+spinner.count = 8;
+spinner.phase = 0;
+spinner.radius = 18;
+for (index = 0; index < spinner.count; index++) {
+  spinner.sprite[index] = Sprite(spinner.dot_image);
+  spinner.sprite[index].SetZ(11);
+  spinner.sprite[index].SetOpacity(0);
+}
 
 fun layout_callback()
 {
-  logo_sprite.SetX((Window.GetWidth() - logo_image.GetWidth()) / 2);
-  logo_sprite.SetY((Window.GetHeight() - logo_image.GetHeight()) / 2);
+  logo_x = Window.GetX() + (Window.GetWidth() - logo.image[logo.current_frame].GetWidth()) / 2;
+  logo_y = Window.GetY() + (Window.GetHeight() - logo.image[logo.current_frame].GetHeight()) / 2;
+  logo_y -= 18;
+  logo_y += (1 - animation.intro) * 10;
+  logo.sprite.SetX(logo_x);
+  logo.sprite.SetY(logo_y);
+
+  spinner_x = Window.GetX() + Window.GetWidth() / 2;
+  spinner_y = Window.GetY() + Window.GetHeight() / 2 + logo.base_size / 2 + 34;
+  for (index = 0; index < spinner.count; index++) {
+    angle = ((2 * Math.Pi) / spinner.count) * index;
+    dot_x = spinner_x + (Math.Cos(angle) * spinner.radius) - spinner.dot_image.GetWidth() / 2;
+    dot_y = spinner_y + (Math.Sin(angle) * spinner.radius) - spinner.dot_image.GetHeight() / 2;
+    spinner.sprite[index].SetX(dot_x);
+    spinner.sprite[index].SetY(dot_y);
+  }
+}
+
+fun refresh_callback()
+{
+  animation.frame += 1;
+  if (animation.intro < 1) {
+    animation.intro += 0.04;
+  }
+  if (animation.intro > 1) {
+    animation.intro = 1;
+  }
+
+  breath = (Math.Cos(animation.frame * ((2 * Math.Pi) / 150)) + 1) / 2;
+  next_logo_frame = Math.Int(breath * (logo.frame_count - 1));
+  if (next_logo_frame != logo.current_frame) {
+    logo.current_frame = next_logo_frame;
+    logo.sprite.SetImage(logo.image[logo.current_frame]);
+  }
+  logo.sprite.SetOpacity(animation.intro * (0.92 + (breath * 0.06)));
+
+  spinner.phase += 0.10;
+  if (spinner.phase >= spinner.count) {
+    spinner.phase -= spinner.count;
+  }
+  spinner_head = Math.Int(spinner.phase);
+
+  spinner_finish_opacity = 1;
+  if (animation.progress > 0.92) {
+    spinner_finish_opacity = (1 - animation.progress) / 0.08;
+  }
+  if (spinner_finish_opacity < 0) {
+    spinner_finish_opacity = 0;
+  }
+
+  for (index = 0; index < spinner.count; index++) {
+    distance = spinner_head - index;
+    if (distance < 0) {
+      distance += spinner.count;
+    }
+    dot_opacity = 0.14 + ((spinner.count - distance - 1) * 0.11);
+    spinner.sprite[index].SetOpacity(
+      animation.intro * spinner_finish_opacity * dot_opacity
+    );
+  }
+
+  layout_callback();
 }
 
 fun boot_progress_callback(duration, progress)
@@ -32,9 +116,18 @@ fun boot_progress_callback(duration, progress)
   if (progress > 1) {
     progress = 1;
   }
-  logo_sprite.SetOpacity(0.84 + (progress * 0.14));
+  global.animation.progress = progress;
+}
+
+fun quit_callback()
+{
+  logo.sprite.SetOpacity(1);
+  for (index = 0; index < spinner.count; index++) {
+    spinner.sprite[index].SetOpacity(0);
+  }
 }
 
 layout_callback();
-Plymouth.SetRefreshFunction(layout_callback);
+Plymouth.SetRefreshFunction(refresh_callback);
 Plymouth.SetBootProgressFunction(boot_progress_callback);
+Plymouth.SetQuitFunction(quit_callback);

@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=SchweisOS
-Description=Clean SchweisOS live boot splash
+Description=Animated SchweisOS live boot splash
 ModuleName=script
 
 [script]

@@ -1,8 +1,8 @@
 # SchweisOS Packaging Guide
 
-Version: 0.2
+Version: 0.4
 Status: Draft
-Date: 2026-07-27
+Date: 2026-07-28
 
 ## Goal
 
@@ -16,7 +16,12 @@ Current packages:
 - `schweisos-keyring`: admitted production public trust only.
 - `schweisos-mirrorlist`: SchweisOS repository discovery.
 - `schweisos-pacman-config`: SchweisOS-owned pacman policy/include.
-- `schweisos-branding`: minimal runtime logo assets.
+- `schweisos-branding`: minimal runtime logo assets sourced only from
+  `branding/assets/logo/schweisos.png`; standard icon lookup paths are aliases
+  to one package-owned runtime payload.
+- `schweisos-grub-theme`: inert reusable GRUB theme behavior and non-logo
+  decoration; its runtime logo is an alias to the payload owned by
+  `schweisos-branding`, and activation remains installer-owned.
 
 Allowed next packages:
 
@@ -24,6 +29,10 @@ Allowed next packages:
 - Desktop defaults.
 - Small meta packages.
 - Documentation packages.
+
+Bootloader presentation packages must not install a bootloader, edit its
+global configuration, regenerate boot entries, or choose a firmware path from
+an install hook. Those actions require installer context and an accepted ADR.
 
 Avoid early packages:
 

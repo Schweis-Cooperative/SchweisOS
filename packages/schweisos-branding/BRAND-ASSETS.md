@@ -14,12 +14,12 @@ the licensing of upstream Arch Linux or third-party software.
 This license applies to the SchweisOS logo and icon files installed by the
 `schweisos-branding` package, including:
 
-- `/usr/share/schweisos/branding/schweisos-logo.png`
+- `/usr/share/schweisos/branding/schweisos.png`
 - `/usr/share/icons/hicolor/1024x1024/apps/schweisos.png`
 - `/usr/share/pixmaps/schweisos.png`
 
 The same terms apply to the canonical source logo at
-`branding/assets/logo/schweisos-logo.png`.
+`branding/assets/logo/schweisos.png`.
 
 ## Permissions
 

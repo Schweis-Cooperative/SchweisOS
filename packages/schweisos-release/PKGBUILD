@@ -3,18 +3,18 @@
 
 pkgname=schweisos-release
 pkgver=2026.07.27
-pkgrel=1
+pkgrel=2
 pkgdesc='SchweisOS distribution identity metadata'
 arch=('any')
-url='https://github.com/Schweis-Cooperative/SchweisOS'
+url='https://schweisos.org'
 license=('GPL-3.0-or-later')
 depends=('filesystem')
 source=(
   'os-release'
   'release.json'
 )
-sha256sums=('aba949f80782a00da5934cbd57bbfaed8ba6345328f6bf669ba98d7babc1f391'
-            '797c042154889471561429c067863fcc41eae5677157a31593cea1e816f5a71a')
+sha256sums=('c937ed75bbef340963ef256c14aabcc00590d12f2d220d786ece0d04d8184ccd'
+            '9f9a218b1699ea7822c0682bd4bc951dd4af512a3052e74b7e6d27aaec85077e')
 
 package() {
   install -Dm644 "${srcdir}/os-release" \

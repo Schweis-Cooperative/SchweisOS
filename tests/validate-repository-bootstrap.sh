@@ -120,7 +120,7 @@ build_package() {
     BUILDDIR="${tmp_dir}/build/${package_name}" \
     SRCDEST="${tmp_dir}/sources/${package_name}" \
     PKGDEST="${tmp_dir}/artifacts" \
-      makepkg --nodeps --cleanbuild --clean --force --noconfirm
+      makepkg --nodeps --cleanbuild --clean --noconfirm
   )
 }
 

@@ -1,6 +1,6 @@
 # ADR-002 UEFI First
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -13,6 +13,7 @@ Accepted
 ## Related ADRs
 
 - ADR-004 Default Filesystem
+- ADR-015 GRUB Theme Architecture
 
 ## Context
 
@@ -21,6 +22,10 @@ The first release must be small and testable. Supporting both modern UEFI and le
 ## Decision
 
 SchweisOS will prioritize UEFI systems. systemd-boot is the default bootloader. GRUB is supported as an alternative path, but legacy BIOS support is not required for the first release.
+
+The existence of the separately packaged SchweisOS GRUB theme is presentation
+groundwork only. GRUB support is not implemented until an installer can select,
+install, configure, validate, and recover that boot path.
 
 ## Alternatives
 

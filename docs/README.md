@@ -1,6 +1,6 @@
 # SchweisOS Documentation Index
 
-Version: 0.5
+Version: 0.6
 Status: Active
 Date: 2026-07-28
 
@@ -23,9 +23,10 @@ ADR.
 10. [Release Engineering Guide](release/release-engineering-guide.md)
 11. [ISO Build Workflow](build/README.md)
 12. [Testing Strategy](testing/testing-strategy.md)
-13. [Developer Handbook](developer/developer-handbook.md)
-14. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
-15. [Product Roadmap](roadmap/product-roadmap.md)
+13. [Boot Experience](boot/README.md)
+14. [Developer Handbook](developer/developer-handbook.md)
+15. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
+16. [Product Roadmap](roadmap/product-roadmap.md)
 
 Historical operational snapshots remain useful evidence but are not active
 requirements:

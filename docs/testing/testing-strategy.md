@@ -1,6 +1,6 @@
 # SchweisOS Testing Strategy
 
-Version: 0.3
+Version: 0.4
 Status: Draft
 Date: 2026-07-27
 
@@ -14,6 +14,8 @@ Testing must be realistic for a one-developer distribution. The first test suite
 - Package linting: PKGBUILDs reviewed with Arch tooling where practical.
 - VM smoke tests: ISO boots, installer starts, installation completes.
 - Installed-system tests: bootloader works, user can log in, updates work.
+- GRUB theme static validation: canonical logo ownership, inert packaging,
+  required theme components, and absence from the systemd-boot live profile.
 - Gaming smoke tests: Steam launches, Vulkan info is available where supported, MangoHud/GameMode behavior can be checked.
 - Hardware tests: real machines added gradually.
 - Regression tests: issues become checklist items after fixes.
@@ -34,8 +36,10 @@ Repository bootstrap validation has three deliberately separate levels:
   pacman snippets, and signature policy
 - local repository validation checks the generated local `schweisos` layout,
   exact package membership, and `repo-add` database references
-- disposable-root validation installs the five local package files in one
-  isolated pacman transaction without using host configuration or keyrings
+- disposable-root validation installs the five live/repository foundation
+  package files in one isolated pacman transaction without using host
+  configuration or keyrings; optional installed-system packages are validated
+  separately
 
 The disposable local-file test proves package compatibility, not production
 trust. The separate signed-repository client test bootstraps the admitted

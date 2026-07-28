@@ -1,6 +1,6 @@
 # Packages Directory
 
-Version: 0.2
+Version: 0.3
 Status: Active
 Date: 2026-07-27
 
@@ -19,5 +19,11 @@ Current package families:
   - `schweisos-pacman-config`
 - Runtime visual identity:
   - `schweisos-branding`
+- Optional installed-system boot presentation:
+  - `schweisos-grub-theme`
+
+`schweisos-grub-theme` is inert groundwork for the future installer-owned GRUB
+alternative. It is not part of the current live ISO and does not install or
+configure a bootloader.
 
 Policy reference: [docs/packaging/packaging-guide.md](../docs/packaging/packaging-guide.md).

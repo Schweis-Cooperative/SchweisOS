@@ -1,14 +1,18 @@
 # schweisos-release
 
-Version: 0.3
+Version: 0.4
 Status: Release identity implementation
-Date: 2026-07-27
+Date: 2026-07-28
 
 `schweisos-release` provides SchweisOS distribution identity metadata.
 
 It is intentionally small. It does not configure package repositories, install signing keys, configure mirrors, install desktop defaults, enable Flatpak, configure AUR helpers, configure Distrobox, build an ISO, or apply performance tuning.
 
 This package exists separately from the other Distribution Identity Layer packages because identifying the operating system is not the same responsibility as trusting packages, discovering mirrors, or configuring pacman repositories.
+
+User-facing identity metadata uses `https://schweisos.org` for the project,
+`https://docs.schweisos.org` for documentation and policy, and GitHub only for
+the issue-report action that actually requires GitHub.
 
 ## Installed Layout
 
@@ -52,8 +56,8 @@ From this directory:
 ```bash
 bash -n PKGBUILD
 makepkg --printsrcinfo
-makepkg -f
-bsdtar -tf schweisos-release-2026.07.27-1-any.pkg.tar.* | sort
+makepkg --cleanbuild
+bsdtar -tf schweisos-release-2026.07.27-2-any.pkg.tar.* | sort
 ```
 
 Expected package payload:

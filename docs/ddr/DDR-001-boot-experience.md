@@ -1,10 +1,12 @@
 # DDR-001 Boot Experience
 
-Version: 1.0
+Version: 1.2
 Status: Accepted
 Date: 2026-07-28
 
-Related architecture: [ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
+Related architecture:
+[ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
+and [ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md)
 
 ## Goals
 
@@ -19,9 +21,10 @@ The experience should communicate:
 - trustworthy;
 - transparent when something goes wrong.
 
-This decision covers the KDE live ISO boot experience only. It does not define
-the installed-system bootloader, installer behavior, Secure Boot, BIOS boot, or
-installed-system Plymouth policy.
+The implemented portion of this decision covers the KDE live ISO boot
+experience. It also defines the visual direction of the packaged GRUB theme,
+but it does not implement installed-system bootloader activation, installer
+behavior, Secure Boot, BIOS boot, or installed-system Plymouth policy.
 
 ## UX Philosophy
 
@@ -50,30 +53,56 @@ UEFI path selected by the project architecture.
 
 The menu uses:
 
-- a short timeout;
-- a clear `SchweisOS KDE Live` default entry;
-- a visible `SchweisOS KDE Live (debug)` entry;
-- disabled interactive command-line editing for the normal live menu;
+- a three-second timeout;
+- a clear `SchweisOS Live` default entry;
+- a visible `SchweisOS Live (Debug)` entry;
+- the firmware-selected console mode to avoid a visible resolution switch;
+- disabled interactive command-line editing;
+- disabled automatic operating-system and firmware entries so the menu remains
+  limited to the reviewed normal and diagnostic paths;
 - no graphical bootloader imitation.
 
 systemd-boot is text-oriented. The boot menu should be clean and branded through
 wording, ordering, and restraint. The graphical brand moment belongs to
 Plymouth after the kernel starts.
 
+### Graphical GRUB Alternative
+
+GRUB may provide a graphical menu when a future installer offers it as the
+installed-system alternative. Its SchweisOS theme uses:
+
+- the same dark blue visual field as Plymouth;
+- a centered official logo with ample negative space;
+- neutral modern typography available in upstream GRUB;
+- a rounded, translucent selection highlight with a restrained cyan edge;
+- a thin timeout indicator;
+- one muted keyboard-guidance line;
+- no imitation of another operating system.
+
+The theme package is intentionally inert and is not part of the live ISO. It
+does not install or activate GRUB. This preserves a coherent visual direction
+without claiming an installed boot workflow that does not exist.
+
 ### Branded Plymouth Splash
 
 The normal boot path starts Plymouth with a custom SchweisOS theme. The theme:
 
-- uses a dark neutral background;
+- uses a dark blue background matched to the official artwork;
 - centers the official SchweisOS logo;
 - scales the logo conservatively for different display sizes;
-- uses only subtle progress-linked opacity change;
+- fades and rises into place without delaying boot;
+- uses a narrow, pre-rendered scale range and restrained opacity pulse for a
+  subtle breathing motion;
+- shows an eight-dot rotating trail below the logo to communicate ongoing
+  activity without claiming false percentage accuracy;
+- fades the indicator near the end of Plymouth's reported boot progress;
 - avoids text clutter, fake progress claims, audio, and decorative effects.
 
-The theme consumes the packaged runtime logo from
-`/usr/share/schweisos/branding`. It does not copy image files into the ISO
-profile. This keeps `branding/` and `schweisos-branding` as the canonical asset
-owners and prevents logo drift.
+The theme consumes `/usr/share/schweisos/branding/schweisos.png`, packaged from
+the single canonical source `branding/assets/logo/schweisos.png`. It does not
+copy an image into the ISO profile. The loading dots are sampled at runtime from
+the white eye in that same image, so animation introduces no second artwork
+source and cannot drift to another logo.
 
 ### Quiet Normal Boot, Explicit Debug Boot
 
@@ -127,7 +156,7 @@ boot path.
 ```text
 UEFI firmware
   -> upstream Archiso systemd-boot
-  -> SchweisOS KDE Live entry
+  -> SchweisOS Live entry
   -> Linux kernel and Archiso initramfs
   -> mkinitcpio kms + plymouth hooks
   -> SchweisOS Plymouth theme
@@ -142,10 +171,24 @@ The debug path is:
 ```text
 UEFI firmware
   -> upstream Archiso systemd-boot
-  -> SchweisOS KDE Live (debug)
+  -> SchweisOS Live (Debug)
   -> Linux kernel and Archiso initramfs without quiet/splash
   -> visible kernel and systemd status
 ```
+
+The future installed GRUB alternative is designed as:
+
+```text
+UEFI
+  -> upstream GRUB with packaged SchweisOS theme
+  -> installed Linux and initramfs
+  -> future installed-system Plymouth policy
+  -> SDDM
+  -> Plasma
+```
+
+Only the theme payload exists today. Installer activation and the remaining
+installed-system stages are not implemented.
 
 The failure path is:
 
@@ -163,6 +206,20 @@ normal boot
 
 The live profile uses upstream Plymouth's `script` theme module.
 
+The script maintains three bounded animation layers:
+
+1. An intro phase increases opacity and removes a ten-pixel vertical offset.
+2. A slow cosine wave selects one of seventeen logo images pre-rendered between
+   98% and 102% of the responsive base size. Runtime refreshes swap cached
+   images rather than continuously resampling the 1254px source.
+3. Eight sprites orbit below the logo. All use a ten-pixel sample cropped from
+   the canonical logo; a moving opacity trail produces rotation without an
+   additional spinner image or font dependency.
+
+Plymouth's progress callback is used only to fade the activity indicator during
+the final portion of the handoff. The animation never displays or invents a
+percentage.
+
 The profile provides:
 
 - `/etc/plymouth/plymouthd.conf` selecting `Theme=schweisos`;
@@ -176,14 +233,15 @@ The profile provides:
 
 The theme metadata points `ImageDir` at `/usr/share/schweisos/branding`, which
 is installed by `schweisos-branding`. The ISO profile owns the boot theme logic;
-the branding package owns the logo asset; the source artwork remains under
-`branding/`.
+the branding package owns the runtime path; the source artwork has exactly one
+canonical path: `branding/assets/logo/schweisos.png`.
 
 ## Non-Goals
 
 - No ISO build as part of this decision.
 - No VM or hardware boot claim without future validation.
 - No installed-system bootloader implementation.
+- No automatic GRUB activation or GRUB live-medium path.
 - No Secure Boot policy.
 - No BIOS boot path.
 - No installer screen, timezone wizard, or first-run setup.
@@ -196,7 +254,7 @@ Revisit this DDR if:
 - the installed-system installer starts configuring Plymouth;
 - a reusable `schweisos-boot-theme` package becomes justified;
 - Secure Boot changes the boot UX;
-- BIOS/GRUB support is approved;
+- the installer starts activating the packaged GRUB alternative;
 - hardware testing shows Plymouth causes unacceptable blank-screen or GPU
   compatibility issues;
 - the logo or brand policy changes.

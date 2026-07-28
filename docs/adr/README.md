@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Version: 0.4
+Version: 0.5
 Status: Active
 Date: 2026-07-28
 
@@ -22,3 +22,4 @@ ADRs record important SchweisOS technical decisions. Each ADR must include Conte
 - [ADR-012 ISO Build Architecture](ADR-012-iso-build-architecture.md)
 - [ADR-013 ISO Build Workflow](ADR-013-iso-build-workflow.md)
 - [ADR-014 Live Boot Experience Architecture](ADR-014-live-boot-experience-architecture.md)
+- [ADR-015 GRUB Theme Architecture](ADR-015-grub-theme-architecture.md)

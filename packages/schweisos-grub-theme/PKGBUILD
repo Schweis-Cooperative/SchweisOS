@@ -1,0 +1,50 @@
+# Maintainer: Schweis Project <maintainers@schweisos.org>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=schweisos-grub-theme
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='SchweisOS graphical theme for GRUB'
+arch=('any')
+url='https://schweisos.org'
+license=('GPL-3.0-or-later')
+depends=(
+  'grub'
+  'schweisos-branding'
+)
+source=(
+  'theme.txt'
+  'selection.svg'
+  'select_c.png'
+  'select_e.png'
+  'select_n.png'
+  'select_ne.png'
+  'select_nw.png'
+  'select_s.png'
+  'select_se.png'
+  'select_sw.png'
+  'select_w.png'
+)
+sha256sums=('6b5a61ec6db248ccab3d972af36ef24300bc1a2665e31bcfb90e3d3840ecae35'
+            'f6141fc9d7fd9924edb7b601f82a17b8810d5cd5a0bf643fc48219de6c39495f'
+            'b921187687e64e4f58238506e000582b353ef0c2b62b89bc1dd0f327a0078aa6'
+            '759e0cdf571f1d1b030ae97508b0189dcfa267adcad9fb023906e6d5c0560595'
+            '6059dafef47b239bc442fa53e3afb36bc5d7f49d48aff04eeb7765d5a975c899'
+            'c7d2fd96e7b2e8739c3d232363e961bb89d6175e2f815120a51f637d46587877'
+            '089f8541edec9976ebfc1abcfe7643f550eb08933e2770104c3705f69587a449'
+            '5b79ee3b9e75d15d467720992c4fd6aaa86c9e7656dbfce065352c8724fc762b'
+            '18b3552d639a8e241d09d9e6bde652c53b2118940040dc235bffd9f567bba94e'
+            'e34f06de502769a73ac18c699374f82f228bc349b89222aabc1fc2341d540ec8'
+            '7fd024003da6aaa6a598a2709196301682f461155cd3b7a95a55d6c2e790706f')
+
+package() {
+  local theme_dir="${pkgdir}/usr/share/grub/themes/schweisos"
+
+  install -Dm644 "${srcdir}/theme.txt" "${theme_dir}/theme.txt"
+  install -m644 "${srcdir}"/select_*.png "${theme_dir}/"
+
+  # Keep the official logo owned by schweisos-branding. The installer may
+  # materialize this symlink when deploying the theme to a separate /boot.
+  ln -s ../../../schweisos/branding/schweisos.png \
+    "${theme_dir}/schweisos.png"
+}

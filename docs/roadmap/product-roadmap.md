@@ -1,8 +1,8 @@
 # SchweisOS Product Roadmap
 
-Version: 1.1
+Version: 1.2
 Status: Active pre-alpha roadmap
-Date: 2026-07-27
+Date: 2026-07-28
 
 This roadmap describes intended scope, not fixed release promises.
 
@@ -17,6 +17,7 @@ component is not automatically a public-release feature.
 - [x] Role-separated package and repository signing workflow.
 - [x] Signed local production repository and disposable pacman validation.
 - [x] Minimal KDE Archiso profile and versioned development ISO build.
+- [x] Inert packaged GRUB theme groundwork with canonical-logo ownership.
 - [ ] Reconcile ISO and release-artifact naming/version contracts.
 - [ ] Implement ISO detached signing and verification.
 - [ ] Complete repeatable VM/live-session qualification for the current image.
@@ -36,7 +37,8 @@ component is not automatically a public-release feature.
 ## 1.0
 
 - KDE Plasma official release.
-- UEFI-first installer with systemd-boot default and GRUB alternative.
+- UEFI-first installer with systemd-boot default and activation/validation of
+  the packaged GRUB alternative.
 - ext4 default and Btrfs optional.
 - Public signed SchweisOS repository and documented mirror operations.
 - Clear documentation for updates, AUR, Flatpak, gaming, and limitations.

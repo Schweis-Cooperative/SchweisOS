@@ -3,10 +3,10 @@
 
 pkgname=schweisos-pacman-config
 pkgver=0.1.0
-pkgrel=3
+pkgrel=4
 pkgdesc='Conservative pacman snippet for the future SchweisOS repository'
 arch=('any')
-url='https://github.com/Schweis-Cooperative/SchweisOS'
+url='https://schweisos.org'
 license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
 depends=('pacman' 'schweisos-keyring' 'schweisos-mirrorlist')
 backup=('etc/pacman.d/schweisos.conf')

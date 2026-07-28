@@ -364,7 +364,8 @@ Every clean build still requires all of the following:
 - Host-installed `schweisos-keyring`, `schweisos-mirrorlist`, and
   `schweisos-pacman-config` through an approved bootstrap process.
 - A real signed SchweisOS repository source resolving every profile package,
-  including all five SchweisOS packages, under `Required TrustedOnly`.
+  including all five live SchweisOS foundation packages, under
+  `Required TrustedOnly`.
 - Both validators passing, empty or explicitly cleaned work state, and no
   pre-existing ISO or ISO checksum in `out/iso/`.
 

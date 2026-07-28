@@ -1,6 +1,6 @@
 # ADR-011 Repository Architecture
 
-Version: 1.2
+Version: 1.3
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-26
+2026-07-28
 
 ## Related ADRs
 
@@ -90,7 +90,8 @@ Users install SchweisOS packages through pacman using `schweisos-keyring`, `schw
 
 ## Canonical Endpoint Policy
 
-`repo.schweisos.org` is the authoritative publication endpoint for SchweisOS package repositories.
+`https://repo.schweisos.org` is the authoritative publication endpoint for
+SchweisOS package repositories.
 
 Official mirrors must synchronize from the canonical endpoint or from designated SchweisOS artifact storage. Developer workstations must never be used as mirror synchronization sources.
 

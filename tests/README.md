@@ -1,6 +1,6 @@
 # Tests Directory
 
-Version: 0.7
+Version: 0.9
 Status: Active
 Date: 2026-07-28
 
@@ -39,8 +39,9 @@ It invokes the dependency validator in full mode, then aggregates a concise
 PASS/FAIL report for canonical Arch x86_64 identity, known upgrade state,
 ADR-013 dependencies and command provenance, pacman
 trust policy, at least 20 GiB free space, generated path safety, repository
-layout and permissions, symlinks, secrets, private signing material, and
-SchweisOS repository readiness. For local `file://` SchweisOS endpoints, it also
+layout and permissions, prohibited `--force` use, symlinks, secrets, private
+signing material, and SchweisOS repository readiness. For local `file://`
+SchweisOS endpoints, it also
 checks that every database entry has a present package file and detached `.sig`
 sidecar before Archiso is invoked. It neither mutates host package state nor
 runs the profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate
@@ -54,12 +55,28 @@ tests/validate-iso-profile.sh
 ```
 
 It validates the profile contract, package manifest, build-time pacman syntax,
-UEFI normal/debug templates, Plymouth configuration, unexpected-exit watcher,
+UEFI normal/debug templates and exact titles, loader entry suppression,
+canonical-logo Plymouth animation primitives, unexpected-exit watcher,
 automatic diagnostic fallback, mkinitcpio inputs, live-overlay allowlist,
-permissions, symlinks, and absence of signing material. Pacman parsing uses a
-disposable sysroot populated from the real bootstrap configuration files; it
-does not modify `/etc`, contact repositories, or invent endpoints. Repository
+permissions, symlinks, and absence of signing material. It also proves that the
+branding package source resolves to `branding/assets/logo/schweisos.png` and
+that the theme has no second image dependency. Pacman parsing uses a disposable
+sysroot populated from the real bootstrap configuration files; it does not
+modify `/etc`, contact repositories, or invent endpoints. Repository
 availability remains a separate build-host preflight.
+
+`validate-grub-theme.sh` validates the separately packaged, inert
+installed-system GRUB theme groundwork:
+
+```bash
+tests/validate-grub-theme.sh
+```
+
+It proves that the repository has exactly one regular canonical logo file,
+legacy logo paths remain compatibility symlinks, the GRUB package links to the
+runtime logo owned by `schweisos-branding`, the theme and nine-slice selection
+assets are structurally complete, no package hook installs or configures GRUB,
+and the package has not entered the current systemd-boot live ISO.
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust
 contract between `schweisos-mirrorlist` and `schweisos-pacman-config`. It builds
@@ -75,9 +92,11 @@ Run it from any directory inside the repository:
 tests/validate-repository-bootstrap.sh
 ```
 
-`install-local-bootstrap-packages.sh` validates that the five locally
-published bootstrap packages can coexist in one isolated pacman database and
-filesystem root. It requires a previously created local `schweisos` repository:
+`install-local-bootstrap-packages.sh` validates that the five live/repository
+foundation packages published by the bootstrap tool can coexist in one
+isolated pacman database and filesystem root. The optional GRUB theme is
+intentionally outside that live bootstrap set. The test requires a previously
+created local `schweisos` repository:
 
 ```bash
 tools/repo/publish-local-packages.sh

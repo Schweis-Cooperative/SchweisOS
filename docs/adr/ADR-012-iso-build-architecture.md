@@ -1,6 +1,6 @@
 # ADR-012 ISO Build Architecture
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-25
+2026-07-28
 
 ## Related ADRs
 
@@ -18,6 +18,7 @@ Accepted
 - ADR-008 Documentation First
 - ADR-009 Distribution Identity Packages
 - ADR-011 Repository Architecture
+- ADR-015 GRUB Theme Architecture
 
 ## Context
 
@@ -172,6 +173,7 @@ The following classes of files are expected to become official SchweisOS package
 | KDE system defaults and project-owned desktop configuration | `schweisos-kde-settings` |
 | Installer configuration, modules, and desktop launcher | `schweisos-calamares-config` or another installer package approved by the installer ADR |
 | Reusable release-ready visual assets | `schweisos-branding` for minimal runtime identity assets; broader visual customization requires separate package design |
+| Reusable installed-system GRUB presentation | Existing inert `schweisos-grub-theme`; deployment and activation remain installer-owned |
 | Offline user and troubleshooting documentation | A future `schweisos-docs` package or another documented documentation package |
 | Substantial live-session services, policies, or helpers | A narrowly scoped future live-configuration package if ordinary upstream packages cannot provide them |
 
@@ -189,6 +191,8 @@ The live-media boot path and the installed-system bootloader are separate concer
 - The installer controls how the installed system boots.
 - systemd-boot remains the default for installed UEFI systems under ADR-002.
 - GRUB remains an installed-system alternative when supported by the installer.
+- The packaged GRUB theme is presentation groundwork and does not by itself
+  implement or activate that alternative.
 - Legacy BIOS is not required for the first release.
 - Secure Boot remains outside the first-release scope unless a later ADR changes that decision.
 

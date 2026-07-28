@@ -3,26 +3,31 @@
 
 pkgname=schweisos-branding
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc='SchweisOS visual identity assets'
 arch=('any')
-url='https://github.com/Schweis-Cooperative/SchweisOS'
+url='https://schweisos.org'
 license=('LicenseRef-SchweisOS-Brand-Assets')
 depends=('hicolor-icon-theme')
 source=(
-  'schweisos-logo.png'
+  'schweisos.png'
   'BRAND-ASSETS.md'
 )
-sha256sums=('88cfb5b1fcca38f3f5979ddab619d3885e82df84c886b983f412604f72df76bd'
-            '9aa2f71540da7b6e578dfd84d3c609e07739bdf6e15265790024114ee74daf4d')
+sha256sums=('9d78e28d74ad677ec589dcc6c8c310d61f1a9f145519df6debcee87ff0b9ad91'
+            '2d82500d672dfcea5965b4a03ef63db26e3b46585c3598916c2fdc28427f2b4c')
 
 package() {
-  install -Dm644 "${srcdir}/schweisos-logo.png" \
-    "${pkgdir}/usr/share/schweisos/branding/schweisos-logo.png"
-  install -Dm644 "${srcdir}/schweisos-logo.png" \
+  install -Dm644 "${srcdir}/schweisos.png" \
+    "${pkgdir}/usr/share/schweisos/branding/schweisos.png"
+
+  install -d \
+    "${pkgdir}/usr/share/icons/hicolor/1024x1024/apps" \
+    "${pkgdir}/usr/share/pixmaps"
+  ln -s ../../../../schweisos/branding/schweisos.png \
     "${pkgdir}/usr/share/icons/hicolor/1024x1024/apps/schweisos.png"
-  install -Dm644 "${srcdir}/schweisos-logo.png" \
+  ln -s ../schweisos/branding/schweisos.png \
     "${pkgdir}/usr/share/pixmaps/schweisos.png"
+
   install -Dm644 "${srcdir}/BRAND-ASSETS.md" \
     "${pkgdir}/usr/share/licenses/${pkgname}/BRAND-ASSETS.md"
 }

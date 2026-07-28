@@ -3,10 +3,10 @@
 
 pkgname=schweisos-keyring
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc='SchweisOS package signing trust anchor'
 arch=('any')
-url='https://github.com/Schweis-Cooperative/SchweisOS'
+url='https://schweisos.org'
 license=('GPL-3.0-or-later' 'CC-BY-SA-4.0')
 depends=('pacman' 'archlinux-keyring')
 install=schweisos-keyring.install

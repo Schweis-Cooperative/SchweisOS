@@ -1,6 +1,6 @@
 # ADR-013 ISO Build Workflow
 
-Version: 1.2
+Version: 1.3
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-25
+2026-07-28
 
 ## Related ADRs
 
@@ -261,7 +261,7 @@ It must not:
 - Modify PKGBUILDs.
 - Generate signing keys.
 - Sign packages, repositories, or ISOs.
-- Publish artifacts to `repo.schweisos.org`.
+- Publish artifacts to `https://repo.schweisos.org`.
 - Synchronize mirrors.
 - Edit the ISO profile while building.
 - Download untracked branding or installer assets.

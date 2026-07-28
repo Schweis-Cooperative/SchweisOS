@@ -107,7 +107,7 @@ for package_name in "${identity_packages[@]}"; do
       BUILDDIR="${build_root}/build/${package_name}" \
       SRCDEST="${build_root}/sources/${package_name}" \
       PKGDEST="${package_store}" \
-        makepkg --force --nodeps --cleanbuild --clean --noconfirm
+        makepkg --nodeps --cleanbuild --clean --noconfirm
     )
   fi
 

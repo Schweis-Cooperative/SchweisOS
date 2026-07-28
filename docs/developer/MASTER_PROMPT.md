@@ -101,13 +101,16 @@ documented decision.
 
 At the time this handoff was written, the repository contained:
 
-- Five SchweisOS packages:
+- Five live/repository foundation packages:
   `schweisos-release`, `schweisos-keyring`, `schweisos-mirrorlist`,
-  `schweisos-pacman-config`, and `schweisos-branding`.
+  `schweisos-pacman-config`, and `schweisos-branding`, plus the inert
+  `schweisos-grub-theme` package for future installer-owned GRUB activation.
 - A KDE Archiso profile under `iso/profiles/kde/`.
 - A UEFI-first live-medium path using upstream
   `uefi.systemd-boot`; installed-system systemd-boot policy remains installer
   architecture, not implemented installer behavior.
+- A packaged graphical GRUB theme that does not install, configure, or activate
+  GRUB and is not part of the live ISO.
 - A date-based `YYYY.MM.DD` release and image contract.
 - A fail-closed build wrapper that validates the host and profile before
   invoking `mkarchiso`, then records checksums and privacy-minimized manifests.
@@ -122,8 +125,9 @@ At the time this handoff was written, the repository contained:
   artifacts and official Arch trust only for upstream dependency resolution.
 - A minimal branding package and profile-owned live ISO boot experience using
   systemd-boot, Plymouth, and automatic diagnostic fallback; no complete
-  desktop theme, wallpaper, SDDM theme, installer branding, or installed-system
-  bootloader artwork.
+  desktop theme, wallpaper, SDDM theme, installer branding, or activated
+  installed-system bootloader workflow. The optional GRUB presentation exists
+  only as the inert package described above.
 - Distrobox and rootless Podman in the live package set, without SchweisOS
   automation.
 
@@ -144,6 +148,9 @@ implementation has legitimately changed.
   `Required TrustedOnly`.
 - `schweisos-branding` owns minimal runtime logo assets, not themes or desktop
   behavior.
+- `schweisos-grub-theme` owns only reusable GRUB theme behavior and non-logo
+  decoration. The future installer owns activation and boot-filesystem
+  deployment.
 - `packages/` owns reusable and updateable payloads.
 - `iso/profiles/kde/` owns image composition, Archiso boot inputs, and only
   genuinely live-only overlay files.

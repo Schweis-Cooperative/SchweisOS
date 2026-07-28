@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.0
+Version: 1.2
 
 ## Status
 
@@ -18,6 +18,7 @@ Accepted
 - ADR-010 Licensing Policy
 - ADR-012 ISO Build Architecture
 - ADR-013 ISO Build Workflow
+- ADR-015 GRUB Theme Architecture
 - DDR-001 Boot Experience
 
 ## Context
@@ -48,7 +49,10 @@ The profile will:
 
 - keep Archiso's upstream `uefi.systemd-boot` boot mode;
 - keep systemd-boot as a minimal text menu with a short timeout, a polished
-  SchweisOS KDE Live default entry, and a visible debug entry;
+  `SchweisOS Live` default entry, and a visible `SchweisOS Live (Debug)` entry;
+- preserve the firmware-selected console mode, disable loader editing, and
+  suppress automatic firmware and operating-system entries so the live-medium
+  menu contains only the two reviewed SchweisOS paths;
 - use `quiet splash loglevel=3 systemd.show_status=auto` only on the normal live
   boot entry;
 - keep a separate debug entry without `quiet` or `splash`, with verbose kernel
@@ -60,7 +64,12 @@ The profile will:
   `/usr/share/plymouth/themes/schweisos`;
 - configure Plymouth through `/etc/plymouth/plymouthd.conf`;
 - have the Plymouth theme consume the packaged runtime logo from
-  `/usr/share/schweisos/branding`, which is provided by `schweisos-branding`;
+  `/usr/share/schweisos/branding/schweisos.png`, which is provided by
+  `schweisos-branding` from the single canonical source at
+  `branding/assets/logo/schweisos.png`;
+- use the upstream Plymouth script plugin for a bounded fade-in, subtle
+  pre-rendered scale/opacity breathing cycle, and a rotating loading-dot trail
+  sampled from the canonical logo, without adding another image source;
 - reveal diagnostics automatically by quitting Plymouth when `emergency.target`
   is reached, SDDM fails, Plymouth start/quit units fail, or the Plymouth
   runtime directory changes and the PID is absent before the normal quit
@@ -84,7 +93,8 @@ configuration with its own ADR update.
   mkinitcpio hook extension, unexpected-exit watcher, and failure fallback
   services.
 - `schweisos-branding` owns only the runtime logo file consumed by the theme.
-- `branding/` remains the canonical source artwork owner.
+- `branding/assets/logo/schweisos.png` is the one canonical source artwork
+  owner for SchweisOS boot and runtime logo consumers.
 - Installed-system boot configuration remains future installer architecture.
 
 ## Alternatives Considered
@@ -106,7 +116,9 @@ systemd-boot is intentionally simple and text-oriented. Adding a graphical
 bootloader layer would either require unsupported expectations, a different
 bootloader, or bootloader artwork outside the current UEFI-first Archiso
 contract. The live medium instead keeps systemd-boot minimal and lets Plymouth
-own graphical presentation after the kernel starts.
+own graphical presentation after the kernel starts. ADR-015 separately permits
+an inert packaged theme for the future installed-system GRUB alternative; it
+does not change this live-medium decision.
 
 ### Put Plymouth in `schweisos-branding`
 
@@ -114,18 +126,24 @@ That would make a minimal asset package own boot behavior. It would contradict
 the documented branding boundary and make future theme behavior harder to
 review, package, remove, or replace cleanly.
 
-### Create a New Boot Theme Package Now
+### Create a New Plymouth Theme Package Now
 
-A package is the right owner if this becomes reusable installed-system behavior.
-For the current live-only ISO requirement, a new package would expand signing,
-repository, and release maintenance without adding a reusable contract yet. The
-profile-owned implementation is bounded and can be migrated later.
+A package is the right owner if Plymouth becomes reusable installed-system
+behavior. For the current live-only Plymouth requirement, a new package would
+expand signing, repository, and release maintenance without adding a reusable
+contract yet. The profile-owned implementation is bounded and can be migrated
+later. The separately approved GRUB package owns a different, installed-system
+bootloader concern.
 
 ## Consequences
 
 Positive consequences:
 
 - The default live boot becomes quiet, branded, and modern.
+- The systemd-boot menu exposes only the reviewed normal and diagnostic paths
+  and avoids an extra console-mode transition.
+- The Plymouth splash communicates ongoing work with restrained continuous
+  motion rather than a static logo or a false percentage.
 - The debug path remains explicit and visible in systemd-boot.
 - Emergency boot, SDDM failure, Plymouth service failures, and unexpected
   Plymouth daemon exits automatically reveal diagnostics.
@@ -152,6 +170,8 @@ The ISO profile validator must fail closed if:
 - the mkinitcpio hook list omits `kms` or `plymouth`;
 - the Plymouth theme copies branding assets instead of consuming the packaged
   branding directory;
+- the theme does not use `schweisos.png`, lacks the documented fade/pulse and
+  rotating indicator primitives, or introduces a second image dependency;
 - emergency or Plymouth failure fallback units are missing;
 - the unexpected-exit watcher or normal-quit marker is missing;
 - unexpected files enter the live overlay.

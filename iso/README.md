@@ -34,14 +34,18 @@ small upstream-compatible profile:
   planned KDE live environment.
 - `pacman.conf` is used only while resolving packages for image assembly.
 - `efiboot/` contains the systemd-boot loader configuration required by the
-  selected upstream boot mode, including normal and debug live entries.
+  selected upstream boot mode, including only the normal and debug live
+  entries.
 - `airootfs/` contains only the declarative plumbing required for an ephemeral
   KDE live account, SDDM autologin, NetworkManager startup, Plymouth selection,
-  and automatic diagnostic fallback.
+  canonical-logo animation, and automatic diagnostic fallback.
 
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
 templates and use only archiso-supported template identifiers.
+The text-oriented loader keeps the firmware console mode, disables automatic
+entries and editing, and exposes `SchweisOS Live` plus
+`SchweisOS Live (Debug)`. Graphical presentation begins in Plymouth.
 
 Installer integration, KDE defaults, wallpapers, SDDM theming, and installed
 system boot policy are intentionally absent. The live-only overlay and its
@@ -80,7 +84,8 @@ host-independent pacman parsing, symlink targets, and secret scanning.
 
 The profile contract and repository-backed build path have produced a
 development ISO on a canonical Arch build host. A clean build still requires
-current Archiso tooling, the five signed SchweisOS packages, the signed
+current Archiso tooling, the five signed live SchweisOS foundation packages,
+the signed
 repository database in release mode, and every validator to pass. Construction,
 post-build SquashFS inspection, manual boot testing, installer testing, ISO
 signing, and publication remain distinct release-engineering gates.

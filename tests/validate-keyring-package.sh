@@ -139,12 +139,12 @@ trap 'rm -rf -- "$tmp_dir"' EXIT
 mkdir -p "${tmp_dir}/artifacts" "${tmp_dir}/build" "${tmp_dir}/sources"
 (
   cd -- "$package_dir"
-  SRCDEST="${tmp_dir}/sources" makepkg --verifysource --force
+  SRCDEST="${tmp_dir}/sources" makepkg --verifysource
   makepkg --printsrcinfo >"${tmp_dir}/.SRCINFO"
   BUILDDIR="${tmp_dir}/build" \
   SRCDEST="${tmp_dir}/sources" \
   PKGDEST="${tmp_dir}/artifacts" \
-    makepkg --nodeps --cleanbuild --clean --force --noconfirm
+    makepkg --nodeps --cleanbuild --clean --noconfirm
 )
 
 mapfile -t artifacts < <(

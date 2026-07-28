@@ -32,6 +32,8 @@ bash -n "${package_dir}/PKGBUILD" "${BASH_SOURCE[0]}"
 srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
 source_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$srcinfo")"
 [[ -n "$source_pkgver" ]] || fail 'source schweisos-release pkgver is unreadable'
+source_url="$(awk -F ' = ' '$1 == "\turl" { print $2; exit }' <<<"$srcinfo")"
+[[ "$source_url" == https://schweisos.org ]] || fail 'schweisos-release package URL is not canonical'
 
 set -a
 # shellcheck disable=SC1090
@@ -49,14 +51,22 @@ set +a
 [[ "$SCHWEISOS_RELEASE_CHANNEL" == rolling ]] || fail 'unexpected release channel'
 [[ "$SCHWEISOS_RELEASE_SCHEMA" == 1 ]] || fail 'unexpected release schema'
 
-for project_url in \
-  "$HOME_URL" \
-  "$DOCUMENTATION_URL" \
-  "$SUPPORT_URL" \
-  "$BUG_REPORT_URL" \
-  "$PRIVACY_POLICY_URL"; do
-  [[ "$project_url" == https://github.com/Schweis-Cooperative/SchweisOS* ]] || \
-    fail "identity URL is outside the canonical project namespace: ${project_url}"
+[[ "$HOME_URL" == https://schweisos.org ]] || fail 'HOME_URL is not canonical'
+[[ "$DOCUMENTATION_URL" == https://docs.schweisos.org ]] || \
+  fail 'DOCUMENTATION_URL is not canonical'
+[[ "$SUPPORT_URL" == https://docs.schweisos.org/support ]] || \
+  fail 'SUPPORT_URL is not canonical'
+[[ "$PRIVACY_POLICY_URL" == https://docs.schweisos.org/privacy ]] || \
+  fail 'PRIVACY_POLICY_URL is not canonical'
+[[ "$BUG_REPORT_URL" == https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose ]] || \
+  fail 'BUG_REPORT_URL must remain the exact GitHub issue action'
+
+for package_dir in "${project_root}"/packages/*; do
+  [[ -f "${package_dir}/PKGBUILD" ]] || continue
+  package_srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
+  package_url="$(awk -F ' = ' '$1 == "\turl" { print $2; exit }' <<<"$package_srcinfo")"
+  [[ "$package_url" == https://schweisos.org ]] || \
+    fail "package URL is not canonical: ${package_dir##*/}"
 done
 
 jq -e --arg release_version "$source_pkgver" '
@@ -70,6 +80,11 @@ jq -e --arg release_version "$source_pkgver" '
   .release_channel == "rolling" and
   .base.id == "arch" and
   .base.policy == "upstream-first" and
+  .urls.home == "https://schweisos.org" and
+  .urls.documentation == "https://docs.schweisos.org" and
+  .urls.support == "https://docs.schweisos.org/support" and
+  .urls.bug_report == "https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose" and
+  .urls.privacy_policy == "https://docs.schweisos.org/privacy" and
   (.urls | keys | sort) ==
     ["bug_report", "documentation", "home", "privacy_policy", "support"]
 ' "$metadata_file" >/dev/null || fail 'release.json does not match the identity contract'
@@ -86,7 +101,7 @@ mkdir -p "${tmp_dir}/artifacts" "${tmp_dir}/build" "${tmp_dir}/sources"
   BUILDDIR="${tmp_dir}/build" \
   SRCDEST="${tmp_dir}/sources" \
   PKGDEST="${tmp_dir}/artifacts" \
-    makepkg --nodeps --cleanbuild --clean --force --noconfirm
+    makepkg --nodeps --cleanbuild --clean --noconfirm
 )
 
 mapfile -t artifacts < <(

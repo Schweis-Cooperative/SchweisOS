@@ -14,10 +14,10 @@
     "policy": "upstream-first"
   },
   "urls": {
-    "home": "https://github.com/Schweis-Cooperative/SchweisOS",
-    "documentation": "https://github.com/Schweis-Cooperative/SchweisOS/tree/main/docs",
-    "support": "https://github.com/Schweis-Cooperative/SchweisOS/issues",
+    "home": "https://schweisos.org",
+    "documentation": "https://docs.schweisos.org",
+    "support": "https://docs.schweisos.org/support",
     "bug_report": "https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose",
-    "privacy_policy": "https://github.com/Schweis-Cooperative/SchweisOS/blob/main/docs/security/security-model.md"
+    "privacy_policy": "https://docs.schweisos.org/privacy"
   }
 }

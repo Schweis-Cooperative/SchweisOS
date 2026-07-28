@@ -2,9 +2,9 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.3
+Version: 0.4
 Status: Local bootstrap workflow
-Date: 2026-07-27
+Date: 2026-07-28
 
 These tools build and inspect a local `repo-add` repository for the five
 current SchweisOS bootstrap packages.
@@ -82,6 +82,11 @@ tools/repo/publish-local-packages.sh
 The command uses `makepkg --nodeps` because SchweisOS bootstrap dependencies may
 not yet be installed on the developer host. This exception is local only;
 release builds require clean dependency-resolved environments.
+
+The command never uses `makepkg --force`. If a declared output already exists,
+the build stops rather than silently overwriting the local artifact. The
+operator must inspect and deliberately clean or relocate generated local state
+before retrying.
 
 Only each package's primary artifact is selected for the local repository
 database. If makepkg reports a matching `*-debug-*.pkg.tar.*` path, the publish

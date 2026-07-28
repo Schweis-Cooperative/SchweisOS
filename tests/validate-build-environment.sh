@@ -136,6 +136,7 @@ required_directories=(
     build
     docs/adr
     docs/architecture
+    docs/boot
     docs/build
     docs/project
     iso
@@ -145,6 +146,7 @@ required_directories=(
     iso/profiles/kde/efiboot/loader/entries
     packages
     packages/schweisos-branding
+    packages/schweisos-grub-theme
     packages/schweisos-keyring
     packages/schweisos-mirrorlist
     packages/schweisos-pacman-config
@@ -165,6 +167,9 @@ required_files=(
     docs/adr/ADR-011-repository-architecture.md
     docs/adr/ADR-012-iso-build-architecture.md
     docs/adr/ADR-013-iso-build-workflow.md
+    docs/adr/ADR-014-live-boot-experience-architecture.md
+    docs/adr/ADR-015-grub-theme-architecture.md
+    docs/boot/README.md
     docs/build/environment-readiness.md
     docs/release/release-artifact-pipeline.md
     iso/profiles/kde/profiledef.sh
@@ -173,6 +178,7 @@ required_files=(
     release/README.md
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
+    tests/validate-grub-theme.sh
     tests/validate-build-dependencies.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
@@ -322,6 +328,7 @@ required_executables=(
     tests/validate-built-iso-identity.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
+    tests/validate-grub-theme.sh
     tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
@@ -401,6 +408,28 @@ if (( ${#permission_failures[@]} == 0 )); then
     record_pass 'permissions: source readable and required scripts executable'
 else
     record_fail "permissions: $(join_by_space "${permission_failures[@]}")"
+fi
+
+force_flag_hit=''
+force_flag_token='--for''ce'
+if (( input_manifest_ready )); then
+    while IFS= read -r -d '' relative_path; do
+        candidate="${project_root}/${relative_path}"
+        [[ -f "$candidate" && ! -L "$candidate" ]] || continue
+        if [[ -x "$candidate" || "${candidate##*/}" == PKGBUILD ]] \
+            && grep -Fq -- "$force_flag_token" "$candidate"; then
+            force_flag_hit="$relative_path"
+            break
+        fi
+    done <"$input_manifest"
+else
+    force_flag_hit='repository-input-enumeration-failed'
+fi
+
+if [[ -z "$force_flag_hit" ]]; then
+    record_pass 'force flags: absent from executable workflows and PKGBUILDs'
+else
+    record_fail "prohibited ${force_flag_token} flag in repository workflow: ${force_flag_hit}"
 fi
 
 world_writable=''

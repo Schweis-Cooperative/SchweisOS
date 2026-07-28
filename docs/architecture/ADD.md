@@ -1,6 +1,6 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.5
+Version: 0.7
 Status: Active pre-alpha architecture
 Date: 2026-07-28
 
@@ -25,17 +25,18 @@ The answer must be technical:
 ## Implementation Snapshot
 
 Architecture and implementation are deliberately separated. As of
-2026-07-27, the repository contains a KDE Archiso profile, five SchweisOS
-packages, production public trust material, role-separated signing tools, a
-signed local production repository workflow, disposable client validation, and
-a development ISO build pipeline.
+2026-07-28, the repository contains a KDE Archiso profile, five
+live/repository foundation packages, an inert GRUB theme package for future
+installer integration, production public trust material, role-separated
+signing tools, a signed local production repository workflow, disposable
+client validation, and a development ISO build pipeline.
 
-The following remain unimplemented or incomplete: an installer, installed
-system boot configuration, public mirrors and publication, ISO detached
-signing, Secure Boot, disk encryption, Flatpak/AUR user workflows, gaming
-integration, Distrobox automation, and release-grade hardware/boot
-qualification. This snapshot records implementation state; ADRs remain the
-authority for accepted design.
+The following remain unimplemented or incomplete: an installer, activation and
+validation of installed-system boot configuration, public mirrors and
+publication, ISO detached signing, Secure Boot, disk encryption, Flatpak/AUR
+user workflows, gaming integration, Distrobox automation, and release-grade
+hardware/boot qualification. This snapshot records implementation state; ADRs
+remain the authority for accepted design.
 
 ## System Layers
 
@@ -131,6 +132,9 @@ SchweisOS visual identity is separate from distribution identity.
 Source artwork and brand guidance live under `branding/`. Runtime-ready brand
 assets are delivered by `schweisos-branding`, a small package that provides the
 icon name referenced by `LOGO=schweisos` and generic desktop icon lookup paths.
+The canonical logo source is `branding/assets/logo/schweisos.png`; runtime
+aliases and boot consumers must resolve back to that source rather than carry
+independent artwork copies.
 
 `schweisos-branding` must not configure wallpapers, themes, SDDM appearance,
 Plymouth, installer pages, bootloader visuals, or KDE defaults. Those areas
@@ -139,9 +143,14 @@ This keeps identity metadata, brand assets, and desktop customization from
 becoming one unreviewable package.
 
 The KDE live ISO boot splash is one approved profile decision. Its Plymouth
-theme consumes the packaged runtime logo from `/usr/share/schweisos/branding`;
-it does not move boot behavior into `schweisos-branding` and does not copy logo
-assets into the ISO profile.
+theme consumes the packaged runtime logo from
+`/usr/share/schweisos/branding/schweisos.png`; it does not move boot behavior
+into `schweisos-branding` and does not copy logo assets into the ISO profile.
+
+The optional graphical GRUB presentation is owned by
+`schweisos-grub-theme`. That package links to the same runtime logo and owns
+only GRUB theme behavior and non-logo decoration. It is inert until the future
+installer deploys and activates it.
 
 ## Package Architecture
 
@@ -154,6 +163,8 @@ Initial package categories:
 - `schweisos-mirrorlist`: repository mirror configuration.
 - `schweisos-pacman-config`: pacman repository include and conservative defaults.
 - `schweisos-branding`: minimal runtime visual identity assets.
+- `schweisos-grub-theme`: optional, inert GRUB theme for future
+  installer-owned activation.
 - `schweisos-kde-settings`: KDE defaults through configuration files, not patched Plasma packages.
 - `schweisos-calamares-config`: future installer configuration.
 - `schweisos-gaming-meta`: optional gaming package set.
@@ -237,15 +248,17 @@ The current profile lives under `iso/profiles/kde/` and separates these concerns
 | Live-medium UEFI boot configuration | `efiboot/` following supported archiso interfaces |
 | Reusable system behavior and persistent configuration | SchweisOS packages under `packages/` |
 | Source artwork and brand policy | `branding/` and `schweisos-branding` |
+| Reusable installed-system GRUB presentation | `schweisos-grub-theme`; activation remains installer-owned |
 | Canonical documentation | `docs/`, packaged when offline media access is required |
 
 Persistent, reusable, security-relevant, or updateable configuration belongs in packages rather than `airootfs/`. This provides pacman ownership, signatures, versioned upgrades, removal behavior, and independent validation. The overlay remains an exception for archiso-native or genuinely ephemeral live-session files.
 
 Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
 
-The current live image provides UEFI boot, a SchweisOS systemd-boot menu,
-Plymouth splash with automatic diagnostic fallback, KDE Plasma, networking, and
-a compact troubleshooting/user utility set. The ISO must still gain:
+The current live image provides UEFI boot, a two-entry SchweisOS systemd-boot
+menu, an animated canonical-logo Plymouth splash with automatic diagnostic
+fallback, KDE Plasma, networking, and a compact troubleshooting/user utility
+set. The ISO must still gain:
 
 - A clear installer launcher.
 - Offline access to essential installation and troubleshooting documentation.
@@ -274,23 +287,41 @@ Related decision: [ADR-013 ISO Build Workflow](../adr/ADR-013-iso-build-workflow
 
 ## Boot Architecture
 
-The installed system defaults to systemd-boot on UEFI systems. GRUB remains an alternative where needed. This matches the project goal of a simple default with a known fallback.
+The installed system defaults to systemd-boot on UEFI systems. GRUB remains an
+alternative where needed. This matches the project goal of a simple default
+with a known fallback.
 
-systemd-boot is UEFI-only, which matches the first-release UEFI priority. The installer must detect non-UEFI boot and either block unsupported installation paths or offer the documented GRUB path once it exists.
+systemd-boot is UEFI-only, which matches the first-release UEFI priority. The
+installer must detect non-UEFI boot and either block unsupported installation
+paths or offer the documented GRUB path once it exists.
+
+systemd-boot remains deliberately minimal and text-oriented. The future GRUB
+alternative may use the packaged `schweisos-grub-theme` for a graphical menu.
+The package does not activate itself, generate `grub.cfg`, or install a
+bootloader. The installer must ensure that the fully resolved theme is readable
+from the selected boot filesystem before setting `GRUB_THEME`.
 
 The live medium uses Archiso's upstream `uefi.systemd-boot` path. Its normal
 entry is quiet and splash-enabled, while a separate debug entry keeps verbose
-kernel and systemd status visible. The live initramfs uses upstream mkinitcpio
-`kms` and `plymouth` hooks so the SchweisOS Plymouth theme can appear before the
-Plasma session. If emergency mode is reached, SDDM fails, Plymouth start/quit
-units fail, or the Plymouth runtime PID disappears before the normal quit
-handoff, the live profile quits Plymouth and restores console diagnostics.
+kernel and systemd status visible. Automatic loader entries are disabled so
+the live-medium menu stays limited to those two audited choices; the
+firmware-selected console mode is retained to avoid an extra visual mode
+transition. The live initramfs uses upstream mkinitcpio `kms` and `plymouth`
+hooks so the SchweisOS Plymouth theme can appear before the Plasma session. The
+theme uses bounded fade, pulse, scale, and rotating-indicator motion derived
+only from the canonical logo. If emergency mode is reached, SDDM fails,
+Plymouth start/quit units fail, or the Plymouth runtime PID disappears before
+the normal quit handoff, the live profile quits Plymouth and restores console
+diagnostics.
 
-This live boot experience does not implement installed-system bootloader
-configuration. Installed-system Plymouth, bootloader installation, Secure Boot,
-and BIOS behavior remain future installer architecture.
+This live boot experience and the packaged GRUB theme do not implement
+installed-system bootloader configuration. Installed-system Plymouth,
+bootloader installation and activation, Secure Boot, and BIOS behavior remain
+future installer architecture.
 
-References: [systemd-boot - ArchWiki](https://wiki.archlinux.org/title/Systemd-boot), [systemd-boot manual](https://man.archlinux.org/man/core/systemd/systemd-boot.7.en).
+References: [systemd-boot - ArchWiki](https://wiki.archlinux.org/title/Systemd-boot),
+[systemd-boot manual](https://man.archlinux.org/man/core/systemd/systemd-boot.7.en),
+and [ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md).
 
 ## Filesystem Architecture
 
@@ -401,7 +432,8 @@ engineering foundations. The next dependency-ordered sequence is:
 1. Add ISO signing and verification without placing private keys on the build
    host.
 2. Design and implement the installer prototype for UEFI, systemd-boot, and
-   ext4.
+   ext4, then integrate the optional packaged GRUB theme only through the
+   installer-owned GRUB path.
 3. Validate a complete installation and first boot on disposable test storage.
 4. Add the optional Btrfs path after the ext4 path is reliable.
 5. Establish a public publication endpoint and mirror operations.

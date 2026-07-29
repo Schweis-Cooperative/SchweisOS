@@ -5,7 +5,9 @@
 # as Ventoy GRUB2 mode. This intentionally avoids extracting SquashFS: it only
 # proves that the bootloader-visible ISO root contains the kernel, initramfs,
 # systemd-boot entries, and upstream-Archiso-style loopback.cfg that can hand
-# img_dev/img_loop to the Archiso initramfs.
+# img_dev/img_loop to the Archiso initramfs. It also proves that the generated
+# ISO volume metadata, Archiso UUID marker, native systemd-boot cmdlines, and
+# initramfs hook list agree with one another.
 set -euo pipefail
 
 export LC_ALL=C
@@ -19,7 +21,7 @@ fail() {
 (( $# == 1 )) || fail 'usage: validate-iso-loopback-boot.sh ISO_PATH'
 iso_path=$1
 
-for tool in awk bash bsdtar cmp git grep mktemp readlink rm sed sort; do
+for tool in awk bash bsdtar cmp git grep lsinitcpio mktemp readlink rm sed sort xorriso; do
     type -P "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
 done
 
@@ -33,6 +35,19 @@ git_root="$(cd -- "$git_root" && pwd -P)"
 [[ -f "$iso_path" && ! -L "$iso_path" && -s "$iso_path" ]] || \
     fail 'ISO artifact is missing, empty, or unsafe'
 iso_path="$(readlink -f -- "$iso_path")"
+volume_id="$(
+    xorriso -indev "$iso_path" -pvd_info 2>/dev/null | \
+        awk -F ':' '$1 ~ /^[[:space:]]*Volume Id[[:space:]]*$/ {
+            value = $2
+            sub(/^[[:space:]]+/, "", value)
+            sub(/[[:space:]]+$/, "", value)
+            print value
+            exit
+        }'
+)"
+[[ -n "$volume_id" ]] || fail 'unable to read ISO volume ID'
+[[ "$volume_id" =~ ^[A-Z0-9_]{1,32}$ ]] || \
+    fail "ISO volume ID is outside the approved Archiso label contract: ${volume_id}"
 
 profile_dir="${project_root}/iso/profiles/kde"
 profiledef="${profile_dir}/profiledef.sh"
@@ -83,6 +98,10 @@ mapfile -t uuid_members < <(
 )
 (( ${#uuid_members[@]} == 1 )) || \
     fail "ISO must contain exactly one Archiso UUID marker; found ${#uuid_members[@]}"
+iso_uuid="${uuid_members[0]#boot/}"
+iso_uuid="${iso_uuid%.uuid}"
+[[ "$iso_uuid" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}$ ]] || \
+    fail "Archiso UUID marker has an unexpected format: ${iso_uuid}"
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
@@ -90,6 +109,61 @@ cleanup() {
     rm -rf -- "$tmp_dir"
 }
 trap cleanup EXIT
+
+bsdtar -xOf "$iso_path" boot/grub/grubenv >"${tmp_dir}/grubenv" || \
+    fail 'unable to extract boot/grub/grubenv'
+grubenv_volume_id="$(awk -F '=' '$1 == "ARCHISO_LABEL" { print $2; exit }' "${tmp_dir}/grubenv")"
+grubenv_install_dir="$(awk -F '=' '$1 == "INSTALL_DIR" { print $2; exit }' "${tmp_dir}/grubenv")"
+grubenv_arch="$(awk -F '=' '$1 == "ARCH" { print $2; exit }' "${tmp_dir}/grubenv")"
+grubenv_search_file="$(awk -F '=' '$1 == "ARCHISO_SEARCH_FILENAME" { print $2; exit }' "${tmp_dir}/grubenv")"
+[[ "$grubenv_volume_id" == "$volume_id" ]] || \
+    fail "grubenv ARCHISO_LABEL (${grubenv_volume_id}) does not match ISO volume ID (${volume_id})"
+[[ "$grubenv_install_dir" == "$install_dir" ]] || \
+    fail "grubenv INSTALL_DIR (${grubenv_install_dir}) does not match profile install_dir (${install_dir})"
+[[ "$grubenv_arch" == "$arch" ]] || \
+    fail "grubenv ARCH (${grubenv_arch}) does not match profile arch (${arch})"
+[[ "$grubenv_search_file" == "/boot/${iso_uuid}.uuid" ]] || \
+    fail "grubenv ARCHISO_SEARCH_FILENAME (${grubenv_search_file}) does not match ISO UUID marker (${iso_uuid})"
+
+for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
+    entry_member="loader/entries/${entry_name}"
+    entry_file="${tmp_dir}/${entry_name}"
+    bsdtar -xOf "$iso_path" "$entry_member" >"$entry_file" || \
+        fail "unable to extract ${entry_member}"
+    entry_linux="$(awk '$1 == "linux" { print $2; exit }' "$entry_file")"
+    entry_initrd="$(awk '$1 == "initrd" { print $2; exit }' "$entry_file")"
+    entry_options="$(awk '$1 == "options" { $1 = ""; sub(/^[[:space:]]+/, ""); print; exit }' "$entry_file")"
+    [[ "$entry_linux" == "/${install_dir}/boot/${arch}/vmlinuz-linux" ]] || \
+        fail "${entry_name} uses an unexpected native kernel path"
+    [[ "$entry_initrd" == "/${install_dir}/boot/${arch}/initramfs-linux.img" ]] || \
+        fail "${entry_name} uses an unexpected native initramfs path"
+    [[ " $entry_options " == *" archisobasedir=${install_dir} "* ]] || \
+        fail "${entry_name} is missing the Archiso base directory"
+    [[ " $entry_options " == *" archisosearchuuid=${iso_uuid} "* ]] || \
+        fail "${entry_name} archisosearchuuid does not match the ISO UUID marker"
+    [[ " $entry_options " != *' archisolabel='* ]] || \
+        fail "${entry_name} must not mix archisolabel with the native archisosearchuuid contract"
+    [[ " $entry_options " == *' systemd.firstboot=no '* ]] || \
+        fail "${entry_name} must disable interactive systemd-firstboot"
+    case "$entry_name" in
+        01-schweisos-linux.conf)
+            [[ " $entry_options " == *' quiet '* \
+                && " $entry_options " == *' splash '* \
+                && " $entry_options " == *' loglevel=3 '* \
+                && " $entry_options " == *' systemd.show_status=auto '* \
+                && " $entry_options " == *' vt.global_cursor_default=0 '* ]] || \
+                fail 'normal native entry does not preserve the quiet graphical boot contract'
+            ;;
+        02-schweisos-linux-debug.conf)
+            [[ " $entry_options " != *' quiet '* \
+                && " $entry_options " != *' splash '* \
+                && " $entry_options " == *' loglevel=7 '* \
+                && " $entry_options " == *' systemd.show_status=yes '* \
+                && " $entry_options " == *' vt.global_cursor_default=1 '* ]] || \
+                fail 'debug native entry does not preserve the visible diagnostic contract'
+            ;;
+    esac
+done
 
 bsdtar -xOf "$iso_path" boot/grub/loopback.cfg >"${tmp_dir}/loopback.cfg" || \
     fail 'unable to extract boot/grub/loopback.cfg'
@@ -150,8 +224,21 @@ done
     && " $debug_linux " == *' vt.global_cursor_default=1 '* ]] || \
     fail 'debug loopback entry does not preserve the visible diagnostic contract'
 
+bsdtar -xOf "$iso_path" "${install_dir}/boot/${arch}/initramfs-linux.img" \
+    >"${tmp_dir}/initramfs-linux.img" || \
+    fail 'unable to extract the live initramfs'
+initramfs_config="$(lsinitcpio --config "${tmp_dir}/initramfs-linux.img")" || \
+    fail 'unable to read the live initramfs configuration'
+grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems)' \
+    <<<"$initramfs_config" || \
+    fail 'live initramfs is missing the archiso_loop_mnt hook required for img_dev/img_loop boot'
+
 printf 'ISO loopback boot validation passed.\n'
 printf '  ISO: %s\n' "$iso_path"
+printf '  volume label: %s\n' "$volume_id"
+printf '  Archiso UUID marker: %s\n' "$iso_uuid"
 printf '  kernel: /%s/boot/%s/vmlinuz-linux\n' "$install_dir" "$arch"
 printf '  initramfs: /%s/boot/%s/initramfs-linux.img\n' "$install_dir" "$arch"
+printf '  native boot: archisosearchuuid matches the ISO UUID marker\n'
 printf '  loopback: /boot/grub/loopback.cfg with img_dev/img_loop handoff\n'
+printf '  initramfs: archiso_loop_mnt accepts the loopback handoff\n'

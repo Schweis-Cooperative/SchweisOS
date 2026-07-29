@@ -332,10 +332,12 @@ those two audited choices; the firmware-selected console mode is retained to
 avoid an extra visual mode transition. The profile also carries only the
 upstream-supported `grub/loopback.cfg` compatibility file for Ventoy-style
 outer GRUB launchers. That loopback file mirrors the same normal/debug kernel
-and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; it does
-not make GRUB the native live bootloader and does not add a full `grub.cfg`.
-The initramfs source uses upstream mkinitcpio `kms` and `plymouth` hooks so the
-SchweisOS Plymouth theme can appear before the Plasma session. The theme source
+and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; the
+initramfs source includes the matching upstream `archiso_loop_mnt` hook so that
+handoff works after the kernel starts. This does not make GRUB the native live
+bootloader and does not add a full `grub.cfg`. The initramfs source also uses
+upstream mkinitcpio `kms` and `plymouth` hooks so the SchweisOS Plymouth theme
+can appear before the Plasma session. The theme source
 currently defines a temporary reference-matched near-black-stage animation with
 delayed canonical-logo fade-in, delayed five-dot circular chase loading motion,
 and progress/quit fade-out behavior derived only from the canonical logo. Both

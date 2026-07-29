@@ -65,8 +65,8 @@ The profile will:
   `LANG=C.UTF-8` and UTC live defaults, and reserve locale, timezone, keymap,
   account, and storage choices for the installer;
 - include the upstream Arch `plymouth` package in the live package set;
-- add upstream mkinitcpio `kms` and `plymouth` hooks to the live initramfs hook
-  chain;
+- add upstream mkinitcpio `kms`, `plymouth`, and `archiso_loop_mnt` hooks to
+  the live initramfs hook chain;
 - provide a profile-owned SchweisOS Plymouth theme under
   `/usr/share/plymouth/themes/schweisos`;
 - configure Plymouth through `/etc/plymouth/plymouthd.conf`;
@@ -192,7 +192,9 @@ Positive consequences:
 - The live system no longer stops at `systemd-firstboot`; successful graphical
   boot proceeds through SDDM autologin directly to Plasma.
 - Ventoy-style outer GRUB launchers receive an explicit loopback handoff to the
-  same Archiso kernel and initramfs paths as the native systemd-boot entries.
+  same Archiso kernel and initramfs paths as the native systemd-boot entries,
+  and the live initramfs contains the upstream `archiso_loop_mnt` hook required
+  to consume that handoff after the kernel starts.
 - Source/package version drift and missing canonical branding payloads stop the
   build before Archiso can compose a stale splash.
 - Post-build validation proves that the built root and initramfs contain the
@@ -235,7 +237,7 @@ The ISO profile validator must fail closed if:
   policy;
 - either entry permits interactive `systemd-firstboot`, or the live root omits
   the Archiso `C.UTF-8` and UTC defaults;
-- the mkinitcpio hook list omits `kms` or `plymouth`;
+- the mkinitcpio hook list omits `kms`, `plymouth`, or `archiso_loop_mnt`;
 - the Plymouth theme copies branding assets instead of consuming the packaged
   branding directory;
 - the theme does not use `schweisos.png`, lacks the documented delayed

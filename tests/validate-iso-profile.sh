@@ -483,9 +483,9 @@ done
 bash -c '
   set -euo pipefail
   source "$1"
-  [[ "${HOOKS[*]}" == "base udev modconf kms plymouth archiso block filesystems" ]]
+  [[ "${HOOKS[*]}" == "base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems" ]]
 ' _ "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" || \
-  fail 'mkinitcpio hook list does not match the approved Plymouth live-boot contract'
+  fail 'mkinitcpio hook list does not match the approved Plymouth and loopback live-boot contract'
 
 bash -c '
   set -euo pipefail
@@ -803,7 +803,7 @@ if [[ -f "${upstream_baseline}/mkinitcpio.conf.d/archiso.conf" \
     fail 'locale.conf differs from the installed Archiso baseline'
   [[ "$(readlink -- "${upstream_baseline}/localtime")" == "$(readlink -- "$localtime_link")" ]] || \
     fail 'localtime differs from the installed Archiso baseline'
-  upstream_status='installed baseline matched except approved live boot and Plymouth extensions'
+  upstream_status='installed baseline matched except approved live boot, loopback, and Plymouth extensions'
 fi
 
 git -C "$project_root" diff --check -- \

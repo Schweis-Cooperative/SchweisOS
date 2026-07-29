@@ -39,8 +39,9 @@ small upstream-compatible profile:
 - `grub/loopback.cfg` contains the only approved GRUB profile file. Upstream
   `mkarchiso` copies it to `/boot/grub/loopback.cfg` so Ventoy-style outer
   GRUB loopback launchers can load the same kernel and initramfs while passing
-  Archiso's `img_dev`/`img_loop` ISO-file handoff. It is not a native GRUB live
-  boot configuration.
+  Archiso's `img_dev`/`img_loop` ISO-file handoff. The live initramfs hook list
+  must include `archiso_loop_mnt` so that handoff is honored after the kernel
+  starts. This is not a native GRUB live boot configuration.
 - `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
   SDDM autologin, NetworkManager startup, passwordless local live-session
   administration, Plymouth selection, canonical-logo animation, neutral
@@ -51,9 +52,9 @@ small upstream-compatible profile:
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
 templates and use only archiso-supported template identifiers.
-The profile also carries the upstream Archiso loopback compatibility file for
-multiboot launchers; no full `grub.cfg`, syslinux profile, BIOS path, or GRUB
-package is part of the current live image.
+The profile also carries the upstream Archiso loopback compatibility file and
+matching initramfs hook for multiboot launchers; no full `grub.cfg`, syslinux
+profile, BIOS path, or GRUB package is part of the current live image.
 The text-oriented loader keeps the firmware console mode, disables automatic
 entries and editing, and exposes `SchweisOS Live` plus
 `SchweisOS Live (Debug)`. The source contract configures graphical

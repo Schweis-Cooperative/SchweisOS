@@ -97,6 +97,9 @@ outer GRUB loopback chain instead of executing the ISO's native systemd-boot
 path directly. SchweisOS supports that bootloader-visible handoff with a
 minimal `loopback.cfg` that mirrors the normal and debug live entries and gives
 the Archiso initramfs the ISO-file location through `img_dev` and `img_loop`.
+The live initramfs includes Archiso's `archiso_loop_mnt` hook so those
+parameters are consumed after the kernel starts instead of falling back to
+native UUID-marker device discovery.
 
 This is not a visual GRUB boot experience and it is not the future installed
 GRUB alternative. It exists only to make the same live kernel and initramfs
@@ -223,7 +226,7 @@ UEFI firmware
   -> upstream Archiso systemd-boot
   -> SchweisOS Live entry
   -> Linux kernel and Archiso initramfs
-  -> mkinitcpio kms + plymouth hooks
+  -> mkinitcpio kms + plymouth + archiso_loop_mnt hook contract
   -> SchweisOS Plymouth theme
   -> Archiso mounts live root
   -> neutral C.UTF-8/UTC live defaults; interactive systemd-firstboot disabled
@@ -251,6 +254,7 @@ UEFI firmware
   -> SchweisOS Live or SchweisOS Live (Debug)
   -> /schweis/boot/x86_64/vmlinuz-linux
   -> /schweis/boot/x86_64/initramfs-linux.img
+  -> archiso_loop_mnt turns img_dev/img_loop into the ISO loop device
   -> Archiso mounts the ISO through img_dev/img_loop
   -> the same Plymouth, SDDM, and Plasma path as native live boot
 ```
@@ -308,7 +312,8 @@ The profile provides:
 - `/etc/plymouth/plymouthd.conf` selecting `Theme=schweisos`;
 - `/usr/share/plymouth/themes/schweisos/schweisos.plymouth`;
 - `/usr/share/plymouth/themes/schweisos/schweisos.script`;
-- a mkinitcpio hook list that includes upstream `kms` and `plymouth`;
+- a mkinitcpio hook list that includes upstream `kms`, `plymouth`, and
+  `archiso_loop_mnt`;
 - a systemd path watcher for Plymouth runtime directory changes and a
   one-second, boot-bounded liveness watchdog;
 - a guarded normal-quit helper, daemon-health helper, and watchdog helper under

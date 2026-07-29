@@ -56,8 +56,12 @@ install_dir="$(
     SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n" "$install_dir"' _ "$profiledef"
 )"
 [[ "$install_dir" =~ ^[a-z0-9._-]+$ ]] || fail 'invalid Archiso install directory'
-squashfs_member="${install_dir}/x86_64/airootfs.sfs"
-initramfs_member="${install_dir}/boot/x86_64/initramfs-linux.img"
+arch="$(
+    SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n" "$arch"' _ "$profiledef"
+)"
+[[ "$arch" =~ ^[A-Za-z0-9._-]+$ ]] || fail 'invalid Archiso architecture'
+squashfs_member="${install_dir}/${arch}/airootfs.sfs"
+initramfs_member="${install_dir}/boot/${arch}/initramfs-linux.img"
 
 iso_listing="$(bsdtar -tf "$iso_path")" || fail 'ISO archive is unreadable'
 for member in \
@@ -77,6 +81,14 @@ mapfile -t iso_loader_entries < <(
 [[ "${iso_loader_entries[*]}" == \
     'loader/entries/01-schweisos-linux.conf loader/entries/02-schweisos-linux-debug.conf' ]] || \
     fail 'ISO contains an unexpected systemd-boot entry set'
+
+mapfile -t iso_uuid_members < <(
+    awk '$0 ~ /^boot\/[0-9-]+\\.uuid$/ { print }' <<<"$iso_listing" | sort
+)
+(( ${#iso_uuid_members[@]} == 1 )) || \
+    fail "ISO must contain exactly one Archiso UUID marker; found ${#iso_uuid_members[@]}"
+iso_uuid="${iso_uuid_members[0]#boot/}"
+iso_uuid="${iso_uuid%.uuid}"
 
 tmp_parent="${TMPDIR:-${project_root}/work/validators/built-iso-boot}"
 [[ -n "$tmp_parent" && "$tmp_parent" != / ]] || fail 'unsafe temporary directory parent'
@@ -100,9 +112,12 @@ cmp -s "${profile_dir}/efiboot/loader/loader.conf" "${tmp_dir}/loader.conf" || \
 for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
     entry_member="loader/entries/${entry_name}"
     entry_file="${tmp_dir}/${entry_name}"
+    expected_entry="${tmp_dir}/expected-${entry_name}"
     bsdtar -xOf "$iso_path" "$entry_member" >"$entry_file" || \
         fail "unable to extract ${entry_member}"
-    cmp -s "${profile_dir}/efiboot/loader/entries/${entry_name}" "$entry_file" || \
+    sed "s|%INSTALL_DIR%|${install_dir}|g; s|%ARCH%|${arch}|g; s|%ARCHISO_UUID%|${iso_uuid}|g" \
+        "${profile_dir}/efiboot/loader/entries/${entry_name}" >"$expected_entry"
+    cmp -s "$expected_entry" "$entry_file" || \
         fail "built ${entry_name} differs from the validated profile source"
     options="$(awk '$1 == "options" { $1 = ""; sub(/^[[:space:]]+/, ""); print }' "$entry_file")"
     firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
@@ -313,8 +328,9 @@ bsdtar -xOf "$iso_path" "$initramfs_member" >"${tmp_dir}/initramfs-linux.img" ||
 [[ -s "${tmp_dir}/initramfs-linux.img" ]] || fail 'extracted live initramfs is empty'
 initramfs_config="$(lsinitcpio --config "${tmp_dir}/initramfs-linux.img")" || \
     fail 'unable to read the live initramfs configuration'
-grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso block filesystems)' \
-    <<<"$initramfs_config" || fail 'built initramfs does not contain the approved Plymouth hook order'
+grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems)' \
+    <<<"$initramfs_config" || \
+    fail 'built initramfs does not contain the approved Plymouth and loopback hook order'
 
 mkdir -p "${tmp_dir}/initramfs-root"
 (

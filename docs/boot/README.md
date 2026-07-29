@@ -60,9 +60,13 @@ systemd-boot entries:
 
 They also pass `archisobasedir=schweis`, `img_dev`, and `img_loop` so the
 Archiso initramfs can mount the ISO file that Ventoy placed on the USB
-filesystem. This is intentionally narrower than enabling a native GRUB live
-bootloader: there is still no live ISO `grub.cfg`, no live GRUB package, no
-BIOS path, and no activation of the installed-system GRUB theme package.
+filesystem. The live initramfs therefore includes Archiso's
+`archiso_loop_mnt` hook in addition to the native `archiso` hook; the loopback
+kernel parameters are not useful unless the initramfs contains the hook that
+turns `img_dev/img_loop` into the loop device Archiso mounts. This is
+intentionally narrower than enabling a native GRUB live bootloader: there is
+still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and no
+activation of the installed-system GRUB theme package.
 
 ## Plymouth
 

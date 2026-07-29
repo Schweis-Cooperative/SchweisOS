@@ -162,11 +162,14 @@ tests/validate-iso-loopback-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
 
 It does not extract SquashFS or boot the image. It proves the ISO-visible root
 contains the live kernel, initramfs, EFI image, boot catalog, one Archiso UUID
-marker, systemd-boot entries, and `/boot/grub/loopback.cfg`. It compares the
-built loopback file to the reviewed profile source after Archiso token
-substitution, rejects unresolved template tokens, and validates the
-`archisobasedir`, `img_dev`, and `img_loop` handoff that the Archiso initramfs
-needs when an outer GRUB launches the ISO file from USB storage.
+marker, systemd-boot entries, and `/boot/grub/loopback.cfg`. It reads the real
+ISO volume label with `xorriso`, checks that `grubenv` and the native
+systemd-boot `archisosearchuuid` command lines agree with the generated UUID
+marker, compares the built loopback file to the reviewed profile source after
+Archiso token substitution, rejects unresolved template tokens, validates the
+`archisobasedir`, `img_dev`, and `img_loop` handoff, and confirms that the live
+initramfs contains `archiso_loop_mnt` so the handoff can be consumed after the
+kernel starts.
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust
 contract between `schweisos-mirrorlist` and `schweisos-pacman-config`. It builds

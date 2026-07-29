@@ -9,8 +9,9 @@ contains only live-media exceptions that cannot yet be delivered by a package.
 The following files are temporary live-media exceptions:
 
 - `/etc/mkinitcpio.conf.d/archiso.conf` uses the upstream Archiso hook chain
-  plus upstream `kms` and `plymouth` hooks so the initramfs can locate and mount
-  the live root filesystem while showing the SchweisOS splash.
+  plus upstream `kms`, `plymouth`, and `archiso_loop_mnt` hooks so the
+  initramfs can locate and mount the live root filesystem in both native
+  Archiso and outer-GRUB loopback paths while showing the SchweisOS splash.
 - `/etc/mkinitcpio.d/linux.preset` generates the initramfs path referenced by
   the UEFI loader entry.
 - `/etc/plymouth/plymouthd.conf` selects the SchweisOS live Plymouth theme.
@@ -68,10 +69,13 @@ interactive kernel-command-line editing are disabled for the live medium.
 Ventoy-style multiboot launchers that boot the ISO through an outer GRUB
 loopback chain can load `/schweis/boot/x86_64/vmlinuz-linux` and
 `/schweis/boot/x86_64/initramfs-linux.img` with Archiso's required
-`archisobasedir`, `img_dev`, and `img_loop` parameters. It mirrors the
-systemd-boot normal and debug entries, but it does not enable Archiso's GRUB
-boot mode, add a full `grub.cfg`, add a BIOS path, or activate the packaged
-installed-system GRUB theme.
+`archisobasedir`, `img_dev`, and `img_loop` parameters. The matching
+`archiso_loop_mnt` initramfs hook is mandatory: without it, the kernel and
+initramfs can start but Archiso cannot mount the ISO file from Ventoy's USB
+filesystem and falls back to searching native UUID marker devices. The
+loopback file mirrors the systemd-boot normal and debug entries, but it does
+not enable Archiso's GRUB boot mode, add a full `grub.cfg`, add a BIOS path, or
+activate the packaged installed-system GRUB theme.
 
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction, create the passwordless automatic

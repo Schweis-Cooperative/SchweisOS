@@ -92,9 +92,10 @@ policy, ext4 default with optional Btrfs support, pacstrap target installation,
 target pacman include behavior, live ISO package composition, absence of GRUB
 activation in the MVP path, one package-owned visible launcher, once-only XDG
 autostart, exact-path Polkit/XWayland bridging, private launch logs, visible KDE
-failure handling, non-executable repository helper sources, and absence of
-secrets or private-key material. It does not partition disks, start Calamares,
-build an ISO, or prove a graphical installation.
+failure handling, Calamares branding/slideshow source completeness,
+non-executable repository helper sources, and absence of secrets or private-key
+material. It does not partition disks, start Calamares, build an ISO, or prove
+a graphical installation.
 
 `test-installer-experience.sh` sources the production launcher and autostart
 helpers while replacing only their live-environment and GUI/process boundaries:
@@ -106,6 +107,20 @@ tests/test-installer-experience.sh
 It proves manual reopen, single-instance locking, visible preflight and
 privileged-process failure, private failure logging, one-time autostart, and
 suppression when a manual launch wins the startup race.
+
+`validate-installer-runtime-payload.sh` inspects the staged Archiso live root
+after package installation and before SquashFS compression:
+
+```bash
+tests/validate-installer-runtime-payload.sh work/iso/kde/x86_64/airootfs
+```
+
+It proves that the actual runtime root contains `/usr/bin/calamares`, exactly
+one visible `Install SchweisOS` launcher, the hidden once-only autostart entry,
+the exact-path Polkit/XWayland bridge, package-owned Calamares branding,
+`show.qml`, the canonical runtime logo path, and pacman local ownership records
+for the installer payload. It also rejects Calamares' generic `Install System`
+launcher and any desktop entry that bypasses the SchweisOS wrapper.
 
 `test-plymouth-watchdog.sh` performs disposable behavioral validation of the
 real watchdog control flow:

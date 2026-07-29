@@ -216,6 +216,7 @@ required_files=(
     tests/validate-iso-build-manifest.sh
     tests/validate-keyring-package.sh
     tests/validate-installer-config.sh
+    tests/validate-installer-runtime-payload.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
     tests/validate-signing-tooling.sh
@@ -369,6 +370,7 @@ required_executables=(
     tests/validate-build-environment.sh
     tests/validate-grub-theme.sh
     tests/validate-installer-config.sh
+    tests/validate-installer-runtime-payload.sh
     tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh

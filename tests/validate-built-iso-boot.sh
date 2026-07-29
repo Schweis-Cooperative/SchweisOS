@@ -230,13 +230,17 @@ installer_wrapper="${rootfs}/usr/bin/schweisos-installer"
 installer_autostart_helper="${rootfs}/usr/lib/schweisos-calamares/autostart"
 installer_root_helper="${rootfs}/usr/lib/schweisos-calamares/launch-root"
 installer_policy="${rootfs}/usr/share/polkit-1/actions/org.schweisos.installer.policy"
+installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
+installer_slideshow="${rootfs}/etc/calamares/branding/schweisos/show.qml"
 for installer_payload in \
     "$installer_desktop" \
     "$installer_autostart" \
     "$installer_wrapper" \
     "$installer_autostart_helper" \
     "$installer_root_helper" \
-    "$installer_policy"; do
+    "$installer_policy" \
+    "$installer_branding" \
+    "$installer_slideshow"; do
     [[ -f "$installer_payload" && ! -L "$installer_payload" ]] || \
         fail "built live root is missing installer experience payload: ${installer_payload#"$rootfs"/}"
 done
@@ -266,6 +270,10 @@ grep -Fq '/usr/lib/schweisos-calamares/launch-root</annotate>' "$installer_polic
     fail 'built installer Polkit policy is not bound to the exact helper path'
 grep -Fq 'org.freedesktop.policykit.exec.allow_gui">true</annotate>' "$installer_policy" || \
     fail 'built installer Polkit policy cannot carry display authorization'
+grep -Fxq 'slideshow: "show.qml"' "$installer_branding" || \
+    fail 'built installer branding omits the Calamares slideshow contract'
+grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' "$installer_slideshow" || \
+    fail 'built installer slideshow does not reference the canonical runtime logo'
 generic_installer_entry="$(grep -RIl --include='*.desktop' \
     '^Name=Install System$' "${rootfs}/usr/share/applications" \
     "${rootfs}/usr/local/share/applications" 2>/dev/null || true)"

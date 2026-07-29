@@ -40,6 +40,7 @@ required_files=(
   "${package_dir}/README.md"
   "${package_dir}/settings.conf"
   "${package_dir}/branding.desc"
+  "${package_dir}/show.qml"
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
@@ -152,6 +153,12 @@ grep -Fq 'unlink -- "$upstream_launcher"' "${calamares_package_dir}/PKGBUILD" ||
 
 grep -Fq 'branding: schweisos' "${package_dir}/settings.conf" || \
   fail 'Calamares settings must select SchweisOS branding'
+grep -Fq "'show.qml'" "${package_dir}/PKGBUILD" || \
+  fail 'Calamares slideshow QML resource must be a package source'
+grep -Fq 'install -Dm644 "${srcdir}/show.qml"' "${package_dir}/PKGBUILD" || \
+  fail 'Calamares slideshow QML resource must be package-owned'
+grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/show.qml"' \
+  "${package_dir}/PKGBUILD" || fail 'Calamares slideshow QML resource must be installed beside branding.desc'
 grep -Fq "  version: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
   fail 'Calamares branding version must match schweisos-release pkgver'
 grep -Fq "  shortVersion: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
@@ -275,11 +282,20 @@ for branding_fragment in \
   'productLogo: "/usr/share/schweisos/branding/schweisos.png"' \
   'productIcon: "/usr/share/schweisos/branding/schweisos.png"' \
   'productWelcome: "/usr/share/schweisos/branding/schweisos.png"' \
+  'slideshow: "show.qml"' \
   'SidebarBackground: "#051022"' \
   'SidebarTextCurrent: "#ffffff"'; do
   grep -Fq "$branding_fragment" "${package_dir}/branding.desc" || \
     fail "Calamares branding contract is missing: ${branding_fragment}"
 done
+grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' \
+  "${package_dir}/show.qml" || fail 'Calamares slideshow must reference the canonical runtime logo'
+noncanonical_qml_source="$(
+  grep -E 'source:[[:space:]]*"' "${package_dir}/show.qml" \
+    | grep -Fv 'file:///usr/share/schweisos/branding/schweisos.png' || true
+)"
+[[ -z "$noncanonical_qml_source" ]] || \
+  fail 'Calamares slideshow must not reference non-canonical image sources'
 ! grep -Eq '^[[:space:]]+(sidebarBackground|sidebarText|sidebarTextSelect):' \
   "${package_dir}/branding.desc" || fail 'Calamares branding uses invalid case-sensitive style keys'
 for required_welcome_condition in storage ram internet root; do

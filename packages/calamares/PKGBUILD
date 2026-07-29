@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=calamares
+pkgver=3.4.2
+pkgrel=1
+pkgdesc='Distribution-independent installer framework'
+arch=('x86_64')
+url='https://codeberg.org/Calamares/calamares'
+license=('GPL-3.0-or-later')
+depends=(
+  'kcoreaddons'
+  'kpmcore'
+  'libpwquality'
+  'polkit-qt6'
+  'python'
+  'qt6-base'
+  'qt6-declarative'
+  'qt6-svg'
+  'yaml-cpp'
+)
+makedepends=(
+  'cmake'
+  'extra-cmake-modules'
+  'libglvnd'
+  'ninja'
+  'qt6-tools'
+  'qt6-translations'
+)
+source=("calamares-${pkgver}.tar.gz::https://codeberg.org/Calamares/calamares/releases/download/v${pkgver}/calamares-${pkgver}.tar.gz")
+sha256sums=('733bbbb00dc9f84874bd5c22960952f317ea2537565431179fa2152b2fbfdccc')
+
+build() {
+  cmake -S "${srcdir}/${pkgname}-${pkgver}" -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DWITH_QT6=ON \
+    -DINSTALL_CONFIG=ON \
+    -DBUILD_TESTING=OFF \
+    -DSKIP_MODULES='dracut;dracutlukscfg;dummycpp;dummyprocess;dummypython;dummypythonqt;initramfs;initramfscfg;interactiveterminal;packagechooser;packagechooserq;services-openrc' \
+    -DKDE_INSTALL_LIBDIR=lib \
+    -DKDE_INSTALL_LIBEXECDIR=lib \
+    -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
+    -Wno-dev
+  cmake --build build
+}
+
+package() {
+  DESTDIR="${pkgdir}" cmake --install build
+}

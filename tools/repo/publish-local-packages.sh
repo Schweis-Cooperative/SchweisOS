@@ -8,8 +8,10 @@ repo_arch="${SCHWEISOS_LOCAL_REPO_ARCH:-x86_64}"
 build_packages=true
 database_name='schweisos'
 
-identity_packages=(
+local_repo_packages=(
+  calamares
   schweisos-branding
+  schweisos-calamares-config
   schweisos-release
   schweisos-keyring
   schweisos-mirrorlist
@@ -20,8 +22,8 @@ usage() {
   cat <<'EOF'
 Usage: publish-local-packages.sh [options]
 
-Build and add the SchweisOS identity packages to the local-only bootstrap
-repository database.
+Build and add the SchweisOS-owned packages consumed by the KDE ISO profile to
+the local-only bootstrap repository database.
 
 Options:
   --repo-root PATH   Repository root. Default: out/local-repo
@@ -88,7 +90,7 @@ trap 'rm -rf -- "${build_root}"' EXIT
 
 published_packages=()
 
-for package_name in "${identity_packages[@]}"; do
+for package_name in "${local_repo_packages[@]}"; do
   package_dir="${project_root}/packages/${package_name}"
 
   [[ -f "${package_dir}/PKGBUILD" ]] || {

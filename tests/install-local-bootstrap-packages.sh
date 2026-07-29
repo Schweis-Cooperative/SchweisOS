@@ -89,6 +89,21 @@ repository_database="${database_dir}/${database_name}.db"
 
 package_artifacts=()
 while IFS= read -r descriptor; do
+  package_name="$(
+    bsdtar -xOf "${repository_database}" "${descriptor}" | awk '
+      $0 == "%NAME%" { getline; print; exit }
+    '
+  )"
+  [[ -n "${package_name}" ]] || fail "missing NAME in ${descriptor}"
+  package_is_expected=0
+  for expected_package in "${expected_packages[@]}"; do
+    if [[ "${package_name}" == "${expected_package}" ]]; then
+      package_is_expected=1
+      break
+    fi
+  done
+  (( package_is_expected )) || continue
+
   package_filename="$(
     bsdtar -xOf "${repository_database}" "${descriptor}" | awk '
       $0 == "%FILENAME%" { getline; print; exit }

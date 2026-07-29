@@ -150,8 +150,10 @@ tests/validate-repository-bootstrap.sh
 
 `install-local-bootstrap-packages.sh` validates that the five live/repository
 foundation packages published by the bootstrap tool can coexist in one
-isolated pacman database and filesystem root. The optional GRUB theme is
-intentionally outside that live bootstrap set. The test requires a previously
+isolated pacman database and filesystem root. Installer packages may also be
+present in that local repository for ISO consumption, but they are intentionally
+outside this bootstrap co-installation test. The optional GRUB theme is
+intentionally outside the live bootstrap set. The test requires a previously
 created local `schweisos` repository:
 
 ```bash

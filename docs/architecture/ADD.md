@@ -26,11 +26,11 @@ The answer must be technical:
 
 Architecture and implementation are deliberately separated. As of
 2026-07-29, the repository contains a KDE Archiso profile, five
-live/repository foundation packages, an inert GRUB theme package for future
-installer integration, a Calamares installer-configuration package source,
-production public trust material, role-separated signing tools, a signed local
-production repository workflow, disposable client validation, and a development
-ISO build pipeline.
+live/repository foundation packages, a reviewed Calamares package source, a
+Calamares installer-configuration package source, an inert GRUB theme package
+for future installer integration, production public trust material,
+role-separated signing tools, a signed local production repository workflow,
+disposable client validation, and a development ISO build pipeline.
 
 The following remain unimplemented or incomplete: a freshly built and tested
 installer ISO from the current package revisions, runtime validation of the

@@ -6,8 +6,8 @@ Version: 0.4
 Status: Local bootstrap workflow
 Date: 2026-07-28
 
-These tools build and inspect a local `repo-add` repository for the five
-current SchweisOS bootstrap packages.
+These tools build and inspect a local `repo-add` repository for the
+SchweisOS-owned packages consumed by the KDE ISO profile.
 
 This workflow is deliberately separate from the canonical publication flow in
 [Package Repository Workflow](../../docs/release/repository-workflow.md). It
@@ -24,11 +24,13 @@ is directly consumable by pacman and Archiso without manual copy steps.
 
 ## Supported Packages
 
+- `calamares`
 - `schweisos-branding`
-- `schweisos-release`
+- `schweisos-calamares-config`
 - `schweisos-keyring`
 - `schweisos-mirrorlist`
 - `schweisos-pacman-config`
+- `schweisos-release`
 
 ## Generated Layout
 
@@ -72,8 +74,8 @@ This operation creates directories only. It does not build or publish packages.
 
 ### publish-local-packages.sh
 
-Builds the five packages into `packages/`, copies the selected artifacts into
-`schweisos/os/x86_64/`, and runs `repo-add`:
+Builds the supported packages into `packages/`, copies the selected artifacts
+into `schweisos/os/x86_64/`, and runs `repo-add`:
 
 ```bash
 tools/repo/publish-local-packages.sh
@@ -103,7 +105,7 @@ output must never be uploaded or relabeled as an official repository.
 
 ### validate-local-repo.sh
 
-Validates layout ownership, the exact five-package repository membership,
+Validates layout ownership, the exact supported repository membership,
 database-to-artifact references, absence of signing material, and absence of
 network endpoints:
 
@@ -123,9 +125,10 @@ tests/install-local-bootstrap-packages.sh
 ```
 
 The test requires the `schweisos` database and fails with a diagnostic if
-publication has not happened. It installs the five unsigned local package files
-as one transaction into a temporary pacman root, then verifies that the installed
-SchweisOS pacman snippet and mirrorlist parse through `pacman-conf`. The
+publication has not happened. It installs the five unsigned bootstrap package
+files as one transaction into a temporary pacman root, then verifies that the
+installed SchweisOS pacman snippet and mirrorlist parse through `pacman-conf`.
+The
 disposable configuration:
 
 - sets repository signature policy to `Required TrustedOnly`
@@ -136,8 +139,10 @@ disposable configuration:
 
 The transaction assumes the external Arch `filesystem` and `pacman`
 dependencies are present rather than installing an Arch base system into the
-test root. It verifies only the five SchweisOS packages and their mutual file
-and dependency compatibility.
+test root. It verifies only the five live/repository foundation packages and
+their mutual file and dependency compatibility. Installer packages may be
+present in the local repository for ISO consumption, but they are intentionally
+outside this bootstrap co-installation test.
 
 The local-file exception is not official repository policy and does not test
 the separate production signed-client path. It exists only for unsigned local

@@ -22,7 +22,15 @@ The following files are temporary live-media exceptions:
   installed locale, keymap, timezone, and account choices remain
   installer-owned.
 - `/etc/sysusers.d/schweisos-live.conf` declares the ephemeral `live` account
-  without embedding a password or password hash.
+  without embedding a password or password hash and adds it to `wheel` only for
+  the live session.
+- `/etc/sudoers.d/10-schweisos-live` grants the ephemeral `live` user
+  passwordless sudo. `profiledef.sh` installs this file as root-owned mode
+  `0440`; the source copy remains normal Git mode.
+- `/etc/polkit-1/rules.d/49-schweisos-live-admin.rules` lets only the local,
+  active `live` session authorize administrative GUI actions without asking for
+  a root password. This mirrors common live-media behavior and must not be
+  installed to target systems.
 - `/etc/tmpfiles.d/schweisos-live.conf` creates `/home/live` after the account
   exists.
 - `/etc/sddm.conf.d/10-schweisos-live.conf` selects the packaged Plasma session
@@ -52,17 +60,22 @@ The following files are temporary live-media exceptions:
   canonical logo edge tone, delayed logo fade-in, and five-dot circular chase
   loader sampled from the canonical `schweisos.png`, then clears the retained
   frame during the normal handoff.
+- `/usr/local/share/applications/calamares.desktop` is a live-only XDG
+  higher-precedence desktop-entry override that hides Calamares' generic
+  upstream `Install System` launcher. The visible entry remains the packaged
+  `Install SchweisOS` launcher owned by `schweisos-calamares-config`.
 
 The UEFI loader retains the firmware-selected console mode and shows exactly
 `SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and
 interactive kernel-command-line editing are disabled for the live medium.
 
 These files must not be installed on a normal SchweisOS system because they
-either define live-initramfs construction or create a passwordless automatic
-live session, or define the live medium's ephemeral hostname. The mkinitcpio
-files must exist before the kernel package creates the image. The remaining
-files should move to a narrowly scoped, live-only package if one is designed
-and approved later.
+either define live-initramfs construction, create the passwordless automatic
+live session, authorize local live-session administration, hide live-only
+launcher clutter, or define the live medium's ephemeral hostname. The
+mkinitcpio files must exist before the kernel package creates the image. The
+remaining files should move to a narrowly scoped, live-only package if one is
+designed and approved later.
 
 The three short Bash helpers are the only profile-owned executables. They are
 live-only systemd helpers, not reusable installed-system behavior: one guards
@@ -82,5 +95,7 @@ configuration package owns `/etc/calamares`, the desktop launcher, pacstrap
 target manifest, and installed-system helpers.
 
 No installer configuration, Calamares module payload, target package manifest,
-or installer launcher is allowed in `airootfs/`. The target system is installed
-with `pacstrap`; it is not cloned from the live root.
+or SchweisOS-owned installer launcher is allowed in `airootfs/`. The profile
+may carry only the live-session administration policy and the XDG override that
+hides Calamares' generic upstream launcher. The target system is installed with
+`pacstrap`; it is not cloned from the live root.

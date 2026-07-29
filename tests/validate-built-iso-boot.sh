@@ -157,6 +157,7 @@ rootfs_payloads=(
     etc/hostname
     etc/locale.conf
     etc/plymouth/plymouthd.conf
+    etc/polkit-1/rules.d/49-schweisos-live-admin.rules
     etc/sddm.conf.d/10-schweisos-live.conf
     etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf
     etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf
@@ -169,10 +170,12 @@ rootfs_payloads=(
     etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf
     etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf
     etc/sysusers.d/schweisos-live.conf
+    etc/sudoers.d/10-schweisos-live
     etc/tmpfiles.d/schweisos-live.conf
     usr/lib/schweisos-live/plymouth-is-stopped
     usr/lib/schweisos-live/plymouth-quit-guarded
     usr/lib/schweisos-live/plymouth-watchdog
+    usr/local/share/applications/calamares.desktop
     usr/share/plymouth/themes/schweisos/schweisos.plymouth
     usr/share/plymouth/themes/schweisos/schweisos.script
 )
@@ -184,8 +187,13 @@ for relative_path in "${rootfs_payloads[@]}"; do
         fail "built live-boot payload is missing: ${relative_path}"
     cmp -s "$source_path" "$built_path" || \
         fail "built live-boot payload differs from source: ${relative_path}"
-    [[ "$(stat -c %a -- "$source_path")" == "$(stat -c %a -- "$built_path")" ]] || \
-        fail "built live-boot payload mode differs from source: ${relative_path}"
+    if [[ "$relative_path" == etc/sudoers.d/10-schweisos-live ]]; then
+        [[ "$(stat -c %a -- "$built_path")" == 440 ]] || \
+            fail 'built live sudoers drop-in must be mode 0440'
+    else
+        [[ "$(stat -c %a -- "$source_path")" == "$(stat -c %a -- "$built_path")" ]] || \
+            fail "built live-boot payload mode differs from source: ${relative_path}"
+    fi
 done
 
 [[ "$(stat -c %a -- "${rootfs}/usr/lib/schweisos-live/plymouth-is-stopped")" == 755 \
@@ -201,6 +209,21 @@ done
     && "$(readlink -- "${rootfs}/etc/systemd/system/display-manager.service")" \
         == /usr/lib/systemd/system/sddm.service ]] || \
     fail 'built live root does not enable SDDM'
+grep -Fxq 'm live wheel' "${rootfs}/etc/sysusers.d/schweisos-live.conf" || \
+    fail 'built live root does not add the live user to wheel'
+grep -Fxq 'live ALL=(ALL:ALL) NOPASSWD: ALL' "${rootfs}/etc/sudoers.d/10-schweisos-live" || \
+    fail 'built live root does not grant passwordless sudo to the live user'
+for required_polkit_fragment in \
+    'subject.user == "live"' \
+    'subject.local' \
+    'subject.active' \
+    'polkit.Result.YES'; do
+    grep -Fq "$required_polkit_fragment" \
+        "${rootfs}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules" || \
+        fail "built live polkit rule is missing: ${required_polkit_fragment}"
+done
+grep -Fxq 'Hidden=true' "${rootfs}/usr/local/share/applications/calamares.desktop" || \
+    fail 'built live root does not hide the generic Calamares launcher'
 for plymouth_activation in \
     sysinit.target.wants/plymouth-start.service:../plymouth-start.service \
     multi-user.target.wants/plymouth-quit.service:../plymouth-quit.service \

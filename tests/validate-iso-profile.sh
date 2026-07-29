@@ -15,7 +15,7 @@ require_tool() {
 }
 
 for tool in awk bash cmp comm date find git grep install mkdir mktemp pacman-conf \
-  readlink rm sed sort stat uniq wc; do
+  readlink rm sed sort stat uniq visudo wc; do
   require_tool "$tool"
 done
 
@@ -53,6 +53,7 @@ required_files=(
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset"
   "${airootfs_dir}/etc/plymouth/plymouthd.conf"
+  "${airootfs_dir}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules"
   "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf"
   "${airootfs_dir}/etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf"
   "${airootfs_dir}/etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf"
@@ -65,10 +66,12 @@ required_files=(
   "${airootfs_dir}/etc/systemd/system/schweisos-boot-debug-fallback.service"
   "${airootfs_dir}/etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf"
   "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf"
+  "${airootfs_dir}/etc/sudoers.d/10-schweisos-live"
   "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog"
+  "${airootfs_dir}/usr/local/share/applications/calamares.desktop"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
   "$schweis_pacman_config"
@@ -179,6 +182,11 @@ cmp -s "${tmp_dir}/profile.utc" "${tmp_dir}/profile.istanbul" || \
   fail 'profile metadata changes with the host timezone'
 cmp -s "${tmp_dir}/profile.utc" "${tmp_dir}/profile.honolulu" || \
   fail 'profile metadata changes with the host timezone'
+TZ=UTC SOURCE_DATE_EPOCH=0 bash -c '
+  set -euo pipefail
+  source "$1"
+  [[ "${file_permissions["/etc/sudoers.d/10-schweisos-live"]-}" == "0:0:440" ]]
+' _ "$profiledef" || fail 'profiledef must install the live sudoers drop-in as root-owned mode 0440'
 
 if ! awk '
   /^[[:space:]]*$/ { next }
@@ -429,6 +437,9 @@ expected_overlay_paths=(
   etc/mkinitcpio.d/linux.preset
   etc/plymouth
   etc/plymouth/plymouthd.conf
+  etc/polkit-1
+  etc/polkit-1/rules.d
+  etc/polkit-1/rules.d/49-schweisos-live-admin.rules
   etc/sddm.conf.d
   etc/sddm.conf.d/10-schweisos-live.conf
   etc/systemd
@@ -454,6 +465,8 @@ expected_overlay_paths=(
   etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf
   etc/sysusers.d
   etc/sysusers.d/schweisos-live.conf
+  etc/sudoers.d
+  etc/sudoers.d/10-schweisos-live
   etc/tmpfiles.d
   etc/tmpfiles.d/schweisos-live.conf
   usr
@@ -462,6 +475,10 @@ expected_overlay_paths=(
   usr/lib/schweisos-live/plymouth-is-stopped
   usr/lib/schweisos-live/plymouth-quit-guarded
   usr/lib/schweisos-live/plymouth-watchdog
+  usr/local
+  usr/local/share
+  usr/local/share/applications
+  usr/local/share/applications/calamares.desktop
   usr/share
   usr/share/plymouth
   usr/share/plymouth/themes
@@ -491,15 +508,32 @@ localtime_link="${airootfs_dir}/etc/localtime"
 sysusers_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sysusers.d/schweisos-live.conf")"
 tmpfiles_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf")"
 sddm_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf")"
+sudoers_file="${airootfs_dir}/etc/sudoers.d/10-schweisos-live"
+polkit_rule="${airootfs_dir}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules"
+calamares_desktop_override="${airootfs_dir}/usr/local/share/applications/calamares.desktop"
 live_hostname="$(<"${airootfs_dir}/etc/hostname")"
 live_locale="$(<"${airootfs_dir}/etc/locale.conf")"
 [[ "$live_hostname" == schweisos ]] || fail 'unexpected live hostname'
 [[ "$live_locale" == 'LANG=C.UTF-8' ]] || fail 'live locale must match the Archiso C.UTF-8 baseline'
-[[ "$sysusers_line" == 'u live 1000 "SchweisOS Live User" /home/live /usr/bin/bash' ]] || \
+[[ "$sysusers_line" == $'u live 1000 "SchweisOS Live User" /home/live /usr/bin/bash\nm live wheel' ]] || \
   fail 'unexpected live sysusers declaration'
 [[ "$tmpfiles_line" == 'd /home/live 0750 live live -' ]] || fail 'unexpected live home declaration'
 [[ "$sddm_config" == $'[Autologin]\nUser=live\nSession=plasma.desktop' ]] || \
   fail 'unexpected SDDM live-session configuration'
+visudo -cf "$sudoers_file" >/dev/null 2>&1 || fail 'live sudoers drop-in is invalid'
+grep -Fxq 'live ALL=(ALL:ALL) NOPASSWD: ALL' "$sudoers_file" || \
+  fail 'live sudoers drop-in must grant passwordless sudo only to the live user'
+for required_polkit_fragment in \
+  'subject.user == "live"' \
+  'subject.local' \
+  'subject.active' \
+  'polkit.Result.YES'; do
+  grep -Fq "$required_polkit_fragment" "$polkit_rule" || \
+    fail "live polkit rule is missing: ${required_polkit_fragment}"
+done
+calamares_desktop_override_config="$(grep -Ev '^[[:space:]]*($|#)' "$calamares_desktop_override")"
+[[ "$calamares_desktop_override_config" == $'[Desktop Entry]\nType=Application\nName=Install System\nNoDisplay=true\nHidden=true' ]] || \
+  fail 'Calamares upstream launcher override must hide the generic Install System entry'
 
 plymouth_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/plymouth/plymouthd.conf")"
 [[ "$plymouth_config" == $'[Daemon]\nTheme=schweisos\nShowDelay=0' ]] || \

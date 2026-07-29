@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Live-media exception: the autologged-in SchweisOS live user may perform
+# administrative actions without a password inside the ephemeral ISO session.
+# This file is not installed to target systems; Calamares creates installed
+# users and sudo policy independently.
+live ALL=(ALL:ALL) NOPASSWD: ALL

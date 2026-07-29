@@ -78,10 +78,19 @@ helpers.
 
 Calamares itself is not copied into the repository and is not vendored in the
 ISO profile. Because Arch official repositories do not provide the Calamares
-binary in the evaluated environment, a reviewed Calamares package must exist in
-the signed SchweisOS repository before an installer ISO can resolve
-`calamares` and `schweisos-calamares-config`. Package resolution must fail
-closed until that dependency is available from an approved repository source.
+binary in the evaluated environment, SchweisOS admits a reviewed Calamares
+package source and requires a signed SchweisOS repository package before an
+installer ISO can resolve `calamares` and `schweisos-calamares-config`.
+Package resolution must fail closed until that dependency is available from an
+approved repository source.
+
+The live ISO must let the autologged-in `live` user start the installer and
+other administrative live-session tools without knowing a root password. This
+is implemented as a live-only account, sudoers, and polkit exception in
+`iso/profiles/kde/airootfs/`. The exception is intentionally scoped to the
+local active live session and must never be copied into the installed system.
+The visible launcher is `Install SchweisOS`; the profile hides Calamares'
+generic upstream `Install System` desktop entry with a live-only XDG override.
 
 The installer must not clone the live root filesystem into the target system.
 Live-root cloning would copy Archiso-only mkinitcpio configuration, live
@@ -221,6 +230,9 @@ Positive:
 - The target pacman include is installer-owned, preserving package boundaries.
 - The package-owned configuration can be versioned, signed, tested, removed,
   and updated independently.
+- Live-session passwordless administration makes the installer usable without
+  teaching users an undocumented root password, while remaining outside the
+  target install path.
 
 Negative:
 
@@ -234,6 +246,9 @@ Negative:
   rollback, or GRUB activation.
 - `pacstrap` from the live environment requires the live system to have a
   complete trusted SchweisOS repository configuration and package availability.
+- The live ISO has broad local administrative authority by design. This is
+  acceptable only because it is ephemeral, local/active-session scoped, and not
+  installed to target systems.
 
 ## Validation
 

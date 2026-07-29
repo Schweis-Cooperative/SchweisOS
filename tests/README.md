@@ -69,8 +69,9 @@ UEFI normal/debug templates and exact titles, loader entry suppression,
 canonical-logo Plymouth animation primitives, dual unexpected-exit detectors,
 propagated client failures, bounded quit waiting, guarded automatic diagnostic
 fallback, noninteractive first-boot defaults, mkinitcpio inputs, live-overlay
-allowlist, permissions, symlinks, and absence of signing material. It also
-proves that the branding package source resolves to
+allowlist, passwordless local live-session administration policy, hidden
+upstream Calamares launcher override, permissions, symlinks, and absence of
+signing material. It also proves that the branding package source resolves to
 `branding/assets/logo/schweisos.png` and that the theme has no second image
 dependency. Pacman parsing uses a disposable sysroot populated from the real
 bootstrap configuration files; it does not modify `/etc`, contact repositories,
@@ -216,9 +217,10 @@ tests/validate-built-iso-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
 It verifies the two resolved systemd-boot entries, disabled interactive
 firstboot, the exact installed `schweisos-branding` version and canonical logo
 hash, C.UTF-8/UTC live defaults, SDDM/Plasma handoff inputs, live fallback unit
-payloads including the boot-bounded watchdog, merged systemd unit validity, and
-the Plymouth configuration, script plugin, theme, and canonical logo inside
-the actual initramfs. A stale signed
+payloads including the boot-bounded watchdog, live sudo/polkit administration
+policy, hidden upstream Calamares launcher override, merged systemd unit
+validity, and the Plymouth configuration, script plugin, theme, and canonical
+logo inside the actual initramfs. A stale signed
 branding package therefore fails before the wrapper publishes checksums even
 if source-only profile validation passes.
 

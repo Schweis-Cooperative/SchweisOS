@@ -16,6 +16,11 @@ Implemented in source:
 
 - Calamares configuration package source.
 - Live ISO package composition for installer packages.
+- Live-session administration policy so the autologged-in live user can start
+  the graphical installer and other administrative GUI tools without a root
+  password prompt.
+- Live desktop menu cleanup so only `Install SchweisOS` is shown, not
+  Calamares' generic upstream `Install System` launcher.
 - UEFI-only preflight policy.
 - systemd-boot installed-system workflow.
 - ext4 default filesystem with Btrfs as advanced optional filesystem support.
@@ -23,12 +28,10 @@ Implemented in source:
 - Target pacman include configuration for the SchweisOS signed repository.
 - Static installer configuration validator.
 
-Not yet proven:
+Not yet fully qualified:
 
-- Calamares binary package availability from a signed SchweisOS repository.
-- ISO build containing the installer.
-- Graphical installation in VM or hardware.
-- First boot of an installed system.
+- Graphical installation in the complete VM and hardware matrix.
+- First boot of an installed system across the documented storage scenarios.
 
 ## Runbooks
 
@@ -54,6 +57,8 @@ Live ISO
 
 - The live root is not cloned into the target.
 - Installer payload must not live in `airootfs/`.
+- Live passwordless sudo and polkit rules are live-media exceptions only; they
+  must not be installed to the target system.
 - The installer does not build or sign packages.
 - The installer does not weaken pacman signature policy.
 - The installer does not activate GRUB in the MVP.

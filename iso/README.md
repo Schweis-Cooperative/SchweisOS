@@ -37,10 +37,12 @@ small upstream-compatible profile:
   selected upstream boot mode, including only the normal and debug live
   entries.
 - `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
-  SDDM autologin, NetworkManager startup, Plymouth selection,
-  canonical-logo animation, neutral noninteractive first-boot defaults, and
-  automatic diagnostic fallback. This includes three short audited Bash
-  helpers whose behavior is meaningful only during live boot.
+  SDDM autologin, NetworkManager startup, passwordless local live-session
+  administration, Plymouth selection, canonical-logo animation, neutral
+  noninteractive first-boot defaults, the desktop-entry override that hides
+  Calamares' generic upstream launcher, and automatic diagnostic fallback. This
+  includes three short audited Bash helpers whose behavior is meaningful only
+  during live boot.
 
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
@@ -56,9 +58,11 @@ ephemeral account directly to Plasma.
 KDE defaults, wallpapers, SDDM theming, and installed-system boot policy are
 intentionally absent from the profile. Installer integration is consumed only
 through packages such as `calamares` and `schweisos-calamares-config`; no
-installer payload is copied into `airootfs/`. The live-only overlay and its
-removal condition are documented in `profiles/kde/README.md`; documentation is
-kept outside `airootfs/` so it is not copied into the live root filesystem.
+installer payload is copied into `airootfs/`. The profile may still hide the
+generic upstream Calamares launcher so the live desktop exposes only
+`Install SchweisOS`. The live-only overlay and its removal condition are
+documented in `profiles/kde/README.md`; documentation is kept outside
+`airootfs/` so it is not copied into the live root filesystem.
 
 ## Repository Integration
 

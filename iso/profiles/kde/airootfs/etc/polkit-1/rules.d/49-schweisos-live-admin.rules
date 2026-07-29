@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Live-media exception: local, active SchweisOS live sessions may authorize
+// administrative GUI actions without a root password. This mirrors the
+// passwordless sudo contract for the ephemeral ISO user and is never copied to
+// installed systems.
+polkit.addRule(function(action, subject) {
+    if (subject.user == "live" && subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+});

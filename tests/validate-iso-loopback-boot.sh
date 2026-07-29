@@ -94,7 +94,7 @@ for forbidden_member in boot/grub/grub.cfg syslinux/syslinux.cfg; do
 done
 
 mapfile -t uuid_members < <(
-    awk '$0 ~ /^boot\/[0-9-]+\\.uuid$/ { print }' <<<"$iso_listing" | sort
+    awk '$0 ~ /^boot\/[0-9-]+\.uuid$/ { print }' <<<"$iso_listing" | sort
 )
 (( ${#uuid_members[@]} == 1 )) || \
     fail "ISO must contain exactly one Archiso UUID marker; found ${#uuid_members[@]}"

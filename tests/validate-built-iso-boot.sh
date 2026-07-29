@@ -83,7 +83,7 @@ mapfile -t iso_loader_entries < <(
     fail 'ISO contains an unexpected systemd-boot entry set'
 
 mapfile -t iso_uuid_members < <(
-    awk '$0 ~ /^boot\/[0-9-]+\\.uuid$/ { print }' <<<"$iso_listing" | sort
+    awk '$0 ~ /^boot\/[0-9-]+\.uuid$/ { print }' <<<"$iso_listing" | sort
 )
 (( ${#iso_uuid_members[@]} == 1 )) || \
     fail "ISO must contain exactly one Archiso UUID marker; found ${#iso_uuid_members[@]}"

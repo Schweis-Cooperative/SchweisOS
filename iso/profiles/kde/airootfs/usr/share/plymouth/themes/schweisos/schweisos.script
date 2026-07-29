@@ -1,66 +1,49 @@
 Window.SetBackgroundTopColor(0.020, 0.063, 0.133);
-Window.SetBackgroundBottomColor(0.024, 0.075, 0.149);
+Window.SetBackgroundBottomColor(0.020, 0.063, 0.133);
 
 animation.frame = 0;
 animation.progress = 0;
-animation.intro = 0;
 
 logo.source_image = Image("schweisos.png");
 
-# The canonical PNG is intentionally the only artwork source. A full-screen,
-# low-opacity ambient layer derived from it lets the splash share the same
-# dark-blue field as the logo and reduces the visible edge of the opaque source
-# image without copying or inventing another logo asset.
-ambient.size = Window.GetWidth();
-if (Window.GetHeight() > ambient.size) {
-  ambient.size = Window.GetHeight();
-}
-ambient.size = Math.Int(ambient.size * 1.08);
-ambient.image = logo.source_image.Scale(ambient.size, ambient.size);
-ambient.sprite = Sprite(ambient.image);
-ambient.sprite.SetZ(1);
-ambient.sprite.SetOpacity(0);
-
-logo.base_size = Window.GetHeight() / 3.05;
+# The canonical PNG is intentionally the only artwork source. The current
+# motion contract follows the project-provided Windows 8 boot reference for
+# timing and loading feel, while replacing every platform-specific visual with
+# SchweisOS branding. The near-black stage matches the canonical logo's own
+# edge tone so the opaque source image does not appear as a separate card.
+logo.size = Window.GetHeight() / 3.05;
 if (Window.GetWidth() < Window.GetHeight()) {
-  logo.base_size = Window.GetWidth() / 3.05;
+  logo.size = Window.GetWidth() / 3.05;
 }
-if (logo.base_size > 340) {
-  logo.base_size = 340;
+if (logo.size > 300) {
+  logo.size = 300;
 }
-if (logo.base_size < 178) {
-  logo.base_size = 178;
+if (logo.size < 160) {
+  logo.size = 160;
 }
 
-# Pre-render a narrow scale range once. Refreshes only swap cached images,
-# avoiding repeated resampling of the canonical 1254px logo during early boot.
-logo.frame_count = 21;
-for (index = 0; index < logo.frame_count; index++) {
-  scale = 0.992 + (index * 0.0018);
-  frame_size = Math.Int(logo.base_size * scale);
-  logo.image[index] = logo.source_image.Scale(frame_size, frame_size);
-}
-logo.current_frame = 10;
-logo.sprite = Sprite(logo.image[logo.current_frame]);
+logo.image = logo.source_image.Scale(Math.Int(logo.size), Math.Int(logo.size));
+logo.sprite = Sprite(logo.image);
 logo.sprite.SetZ(10);
 logo.sprite.SetOpacity(0);
 
-# A second, very restrained logo-derived aura gives the center a softer depth
-# cue. It remains tied to schweisos.png and is not a separate artwork source.
-logo.aura_image = logo.source_image.Scale(Math.Int(logo.base_size * 1.055), Math.Int(logo.base_size * 1.055));
-logo.aura = Sprite(logo.aura_image);
-logo.aura.SetZ(8);
-logo.aura.SetOpacity(0);
+logo.delay_frames = 36;
+logo.fade_frames = 24;
 
-# The loading trail is sampled from the white eye in the canonical logo. The
-# elliptical motion avoids a generic terminal-era spinner while staying quiet.
-spinner.dot_image[0] = logo.source_image.Crop(624, 325, 32, 32).Scale(6, 6);
-spinner.dot_image[1] = logo.source_image.Crop(624, 325, 32, 32).Scale(8, 8);
-spinner.dot_image[2] = logo.source_image.Crop(624, 325, 32, 32).Scale(10, 10);
-spinner.count = 12;
-spinner.phase = 0;
-spinner.radius_x = 34;
-spinner.radius_y = 11;
+# The loader is generated from the white eye in schweisos.png. Five dots chase
+# each other around a compact circle, mirroring the reference animation's
+# pacing without adding duplicate raster artwork.
+spinner.dot_image[0] = logo.source_image.Crop(628, 330, 22, 22).Scale(5, 5);
+spinner.dot_image[1] = logo.source_image.Crop(628, 330, 22, 22).Scale(6, 6);
+spinner.dot_image[2] = logo.source_image.Crop(628, 330, 22, 22).Scale(7, 7);
+spinner.dot_image[3] = logo.source_image.Crop(628, 330, 22, 22).Scale(8, 8);
+spinner.dot_image[4] = logo.source_image.Crop(628, 330, 22, 22).Scale(9, 9);
+spinner.count = 5;
+spinner.phase = 0 - (Math.Pi / 2);
+spinner.radius = 22;
+spinner.angle_gap = 0.54;
+spinner.delay_frames = 84;
+spinner.fade_frames = 14;
 for (index = 0; index < spinner.count; index++) {
   spinner.sprite[index] = Sprite(spinner.dot_image[0]);
   spinner.sprite[index].SetZ(11);
@@ -69,33 +52,31 @@ for (index = 0; index < spinner.count; index++) {
 
 fun layout_callback()
 {
-  ambient_x = Window.GetX() + (Window.GetWidth() - ambient.image.GetWidth()) / 2;
-  ambient_y = Window.GetY() + (Window.GetHeight() - ambient.image.GetHeight()) / 2;
-  ambient.sprite.SetX(ambient_x);
-  ambient.sprite.SetY(ambient_y);
-
-  logo_x = Window.GetX() + (Window.GetWidth() - logo.image[logo.current_frame].GetWidth()) / 2;
-  logo_y = Window.GetY() + (Window.GetHeight() - logo.image[logo.current_frame].GetHeight()) / 2;
-  logo_y -= 22;
-  logo_y += (1 - animation.intro) * 14;
-  logo_y += Math.Sin(animation.frame * ((2 * Math.Pi) / 190)) * 1.4;
+  logo_x = Window.GetX() + (Window.GetWidth() - logo.image.GetWidth()) / 2;
+  logo_y = Window.GetY() + (Window.GetHeight() - logo.image.GetHeight()) / 2;
+  logo_y -= 30;
   logo.sprite.SetX(logo_x);
   logo.sprite.SetY(logo_y);
 
-  aura_x = Window.GetX() + (Window.GetWidth() - logo.aura_image.GetWidth()) / 2;
-  aura_y = Window.GetY() + (Window.GetHeight() - logo.aura_image.GetHeight()) / 2;
-  aura_y -= 22;
-  logo.aura.SetX(aura_x);
-  logo.aura.SetY(aura_y);
-
   spinner_x = Window.GetX() + Window.GetWidth() / 2;
-  spinner_y = Window.GetY() + Window.GetHeight() / 2 + logo.base_size / 2 + 42;
+  spinner_y = logo_y + logo.image.GetHeight() + 48;
   for (index = 0; index < spinner.count; index++) {
-    angle = ((2 * Math.Pi) / spinner.count) * index;
-    dot_x = spinner_x + (Math.Cos(angle) * spinner.radius_x);
-    dot_y = spinner_y + (Math.Sin(angle) * spinner.radius_y);
-    dot_x -= spinner.dot_image[1].GetWidth() / 2;
-    dot_y -= spinner.dot_image[1].GetHeight() / 2;
+    angle = spinner.phase - (index * spinner.angle_gap);
+    dot_size = 5;
+    if (index == 0) {
+      dot_size = 9;
+    }
+    if (index == 1) {
+      dot_size = 8;
+    }
+    if (index == 2) {
+      dot_size = 7;
+    }
+    if (index == 3) {
+      dot_size = 6;
+    }
+    dot_x = spinner_x + (Math.Cos(angle) * spinner.radius) - (dot_size / 2);
+    dot_y = spinner_y + (Math.Sin(angle) * spinner.radius) - (dot_size / 2);
     spinner.sprite[index].SetX(dot_x);
     spinner.sprite[index].SetY(dot_y);
   }
@@ -104,58 +85,64 @@ fun layout_callback()
 fun refresh_callback()
 {
   animation.frame += 1;
-  if (animation.intro < 1) {
-    animation.intro += 0.035;
-  }
-  if (animation.intro > 1) {
-    animation.intro = 1;
-  }
 
-  breath = (Math.Cos(animation.frame * ((2 * Math.Pi) / 170)) + 1) / 2;
-  next_logo_frame = Math.Int(breath * (logo.frame_count - 1));
-  if (next_logo_frame != logo.current_frame) {
-    logo.current_frame = next_logo_frame;
-    logo.sprite.SetImage(logo.image[logo.current_frame]);
+  logo_intro = (animation.frame - logo.delay_frames) / logo.fade_frames;
+  if (logo_intro < 0) {
+    logo_intro = 0;
   }
-
-  logo.sprite.SetOpacity(animation.intro * (0.955 + (breath * 0.035)));
-  logo.aura.SetOpacity(animation.intro * (0.055 + (breath * 0.035)));
-  ambient.sprite.SetOpacity(animation.intro * (0.070 + (breath * 0.025)));
-
-  spinner.phase += 0.085;
-  if (spinner.phase >= spinner.count) {
-    spinner.phase -= spinner.count;
+  if (logo_intro > 1) {
+    logo_intro = 1;
   }
-  spinner_head = Math.Int(spinner.phase);
+  logo_intro = logo_intro * logo_intro * (3 - (2 * logo_intro));
 
-  spinner_finish_opacity = 1;
-  if (animation.progress > 0.92) {
-    spinner_finish_opacity = (1 - animation.progress) / 0.08;
+  spinner_intro = (animation.frame - spinner.delay_frames) / spinner.fade_frames;
+  if (spinner_intro < 0) {
+    spinner_intro = 0;
   }
-  if (spinner_finish_opacity < 0) {
-    spinner_finish_opacity = 0;
+  if (spinner_intro > 1) {
+    spinner_intro = 1;
+  }
+  spinner_intro = spinner_intro * spinner_intro * (3 - (2 * spinner_intro));
+
+  handoff = 1;
+  if (animation.progress > 0.88) {
+    handoff = (1 - animation.progress) / 0.12;
+  }
+  if (handoff < 0) {
+    handoff = 0;
+  }
+  if (handoff > 1) {
+    handoff = 1;
+  }
+  handoff = handoff * handoff * (3 - (2 * handoff));
+
+  logo.sprite.SetOpacity(logo_intro * handoff);
+
+  spinner.phase += 0.108;
+  if (spinner.phase > (2 * Math.Pi)) {
+    spinner.phase -= (2 * Math.Pi);
   }
 
   for (index = 0; index < spinner.count; index++) {
-    distance = spinner_head - index;
-    if (distance < 0) {
-      distance += spinner.count;
-    }
-
-    dot_opacity = 0.10 + ((spinner.count - distance - 1) * 0.045);
+    dot_opacity = 0.30;
     spinner.sprite[index].SetImage(spinner.dot_image[0]);
-    if (distance == 1) {
-      dot_opacity = 0.64;
-      spinner.sprite[index].SetImage(spinner.dot_image[1]);
+    if (index == 0) {
+      dot_opacity = 0.96;
+      spinner.sprite[index].SetImage(spinner.dot_image[4]);
     }
-    if (distance == 0) {
-      dot_opacity = 0.94;
+    if (index == 1) {
+      dot_opacity = 0.78;
+      spinner.sprite[index].SetImage(spinner.dot_image[3]);
+    }
+    if (index == 2) {
+      dot_opacity = 0.58;
       spinner.sprite[index].SetImage(spinner.dot_image[2]);
     }
-
-    spinner.sprite[index].SetOpacity(
-      animation.intro * spinner_finish_opacity * dot_opacity
-    );
+    if (index == 3) {
+      dot_opacity = 0.42;
+      spinner.sprite[index].SetImage(spinner.dot_image[1]);
+    }
+    spinner.sprite[index].SetOpacity(spinner_intro * handoff * dot_opacity);
   }
 
   layout_callback();
@@ -174,9 +161,7 @@ fun boot_progress_callback(duration, progress)
 
 fun quit_callback()
 {
-  ambient.sprite.SetOpacity(0.07);
-  logo.aura.SetOpacity(0.04);
-  logo.sprite.SetOpacity(0.99);
+  logo.sprite.SetOpacity(0);
   for (index = 0; index < spinner.count; index++) {
     spinner.sprite[index].SetOpacity(0);
   }

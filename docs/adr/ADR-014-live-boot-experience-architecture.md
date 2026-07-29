@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.5
+Version: 1.6
 
 ## Status
 
@@ -70,10 +70,10 @@ The profile will:
   `/usr/share/schweisos/branding/schweisos.png`, which is provided by
   `schweisos-branding` from the single canonical source at
   `branding/assets/logo/schweisos.png`;
-- use the upstream Plymouth script plugin for a bounded fade-in, a low-opacity
-  ambient layer, a subtle pre-rendered scale/opacity breathing cycle, and an
-  elliptical loading trail sampled from the canonical logo, without adding
-  another image source;
+- use the upstream Plymouth script plugin for a temporary reference-matched
+  near-black-stage boot animation: delayed logo fade-in, delayed five-dot
+  circular chase loading motion sampled from the canonical logo, and
+  progress/quit fade-out behavior, without adding another image source;
 - replace the upstream Plymouth client commands' error-ignoring service
   prefixes in live-only drop-ins so explicit show, quit, and wait failures reach
   systemd;
@@ -153,6 +153,20 @@ contract yet. The profile-owned implementation is bounded and can be migrated
 later. The separately approved GRUB package owns a different, installed-system
 bootloader concern.
 
+### Keep the Earlier Breathing/Ambient Splash
+
+The earlier SchweisOS Plymouth splash used a dark-blue ambient field, subtle
+logo breathing, and an elliptical ring-style loader. Manual review found that
+it still felt like separate boot stages and did not match the requested motion
+language closely enough. The current theme intentionally follows a
+project-provided Windows 8 boot-animation reference for timing, fade cadence,
+dark-stage minimalism, and five-dot loading motion only. Microsoft branding is
+not copied, no Windows artwork is used, and the near-black stage is matched to
+the canonical SchweisOS logo's edge tone so the opaque source image does not
+look like a separate card. This is not accepted as the final SchweisOS visual
+identity; it is a temporary implementation to establish motion quality before a
+fully original SchweisOS animation replaces it.
+
 ## Consequences
 
 Positive consequences:
@@ -161,7 +175,7 @@ Positive consequences:
 - The systemd-boot menu exposes only the reviewed normal and diagnostic paths
   and avoids an extra console-mode transition.
 - The Plymouth splash communicates ongoing work with restrained continuous
-  motion, color-matched depth, and a retained final frame rather than a static
+  five-dot circular motion and dark-stage fade timing rather than a static
   logo, a false percentage, or a visible console gap.
 - The debug path remains explicit and visible in systemd-boot.
 - Emergency boot, SDDM failure, Plymouth service failures, and unexpected
@@ -183,6 +197,11 @@ Negative consequences:
   Archiso baseline.
 - The live profile carries a small amount of theme and fallback configuration
   until a reusable boot-theme package is justified.
+- The current animation deliberately borrows motion timing from a Windows 8
+  reference video as a temporary calibration target. That prevents the boot
+  experience from being treated as the final original SchweisOS motion identity
+  and requires a future DDR/ADR update when original animation work replaces
+  it.
 - Static validation cannot prove visual quality; manual boot and hardware
   qualification remain required before release claims.
 - The path watcher and one-second watchdog can prove that the recorded PID is
@@ -202,9 +221,9 @@ The ISO profile validator must fail closed if:
 - the mkinitcpio hook list omits `kms` or `plymouth`;
 - the Plymouth theme copies branding assets instead of consuming the packaged
   branding directory;
-- the theme does not use `schweisos.png`, lacks the documented ambient,
-  fade/pulse, and loading-indicator primitives, or introduces a second image
-  dependency;
+- the theme does not use `schweisos.png`, lacks the documented delayed
+  fade-in, progress fade-out, five-dot circular chase, and loading-indicator
+  primitives, or introduces a second image dependency;
 - Plymouth client errors remain ignored, quit waiting is unbounded, or
   emergency/SDDM/Plymouth fallback units are missing;
 - the unexpected-exit path watcher, bounded-lifetime liveness watchdog,

@@ -49,11 +49,14 @@ The live profile owns the Plymouth behavior. It consumes the runtime logo from
 `schweisos-branding` from the canonical source
 `branding/assets/logo/schweisos.png`.
 
-The script plugin provides a bounded fade/rise intro, a color-matched ambient
-layer, a subtle pre-rendered breathing cycle, and a shallow elliptical loading
-trail sampled from the same logo. The normal quit handoff retains the final
-splash frame until SDDM takes over, reducing healthy-boot console flashes. It
-does not add a second logo or spinner asset.
+The script plugin now implements a temporary reference-matched near-black boot
+animation: a short dark lead, delayed logo fade-in, delayed five-dot circular
+chase loader, and progress/quit fade-out. The near-black stage matches the
+canonical logo's own edge tone so the opaque source image does not look like a
+separate card. The normal quit handoff retains a cleared splash frame until
+SDDM takes over, reducing healthy-boot console flashes without leaving a frozen
+logo. The script samples the loading dots from the same logo and does not add a
+second logo or spinner asset.
 
 Build validation is deliberately end-to-end. Before `mkarchiso`, the selected
 signed `schweisos-branding` package must match the source version and canonical

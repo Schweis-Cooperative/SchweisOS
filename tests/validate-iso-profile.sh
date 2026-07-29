@@ -515,12 +515,19 @@ mapfile -t plymouth_images < <(
   fail 'Plymouth script must not introduce another image dependency'
 for animation_primitive in \
   'SetRefreshFunction(refresh_callback)' \
+  'SetBootProgressFunction(boot_progress_callback)' \
+  'SetQuitFunction(quit_callback)' \
   'Math.Cos' \
   'Math.Sin' \
   '.Scale(' \
   '.Crop(' \
   'SetOpacity(' \
-  'spinner.phase'; do
+  'logo.delay_frames' \
+  'spinner.delay_frames' \
+  'spinner.count = 5' \
+  'spinner.angle_gap' \
+  'spinner.phase' \
+  'handoff'; do
   grep -Fq "$animation_primitive" "$plymouth_script" || \
     fail "Plymouth animation primitive is missing: ${animation_primitive}"
 done

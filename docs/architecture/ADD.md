@@ -317,9 +317,10 @@ disabled so the live-medium menu is limited to those two audited choices; the
 firmware-selected console mode is retained to avoid an extra visual mode
 transition. The initramfs source uses upstream mkinitcpio `kms` and `plymouth`
 hooks so the SchweisOS Plymouth theme can appear before the Plasma session. The
-theme source defines bounded fade, pulse, scale, color-matched ambient depth,
-and elliptical loading motion derived only from the canonical logo. Both
-entries disable interactive
+theme source currently defines a temporary reference-matched near-black-stage
+animation with delayed canonical-logo fade-in, delayed five-dot circular chase
+loading motion, and progress/quit fade-out behavior derived only from the
+canonical logo. Both entries disable interactive
 `systemd-firstboot`; the live-root source carries upstream Archiso's neutral
 `C.UTF-8`/UTC defaults. The live-only units are configured to quit Plymouth and
 restore console diagnostics if emergency mode is reached, SDDM fails, a

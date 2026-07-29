@@ -1,6 +1,6 @@
 # DDR-001 Boot Experience
 
-Version: 1.6
+Version: 1.7
 Status: Accepted
 Date: 2026-07-29
 
@@ -41,9 +41,14 @@ If boot cannot continue, the system should reveal the normal Linux diagnostic
 surface automatically. Advanced users should not have to guess a secret key
 sequence just to see what failed.
 
-The design language is intentionally restrained. SchweisOS should not imitate
-Windows, macOS, another Linux distribution, gaming firmware, or a phone boot
-animation. The boot should be quiet, direct, and confident.
+The design language is intentionally restrained. SchweisOS should not copy
+another operating system's branding, layout, or identity. For the current
+temporary Plymouth iteration only, the project is using a Windows 8 boot
+animation video as a motion and timing reference: dark-stage pacing, fade
+cadence, continuous five-dot loader motion, and handoff smoothness. Microsoft
+artwork is not used, SchweisOS branding remains canonical, and a later DDR/ADR
+update should replace this calibration target with a fully original SchweisOS
+motion identity. The boot should be quiet, direct, and confident.
 
 ## Design Decisions
 
@@ -88,18 +93,17 @@ without claiming an installed boot workflow that does not exist.
 
 The normal boot path starts Plymouth with a custom SchweisOS theme. The theme:
 
-- uses a dark blue background matched to the official artwork edge tones;
+- uses a near-black stage matched to the canonical logo edge tone so the
+  opaque source image does not read as a separate card;
 - centers the official SchweisOS logo;
 - scales the logo conservatively for different display sizes;
-- fades and rises into place without delaying boot;
-- uses a low-opacity ambient layer derived from the same canonical logo to
-  soften the opaque source image's square edge without adding another artwork
-  source;
-- uses a narrow, pre-rendered scale range, a restrained opacity pulse, and a
-  tiny vertical drift for a subtle breathing motion;
-- shows a twelve-point elliptical loading trail below the logo to communicate
-  ongoing activity without claiming false percentage accuracy;
-- fades the indicator near the end of Plymouth's reported boot progress;
+- holds a short dark lead, then fades the logo in without moving or pulsing it;
+- starts the loading indicator after the logo, matching the reference cadence;
+- shows five small dots chasing each other around a compact circular path below
+  the logo to communicate continuous activity without claiming false percentage
+  accuracy;
+- fades the logo and indicator near the end of Plymouth's reported boot
+  progress and clears the final retained frame on quit;
 - avoids text clutter, fake progress claims, audio, and decorative effects.
 
 The theme consumes `/usr/share/schweisos/branding/schweisos.png`, packaged from
@@ -256,22 +260,20 @@ The live profile uses upstream Plymouth's `script` theme module.
 
 The script maintains three bounded animation layers:
 
-1. An intro phase increases opacity and removes a ten-pixel vertical offset.
-2. A full-screen, low-opacity ambient layer derived from the canonical logo
-   shares the same dark-blue field as the opaque source image and reduces the
-   appearance of a separate square card.
-3. A slow cosine wave selects one of twenty-one logo images pre-rendered across
-   a narrow responsive scale range, while a tiny vertical drift prevents the
-   splash from feeling static. Runtime refreshes swap cached images rather
-   than continuously resampling the 1254px source.
-4. Twelve sprites move through a shallow elliptical loading trail below the
-   logo. All use samples cropped from the canonical logo; a moving opacity and
-   size trail produces activity without an additional spinner image or font
-   dependency.
+1. A near-black stage holds briefly before the logo appears, matching the
+   temporary reference pacing, hiding the opaque logo image edge, and avoiding
+   visible console artifacts during healthy boot.
+2. A responsive, canonical-logo sprite fades in after the dark lead and stays
+   still. The logo does not breathe, pulse, rotate, or scale during normal
+   animation.
+3. Five loading sprites, all sampled from the canonical logo, chase each other
+   around a compact circular path below the logo. The leading dot is larger and
+   brighter, with smaller trailing dots producing continuous motion without an
+   additional spinner image or font dependency.
 
-Plymouth's progress callback is used only to fade the activity indicator during
-the final portion of the handoff. The animation never displays or invents a
-percentage.
+Plymouth's progress callback is used only to fade the logo and activity
+indicator during the final portion of the handoff. The animation never displays
+or invents a percentage.
 
 The profile provides:
 
@@ -327,6 +329,8 @@ Revisit this DDR if:
 - a reusable `schweisos-boot-theme` package becomes justified;
 - Secure Boot changes the boot UX;
 - the installer starts activating the packaged GRUB alternative;
+- the temporary Windows 8 motion-reference calibration is replaced by a fully
+  original SchweisOS animation;
 - hardware testing shows Plymouth causes unacceptable blank-screen or GPU
   compatibility issues;
 - the logo or brand policy changes.

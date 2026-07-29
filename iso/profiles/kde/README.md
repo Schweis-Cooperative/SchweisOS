@@ -48,9 +48,10 @@ The following files are temporary live-media exceptions:
 - `/usr/share/plymouth/themes/schweisos/` contains the live-only Plymouth theme.
   Its `ImageDir` points at `/usr/share/schweisos/branding`, which is installed
   by `schweisos-branding`; no logo asset is copied into the profile. The script
-  fades in and gently pulses the canonical `schweisos.png`, derives a
-  low-opacity ambient layer from that same image, and uses its sampled pixels
-  for a shallow elliptical loading trail.
+  uses a temporary reference-matched near-black stage aligned with the
+  canonical logo edge tone, delayed logo fade-in, and five-dot circular chase
+  loader sampled from the canonical `schweisos.png`, then clears the retained
+  frame during the normal handoff.
 
 The UEFI loader retains the firmware-selected console mode and shows exactly
 `SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and

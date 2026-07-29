@@ -73,6 +73,10 @@ require_absent_path() {
 desktop_dir="${rootfs}/usr/share/applications"
 local_desktop_dir="${rootfs}/usr/local/share/applications"
 [[ -d "$desktop_dir" && ! -L "$desktop_dir" ]] || fail 'runtime desktop directory is missing'
+desktop_search_dirs=("$desktop_dir")
+if [[ -d "$local_desktop_dir" ]]; then
+    desktop_search_dirs+=("$local_desktop_dir")
+fi
 
 require_absent_path usr/share/applications/calamares.desktop
 require_absent_path usr/local/share/applications/calamares.desktop
@@ -104,8 +108,8 @@ require_mode "$runtime_logo" 644
 desktop-file-validate "$installer_launcher"
 desktop-file-validate "$installer_autostart"
 
-visible_launcher_count="$(grep -RIl --include='*.desktop' '^Name=Install SchweisOS$' \
-    "$desktop_dir" "$local_desktop_dir" 2>/dev/null \
+visible_launcher_count="$({ grep -RIl --include='*.desktop' '^Name=Install SchweisOS$' \
+    "${desktop_search_dirs[@]}" 2>/dev/null || true; } \
     | while IFS= read -r desktop_file; do
         grep -Fxq 'NoDisplay=true' "$desktop_file" && continue
         grep -Fxq 'Exec=/usr/bin/schweisos-installer' "$desktop_file" || continue
@@ -115,11 +119,11 @@ visible_launcher_count="$(grep -RIl --include='*.desktop' '^Name=Install Schweis
     fail "expected exactly one visible Install SchweisOS launcher; found ${visible_launcher_count}"
 
 generic_installer_entry="$(grep -RIl --include='*.desktop' '^Name=Install System$' \
-    "$desktop_dir" "$local_desktop_dir" 2>/dev/null || true)"
+    "${desktop_search_dirs[@]}" 2>/dev/null || true)"
 [[ -z "$generic_installer_entry" ]] || \
     fail "generic Install System launcher is visible: ${generic_installer_entry#"$rootfs"/}"
 direct_calamares_entry="$(grep -RIl --include='*.desktop' '^Exec=.*calamares' \
-    "$desktop_dir" "$local_desktop_dir" 2>/dev/null || true)"
+    "${desktop_search_dirs[@]}" 2>/dev/null || true)"
 [[ -z "$direct_calamares_entry" ]] || \
     fail "desktop entry bypasses SchweisOS installer wrapper: ${direct_calamares_entry#"$rootfs"/}"
 

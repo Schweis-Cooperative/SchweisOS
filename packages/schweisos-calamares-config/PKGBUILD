@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -35,6 +35,7 @@ source=(
   'README.md'
   'settings.conf'
   'branding.desc'
+  'show.qml'
   'finished.conf'
   'fstab.conf'
   'locale.conf'
@@ -60,9 +61,10 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('201faff6ba90e3a66d5a8edb6e21e54c973d8d78e88441b8d16f8c4108e2add4'
+sha256sums=('73752884168b56ee6e26bc77ff1862724749df3b8956bdfcdaa3ac395392f502'
             '3d4f07d689e866e5163f237f2a8e859604236c9a3cafa0929786d2f8e3c743bb'
-            '43e1c0695b88d7c54c5b72cb43db295a86c20282efc0ca86e826fbb3f58dcb06'
+            'fa267d05f0876e7178e730501d56c82b60418267f469316b566ee385473b5796'
+            '181bb186f4ee14d628c269c83b5cd779862d229748423acb94cd5f85eee398a1'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
@@ -93,6 +95,8 @@ package() {
     "${pkgdir}/etc/calamares/settings.conf"
   install -Dm644 "${srcdir}/branding.desc" \
     "${pkgdir}/etc/calamares/branding/schweisos/branding.desc"
+  install -Dm644 "${srcdir}/show.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/show.qml"
 
   install -Dm644 "${srcdir}/finished.conf" \
     "${pkgdir}/etc/calamares/modules/finished.conf"

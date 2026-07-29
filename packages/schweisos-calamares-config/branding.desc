@@ -28,6 +28,8 @@ images:
   productIcon: "/usr/share/schweisos/branding/schweisos.png"
   productWelcome: "/usr/share/schweisos/branding/schweisos.png"
 
+slideshow: "show.qml"
+
 style:
   SidebarBackground: "#051022"
   SidebarBackgroundCurrent: "#0b72b9"

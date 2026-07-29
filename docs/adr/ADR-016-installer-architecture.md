@@ -73,9 +73,9 @@ UEFI live ISO
 
 The source owner for SchweisOS installer configuration is the new
 `schweisos-calamares-config` package. The package installs Calamares settings,
-module configuration, branding descriptor, desktop launcher, target package
-manifest, a pacstrap-only pacman configuration, and small audited installer
-helpers.
+module configuration, branding descriptor, slideshow resource, desktop
+launcher, target package manifest, a pacstrap-only pacman configuration, and
+small audited installer helpers.
 
 Calamares itself is not copied into the repository and is not vendored in the
 ISO profile. Because Arch official repositories do not provide the Calamares
@@ -199,9 +199,9 @@ mirrors, or temporary keys.
 - `docs/adr/ADR-016-installer-architecture.md` owns this decision.
 - `docs/installer/` owns installer, manual installation, and recovery runbooks.
 - `packages/schweisos-calamares-config/` owns reusable Calamares configuration,
-  the single visible installer launcher, live-session autostart, exact-path
-  privilege bridge, target package manifest, pacstrap pacman configuration,
-  and installer helper scripts.
+  Calamares branding and slideshow resources, the single visible installer
+  launcher, live-session autostart, exact-path privilege bridge, target package
+  manifest, pacstrap pacman configuration, and installer helper scripts.
 - `packages/calamares/` owns the reviewed upstream binary package and omission
   of its generic launcher; it does not own SchweisOS desktop presentation.
 - `iso/profiles/kde/packages.x86_64` owns inclusion of Calamares and
@@ -283,7 +283,8 @@ The installer configuration validator must fail closed if:
 - the branded launcher, once-only autostart, exact-path Polkit action,
   XWayland bridge, single-instance lock, local log, or visible error path is
   missing;
-- Calamares branding uses invalid schema keys or a non-canonical logo path;
+- Calamares branding omits the required slideshow contract, uses invalid
+  schema keys, or uses a non-canonical logo path;
 - package source checksums are skipped;
 - Calamares configuration is not package-owned under `/etc/calamares`;
 - the ISO profile omits required installer packages;

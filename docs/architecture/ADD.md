@@ -167,9 +167,9 @@ Initial package categories:
 - `schweisos-branding`: minimal runtime visual identity assets.
 - `schweisos-grub-theme`: optional, inert GRUB theme for future
   installer-owned activation.
-- `schweisos-calamares-config`: Calamares installer configuration, launcher,
-  target package manifest, pacstrap policy, and installer-owned target
-  integration helpers.
+- `schweisos-calamares-config`: Calamares installer configuration, branding
+  and slideshow resources, launcher, target package manifest, pacstrap policy,
+  and installer-owned target integration helpers.
 - `schweisos-kde-settings`: KDE defaults through configuration files, not patched Plasma packages.
 - `schweisos-gaming-meta`: optional gaming package set.
 - `schweisos-flatpak-meta`: optional Flatpak integration package set.
@@ -366,6 +366,8 @@ SchweisOS` entry, a hidden once-per-live-boot XDG autostart entry, a guarded
 single-instance wrapper, and an exact-path Polkit/XWayland compatibility
 bridge for Calamares 3.4's privileged UI. Launcher failures create a private
 local diagnostic log and a visible KDE error dialog instead of disappearing.
+The same package owns Calamares' SchweisOS branding descriptor and required
+slideshow resource, both installed under `/etc/calamares/branding/schweisos/`.
 This user-facing contract is defined in
 [DDR-002 Installer Experience](../ddr/DDR-002-installer-experience.md).
 

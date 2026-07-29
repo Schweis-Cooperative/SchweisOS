@@ -106,6 +106,12 @@ case-sensitive schema. Product icon, sidebar logo, and welcome image all refer
 to `/usr/share/schweisos/branding/schweisos.png`, which is owned by
 `schweisos-branding` and originates from the one canonical repository logo.
 
+The branding component also includes Calamares' required `slideshow` key and a
+SchweisOS-owned `show.qml` resource. The slideshow is deliberately small:
+Calamares owns the progress-page container, while SchweisOS owns only a branded
+QML presentation that uses the same canonical runtime logo path and avoids
+duplicated artwork.
+
 ## User Flow
 
 ```text

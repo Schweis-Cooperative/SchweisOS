@@ -2,8 +2,8 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.2
-Status: Installer MVP configuration and live launch integration
+Version: 0.3
+Status: Installer MVP configuration and runtime launch integration
 Date: 2026-07-29
 
 `schweisos-calamares-config` provides the SchweisOS-owned configuration and
@@ -26,6 +26,7 @@ This package owns:
 
 - `/etc/calamares/settings.conf`
 - `/etc/calamares/branding/schweisos/branding.desc`
+- `/etc/calamares/branding/schweisos/show.qml`
 - `/etc/calamares/modules/*.conf` for SchweisOS installer policy
 - `/usr/bin/schweisos-installer`
 - `/usr/lib/schweisos-calamares/*`, including the exact-path privileged
@@ -80,6 +81,11 @@ arguments, sanitizes loader and Qt plugin environment variables, and selects
 Qt's `xcb` backend over packaged XWayland. The public wrapper checks UEFI and
 display authorization, prevents concurrent instances, captures a private
 launch log, and displays a KDE error dialog for launch or runtime failures.
+
+The branding component includes both the required `slideshow` key in
+`branding.desc` and a package-owned `show.qml` resource. The QML slideshow is
+loaded by Calamares during execution pages and references only the canonical
+runtime SchweisOS logo at `/usr/share/schweisos/branding/schweisos.png`.
 
 ## Calamares Binary Package
 

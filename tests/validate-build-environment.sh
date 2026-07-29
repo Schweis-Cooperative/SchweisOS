@@ -358,6 +358,7 @@ required_executables=(
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
     tests/install-local-bootstrap-packages.sh
+    tests/test-installer-experience.sh
     tests/test-plymouth-watchdog.sh
     tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh

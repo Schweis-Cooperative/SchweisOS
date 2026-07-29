@@ -32,6 +32,8 @@ git_root="$(cd -- "$git_root" && pwd -P)"
 [[ -f "$iso_path" && ! -L "$iso_path" && -s "$iso_path" ]] || \
     fail 'ISO artifact is missing, empty, or unsafe'
 iso_path="$(readlink -f -- "$iso_path")"
+"${project_root}/tests/validate-iso-loopback-boot.sh" "$iso_path" >/dev/null || \
+    fail 'built ISO does not satisfy the GRUB loopback boot contract'
 
 profile_dir="${project_root}/iso/profiles/kde"
 profiledef="${profile_dir}/profiledef.sh"
@@ -350,5 +352,6 @@ printf 'Built ISO boot validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"
 printf '  branding: schweisos-branding %s\n' "$installed_branding_version"
 printf '  logo SHA256: %s\n' "$(sha256sum -- "$runtime_logo" | awk '{ print $1 }')"
+printf '  loopback: GRUB loopback kernel/initramfs handoff verified\n'
 printf '  live defaults: LANG=C.UTF-8, UTC, systemd-firstboot disabled\n'
 printf '  initramfs: Plymouth theme, script plugin, and canonical logo verified\n'

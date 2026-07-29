@@ -1,6 +1,6 @@
 # ADR-015 GRUB Theme Architecture
 
-Version: 1.0
+Version: 1.1
 
 ## Status
 
@@ -18,6 +18,7 @@ Accepted
 - ADR-010 Licensing Policy
 - ADR-012 ISO Build Architecture
 - ADR-014 Live Boot Experience Architecture
+- ADR-017 Live ISO Loopback Boot Compatibility
 - DDR-001 Boot Experience
 
 ## Context
@@ -72,9 +73,10 @@ installed-system output is generated state. It does not create a second
 repository source or change `branding/assets/logo/schweisos.png` as the
 canonical artwork.
 
-The current live medium remains `uefi.systemd-boot`. No `grub/` profile area,
-GRUB Archiso boot mode, BIOS path, or GRUB package is added to the image by this
-decision.
+The current live medium remains `uefi.systemd-boot`. ADR-017 permits only a
+minimal profile-owned `grub/loopback.cfg` for Ventoy-style loopback boot
+compatibility. No full `grub.cfg`, GRUB Archiso boot mode, BIOS path, graphical
+GRUB theme, or GRUB package is added to the live image by this decision.
 
 ## Ownership
 
@@ -84,7 +86,8 @@ decision.
   non-logo theme decoration.
 - The future installer owns bootloader choice, deployment to boot-readable
   storage, configuration generation, and installed-system validation.
-- `iso/profiles/kde/` continues to own only the live-medium systemd-boot path.
+- `iso/profiles/kde/` continues to own the native live-medium systemd-boot
+  path plus the narrowly scoped ADR-017 loopback compatibility file.
 
 ## Security and Maintenance
 
@@ -114,7 +117,8 @@ upstream-first policy.
 
 Rejected. The accepted GRUB path is installed-system behavior, not current
 live-medium composition. Profile ownership would prevent clean package updates
-and blur the installer boundary.
+and blur the installer boundary. The ADR-017 loopback file is not theme
+content; it is a small Archiso boot handoff contract for outer GRUB launchers.
 
 ### Put the Theme in `schweisos-branding`
 
@@ -161,8 +165,8 @@ Repository validation must fail closed if:
 - its theme omits the documented menu, selection, timeout, and canonical logo
   references;
 - any required nine-slice image is missing or malformed;
-- the live ISO profile starts consuming the package without a separate
-  architecture decision.
+- the live ISO profile starts consuming the theme package or a full GRUB
+  configuration without a separate architecture decision.
 
 Runtime GRUB, installer, VM, and hardware validation remain unexecuted until an
 installer path is implemented and explicitly tested.

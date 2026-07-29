@@ -121,12 +121,21 @@ done
 if grep -Fxq 'schweisos-grub-theme' "$profile_packages"; then
   fail 'GRUB theme package must not enter the current systemd-boot live ISO'
 fi
-[[ ! -e "${project_root}/iso/profiles/kde/grub" ]] || \
-  fail 'current live ISO must not acquire a GRUB profile area'
+profile_grub_dir="${project_root}/iso/profiles/kde/grub"
+[[ -d "$profile_grub_dir" && ! -L "$profile_grub_dir" ]] || \
+  fail 'live ISO must carry only the approved GRUB loopback compatibility directory'
+mapfile -t profile_grub_files < <(
+  find "$profile_grub_dir" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort
+)
+[[ "${profile_grub_files[*]}" == 'loopback.cfg' ]] || \
+  fail 'live ISO GRUB profile area may contain only loopback.cfg'
+[[ ! -e "${profile_grub_dir}/grub.cfg" ]] || \
+  fail 'live ISO must not add a full GRUB bootloader configuration through the theme decision'
 
 git -C "$project_root" diff --check -- \
   branding \
   docs/adr/ADR-015-grub-theme-architecture.md \
+  iso/profiles/kde/grub \
   docs/boot \
   packages/schweisos-branding \
   packages/schweisos-grub-theme \
@@ -136,4 +145,4 @@ printf 'GRUB theme validation passed.\n'
 printf '  canonical logo regular files: %s\n' "$matching_logo_files"
 printf '  selection slices: %s (12x12 PNG)\n' "${#selection_slices[@]}"
 printf '  activation: inert; installer-owned\n'
-printf '  live ISO integration: absent by design\n'
+printf '  live ISO integration: theme absent; loopback compatibility only\n'

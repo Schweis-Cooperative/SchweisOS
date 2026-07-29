@@ -1,12 +1,13 @@
 # DDR-001 Boot Experience
 
-Version: 1.7
+Version: 1.8
 Status: Accepted
 Date: 2026-07-29
 
 Related architecture:
 [ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
-and [ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md)
+[ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md)
+and [ADR-017 Live ISO Loopback Boot Compatibility](../adr/ADR-017-live-iso-loopback-boot-compatibility.md)
 
 ## Goals
 
@@ -88,6 +89,19 @@ offers it as the installed-system alternative. Its SchweisOS theme uses:
 The theme package is intentionally inert and is not part of the live ISO. It
 does not install or activate GRUB. This preserves a coherent visual direction
 without claiming an installed boot workflow that does not exist.
+
+### GRUB Loopback Compatibility
+
+Some multiboot tools, including Ventoy GRUB2 mode, launch an ISO through an
+outer GRUB loopback chain instead of executing the ISO's native systemd-boot
+path directly. SchweisOS supports that bootloader-visible handoff with a
+minimal `loopback.cfg` that mirrors the normal and debug live entries and gives
+the Archiso initramfs the ISO-file location through `img_dev` and `img_loop`.
+
+This is not a visual GRUB boot experience and it is not the future installed
+GRUB alternative. It exists only to make the same live kernel and initramfs
+reachable from common USB multiboot launchers without adding clutter or a
+second native bootloader personality.
 
 ### Branded Plymouth Splash
 
@@ -228,6 +242,19 @@ UEFI firmware
   -> visible kernel and systemd status
 ```
 
+The multiboot loopback path is:
+
+```text
+UEFI firmware
+  -> Ventoy or another outer GRUB launcher
+  -> /boot/grub/loopback.cfg inside the SchweisOS ISO
+  -> SchweisOS Live or SchweisOS Live (Debug)
+  -> /schweis/boot/x86_64/vmlinuz-linux
+  -> /schweis/boot/x86_64/initramfs-linux.img
+  -> Archiso mounts the ISO through img_dev/img_loop
+  -> the same Plymouth, SDDM, and Plasma path as native live boot
+```
+
 The future installed GRUB alternative is designed as:
 
 ```text
@@ -317,7 +344,8 @@ SDDM success, Plasma arrival, or hardware compatibility.
 - No VM or hardware boot claim without future validation.
 - No installed-system bootloader runtime proof as part of this boot-experience
   decision.
-- No automatic GRUB activation or GRUB live-medium path.
+- No automatic GRUB activation or native GRUB live-medium path. The only live
+  GRUB source is the ADR-017 loopback compatibility file.
 - No Secure Boot policy.
 - No BIOS boot path.
 - No live-session installer screen, timezone wizard, or first-run setup.

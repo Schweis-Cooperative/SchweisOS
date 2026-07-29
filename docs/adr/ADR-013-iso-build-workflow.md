@@ -1,6 +1,6 @@
 # ADR-013 ISO Build Workflow
 
-Version: 1.5
+Version: 1.6
 
 ## Status
 
@@ -16,6 +16,7 @@ Accepted
 - ADR-011 Repository Architecture
 - ADR-012 ISO Build Architecture
 - ADR-014 Live Boot Experience Architecture
+- ADR-017 Live ISO Loopback Boot Compatibility
 
 ## Context
 
@@ -260,7 +261,7 @@ It:
 - Determines the repository root.
 - Selects an explicit profile, initially `iso/profiles/kde`.
 - Verifies required host commands and packages.
-- Verifies the profile files expected by ADR-012 and ADR-014.
+- Verifies the profile files expected by ADR-012, ADR-014, and ADR-017.
 - Creates `work/`, `out/`, `cache/`, and `logs/` subdirectories.
 - Supports a clean mode for generated build state.
 - Records the Git commit and tool versions.
@@ -270,8 +271,9 @@ It:
 - Exits non-zero on validation or build failure.
 - Prevents concurrent wrappers from sharing work, output, cache, or manifest
   state.
-- Validates generated artifact identity, live root, initramfs boot payload, and
-  checksums, then atomically records a privacy-minimized build manifest.
+- Validates generated artifact identity, the bootloader-visible loopback
+  handoff, live root, initramfs boot payload, and checksums, then atomically
+  records a privacy-minimized build manifest.
 
 It must not:
 

@@ -36,6 +36,11 @@ small upstream-compatible profile:
 - `efiboot/` contains the systemd-boot loader configuration required by the
   selected upstream boot mode, including only the normal and debug live
   entries.
+- `grub/loopback.cfg` contains the only approved GRUB profile file. Upstream
+  `mkarchiso` copies it to `/boot/grub/loopback.cfg` so Ventoy-style outer
+  GRUB loopback launchers can load the same kernel and initramfs while passing
+  Archiso's `img_dev`/`img_loop` ISO-file handoff. It is not a native GRUB live
+  boot configuration.
 - `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
   SDDM autologin, NetworkManager startup, passwordless local live-session
   administration, Plymouth selection, canonical-logo animation, neutral
@@ -46,6 +51,9 @@ small upstream-compatible profile:
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
 templates and use only archiso-supported template identifiers.
+The profile also carries the upstream Archiso loopback compatibility file for
+multiboot launchers; no full `grub.cfg`, syslinux profile, BIOS path, or GRUB
+package is part of the current live image.
 The text-oriented loader keeps the firmware console mode, disables automatic
 entries and editing, and exposes `SchweisOS Live` plus
 `SchweisOS Live (Debug)`. The source contract configures graphical
@@ -95,8 +103,9 @@ git diff --check
 
 The dedicated validator owns the complete profile contract, including package
 ordering, permissions, UEFI normal/debug entries, Plymouth integration,
-automatic diagnostic fallback, mkinitcpio inputs, airootfs minimality,
-host-independent pacman parsing, symlink targets, and secret scanning.
+automatic diagnostic fallback, GRUB loopback compatibility, mkinitcpio inputs,
+airootfs minimality, host-independent pacman parsing, symlink targets, and
+secret scanning.
 
 `tests/test-plymouth-watchdog.sh` exercises the real watchdog control flow with
 disposable command stubs. It verifies successful and in-progress normal
@@ -104,12 +113,17 @@ handoff, failed handoff, absent and later-stopped daemons, and propagation of
 health-helper and systemd-query errors. It does not boot an image or claim that
 a renderer displayed pixels.
 
-`tests/validate-built-iso-identity.sh` and
-`tests/validate-built-iso-boot.sh` are complementary post-build gates. On a
-completed image they extract the SquashFS and initramfs and prove the effective
-distribution identity, signed branding package version, canonical logo,
-Plymouth script/runtime, first-boot defaults, systemd fallback units, and
-Plasma handoff inputs. The wrapper requires both before publishing checksums.
+`tests/validate-iso-loopback-boot.sh`, `tests/validate-built-iso-identity.sh`,
+and `tests/validate-built-iso-boot.sh` are complementary post-build gates. On a
+completed image the loopback validator inspects only the bootloader-visible ISO
+root and proves the kernel, initramfs, EFI image, boot catalog, systemd-boot
+entries, and `/boot/grub/loopback.cfg` handoff before the more expensive
+SquashFS checks. The built identity and built boot validators then extract the
+SquashFS and initramfs and prove the effective distribution identity, signed
+branding package version, canonical logo, Plymouth script/runtime, first-boot
+defaults, systemd fallback units, installer runtime payload, and Plasma
+handoff inputs. The wrapper requires the post-build gates before publishing
+checksums.
 
 There is no current successful ISO evidence for the newly changed first-boot
 payload, Plymouth watchdog, built-boot validator, or exact v2 manifest

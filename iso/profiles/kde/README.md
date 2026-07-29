@@ -64,6 +64,15 @@ The UEFI loader retains the firmware-selected console mode and shows exactly
 `SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and
 interactive kernel-command-line editing are disabled for the live medium.
 
+`grub/loopback.cfg` is the only approved GRUB file in the profile. It exists so
+Ventoy-style multiboot launchers that boot the ISO through an outer GRUB
+loopback chain can load `/schweis/boot/x86_64/vmlinuz-linux` and
+`/schweis/boot/x86_64/initramfs-linux.img` with Archiso's required
+`archisobasedir`, `img_dev`, and `img_loop` parameters. It mirrors the
+systemd-boot normal and debug entries, but it does not enable Archiso's GRUB
+boot mode, add a full `grub.cfg`, add a BIOS path, or activate the packaged
+installed-system GRUB theme.
+
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction, create the passwordless automatic
 live session, authorize local live-session administration, or define the live

@@ -1,6 +1,6 @@
 # Tests Directory
 
-Version: 1.4
+Version: 1.5
 Status: Active
 Date: 2026-07-29
 
@@ -66,13 +66,14 @@ tests/validate-iso-profile.sh
 ```
 
 It validates the profile contract, package manifest, build-time pacman syntax,
-UEFI normal/debug templates and exact titles, loader entry suppression,
-canonical-logo Plymouth animation primitives, dual unexpected-exit detectors,
-propagated client failures, bounded quit waiting, guarded automatic diagnostic
-fallback, noninteractive first-boot defaults, mkinitcpio inputs, live-overlay
-allowlist, passwordless local live-session administration policy, package-owned
-installer launcher boundary, permissions, symlinks, and absence of
-signing material. It also proves that the branding package source resolves to
+UEFI normal/debug templates and exact titles, loader entry suppression, GRUB
+loopback compatibility for Ventoy-style multiboot launchers, canonical-logo
+Plymouth animation primitives, dual unexpected-exit detectors, propagated
+client failures, bounded quit waiting, guarded automatic diagnostic fallback,
+noninteractive first-boot defaults, mkinitcpio inputs, live-overlay allowlist,
+passwordless local live-session administration policy, package-owned installer
+launcher boundary, permissions, symlinks, and absence of signing material. It
+also proves that the branding package source resolves to
 `branding/assets/logo/schweisos.png` and that the theme has no second image
 dependency. Pacman parsing uses a disposable sysroot populated from the real
 bootstrap configuration files; it does not modify `/etc`, contact repositories,
@@ -148,7 +149,24 @@ It proves that the repository has exactly one regular canonical logo file,
 legacy logo paths remain compatibility symlinks, the GRUB package links to the
 runtime logo owned by `schweisos-branding`, the theme and nine-slice selection
 assets are structurally complete, no package hook installs or configures GRUB,
-and the package has not entered the current systemd-boot live ISO.
+and the package has not entered the current systemd-boot live ISO. The current
+live profile may contain only the ADR-017 `grub/loopback.cfg` compatibility
+file; a full live GRUB configuration remains forbidden.
+
+`validate-iso-loopback-boot.sh` performs a completed-ISO bootloader-layer
+inspection for Ventoy-style GRUB loopback compatibility:
+
+```bash
+tests/validate-iso-loopback-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
+```
+
+It does not extract SquashFS or boot the image. It proves the ISO-visible root
+contains the live kernel, initramfs, EFI image, boot catalog, one Archiso UUID
+marker, systemd-boot entries, and `/boot/grub/loopback.cfg`. It compares the
+built loopback file to the reviewed profile source after Archiso token
+substitution, rejects unresolved template tokens, and validates the
+`archisobasedir`, `img_dev`, and `img_loop` handoff that the Archiso initramfs
+needs when an outer GRUB launches the ISO file from USB storage.
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust
 contract between `schweisos-mirrorlist` and `schweisos-pacman-config`. It builds
@@ -245,20 +263,21 @@ check without booting a VM:
 tests/validate-built-iso-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
 ```
 
-It verifies the two resolved systemd-boot entries, disabled interactive
-firstboot, the exact installed `schweisos-branding` version and canonical logo
-hash, C.UTF-8/UTC live defaults, SDDM/Plasma handoff inputs, live fallback unit
-payloads including the boot-bounded watchdog, live sudo/polkit administration
-policy, hidden upstream Calamares launcher override, merged systemd unit
-validity, and the Plymouth configuration, script plugin, theme, and canonical
-logo inside the actual initramfs. A stale signed
+It verifies the bootloader-visible GRUB loopback handoff, the two resolved
+systemd-boot entries, disabled interactive firstboot, the exact installed
+`schweisos-branding` version and canonical logo hash, C.UTF-8/UTC live
+defaults, SDDM/Plasma handoff inputs, live fallback unit payloads including the
+boot-bounded watchdog, live sudo/polkit administration policy, hidden upstream
+Calamares launcher override, merged systemd unit validity, and the Plymouth
+configuration, script plugin, theme, and canonical logo inside the actual
+initramfs. A stale signed
 branding package therefore fails before the wrapper publishes checksums even
 if source-only profile validation passes.
 
 The validator uses `work/validators/built-iso-boot/` by default and, like the
 identity validator, can require several GiB of disk-backed temporary space.
-`scripts/build-iso.sh` invokes both built-ISO validators after `mkarchiso` and
-before checksum publication.
+`scripts/build-iso.sh` invokes the loopback check through the built-boot gate
+after `mkarchiso` and before checksum publication.
 
 `validate-iso-build-manifest.sh` owns the completed successful build-manifest
 contract:

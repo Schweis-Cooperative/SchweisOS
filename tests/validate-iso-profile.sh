@@ -38,6 +38,7 @@ required_directories=(
   "$airootfs_dir"
   "${profile_dir}/efiboot/loader"
   "$entry_dir"
+  "${profile_dir}/grub"
 )
 
 required_files=(
@@ -48,6 +49,7 @@ required_files=(
   "${profile_dir}/efiboot/loader/loader.conf"
   "${entry_dir}/01-schweisos-linux.conf"
   "${entry_dir}/02-schweisos-linux-debug.conf"
+  "${profile_dir}/grub/loopback.cfg"
   "${airootfs_dir}/etc/hostname"
   "${airootfs_dir}/etc/locale.conf"
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
@@ -401,12 +403,82 @@ done
 
 printf '%s\n' '%ARCH%' '%ARCHISO_UUID%' '%INSTALL_DIR%' | sort >"${tmp_dir}/allowed.tokens"
 grep -Eho '%[A-Z][A-Z0-9_]*%' "$loader_config" "${entry_dir}"/*.conf \
+  "${profile_dir}/grub/"*.cfg \
   | sort -u >"${tmp_dir}/actual.tokens" || true
 unexpected_tokens="$(comm -13 "${tmp_dir}/allowed.tokens" "${tmp_dir}/actual.tokens")"
 [[ -z "$unexpected_tokens" ]] || fail "unsupported Archiso template token: ${unexpected_tokens}"
 
 [[ ! -e "${profile_dir}/syslinux" ]] || fail 'syslinux is not allowed by the selected UEFI-only boot contract'
-[[ ! -e "${profile_dir}/grub" ]] || fail 'GRUB profile files are not allowed by the selected boot contract'
+mapfile -t grub_profile_files < <(
+  find "${profile_dir}/grub" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort
+)
+[[ "${grub_profile_files[*]}" == 'loopback.cfg' ]] || \
+  fail 'GRUB profile area may contain only loopback.cfg for Ventoy/loopback compatibility'
+[[ ! -e "${profile_dir}/grub/grub.cfg" ]] || \
+  fail 'full GRUB boot configuration is not allowed by the selected systemd-boot live contract'
+
+loopback_config="${profile_dir}/grub/loopback.cfg"
+grep -Fxq 'search --no-floppy --set=archiso_img_dev --file "${iso_path}"' "$loopback_config" || \
+  fail 'loopback.cfg must locate the filesystem containing the ISO file'
+grep -Fxq 'probe --set archiso_img_dev_uuid --fs-uuid "${archiso_img_dev}"' "$loopback_config" || \
+  fail 'loopback.cfg must derive img_dev from the ISO filesystem UUID'
+grep -Fxq 'default=schweisos' "$loopback_config" || \
+  fail 'loopback.cfg must default to the normal SchweisOS entry'
+grep -Fxq 'timeout=3' "$loopback_config" || \
+  fail 'loopback.cfg timeout must match the live systemd-boot timeout'
+
+mapfile -t loopback_menu_ids < <(
+  sed -n "s/.*--id '\\([^']*\\)'.*/\\1/p" "$loopback_config" | sort
+)
+[[ "${loopback_menu_ids[*]}" == 'schweisos schweisos-debug uefi-firmware' ]] || \
+  fail 'loopback.cfg must expose normal/debug entries plus UEFI firmware utility only'
+
+normal_loopback_linux="$(
+  awk "/--id 'schweisos'/,/^}/ { if (\$1 == \"linux\") { \$1 = \"\"; sub(/^[[:space:]]+/, \"\"); print; exit } }" \
+    "$loopback_config"
+)"
+normal_loopback_initrd="$(
+  awk "/--id 'schweisos'/,/^}/ { if (\$1 == \"initrd\") { print \$2; exit } }" \
+    "$loopback_config"
+)"
+debug_loopback_linux="$(
+  awk "/--id 'schweisos-debug'/,/^}/ { if (\$1 == \"linux\") { \$1 = \"\"; sub(/^[[:space:]]+/, \"\"); print; exit } }" \
+    "$loopback_config"
+)"
+debug_loopback_initrd="$(
+  awk "/--id 'schweisos-debug'/,/^}/ { if (\$1 == \"initrd\") { print \$2; exit } }" \
+    "$loopback_config"
+)"
+[[ "$normal_loopback_linux" == /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux* ]] || \
+  fail 'loopback normal entry uses an unexpected kernel path'
+[[ "$debug_loopback_linux" == /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux* ]] || \
+  fail 'loopback debug entry uses an unexpected kernel path'
+[[ "$normal_loopback_initrd" == '/%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img' ]] || \
+  fail 'loopback normal entry uses an unexpected initramfs path'
+[[ "$debug_loopback_initrd" == '/%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img' ]] || \
+  fail 'loopback debug entry uses an unexpected initramfs path'
+for loopback_line in "$normal_loopback_linux" "$debug_loopback_linux"; do
+  [[ " $loopback_line " == *' archisobasedir=%INSTALL_DIR% '* ]] || \
+    fail 'loopback entry is missing archisobasedir'
+  [[ " $loopback_line " == *' img_dev=UUID=${archiso_img_dev_uuid} '* ]] || \
+    fail 'loopback entry is missing img_dev UUID handoff'
+  [[ " $loopback_line " == *' img_loop="${iso_path}" '* ]] || \
+    fail 'loopback entry is missing img_loop handoff'
+  [[ " $loopback_line " == *' systemd.firstboot=no '* ]] || \
+    fail 'loopback entry must disable interactive systemd-firstboot'
+done
+[[ " $normal_loopback_linux " == *' quiet '* \
+  && " $normal_loopback_linux " == *' splash '* \
+  && " $normal_loopback_linux " == *' loglevel=3 '* \
+  && " $normal_loopback_linux " == *' systemd.show_status=auto '* \
+  && " $normal_loopback_linux " == *' vt.global_cursor_default=0 '* ]] || \
+  fail 'loopback normal entry does not match the quiet graphical boot contract'
+[[ " $debug_loopback_linux " != *' quiet '* \
+  && " $debug_loopback_linux " != *' splash '* \
+  && " $debug_loopback_linux " == *' loglevel=7 '* \
+  && " $debug_loopback_linux " == *' systemd.show_status=yes '* \
+  && " $debug_loopback_linux " == *' vt.global_cursor_default=1 '* ]] || \
+  fail 'loopback debug entry does not match the visible diagnostic contract'
 
 bash -c '
   set -euo pipefail

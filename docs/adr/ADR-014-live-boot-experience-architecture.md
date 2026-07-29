@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.6
+Version: 1.7
 
 ## Status
 
@@ -19,6 +19,7 @@ Accepted
 - ADR-012 ISO Build Architecture
 - ADR-013 ISO Build Workflow
 - ADR-015 GRUB Theme Architecture
+- ADR-017 Live ISO Loopback Boot Compatibility
 - DDR-001 Boot Experience
 
 ## Context
@@ -50,6 +51,9 @@ The profile will:
 - keep Archiso's upstream `uefi.systemd-boot` boot mode;
 - keep systemd-boot as a minimal text menu with a short timeout, a polished
   `SchweisOS Live` default entry, and a visible `SchweisOS Live (Debug)` entry;
+- carry the upstream Archiso-supported `/boot/grub/loopback.cfg` compatibility
+  path for Ventoy-style outer GRUB launchers without enabling GRUB as the
+  native live ISO bootloader;
 - preserve the firmware-selected console mode, disable loader editing, and
   suppress automatic firmware and operating-system entries so the live-medium
   menu contains only the two reviewed SchweisOS paths;
@@ -104,6 +108,9 @@ configuration with its own ADR update.
 ## Ownership
 
 - `iso/profiles/kde/efiboot/` owns live-medium systemd-boot loader inputs.
+- `iso/profiles/kde/grub/loopback.cfg` owns only live-medium GRUB loopback
+  compatibility for multiboot launchers; it does not own a native GRUB live
+  boot path.
 - `iso/profiles/kde/packages.x86_64` owns live image package composition,
   including the `plymouth` package.
 - `iso/profiles/kde/airootfs/` owns the live-only Plymouth selection, theme,
@@ -136,7 +143,9 @@ bootloader, or bootloader artwork outside the current UEFI-first Archiso
 contract. The live medium instead keeps systemd-boot minimal and lets Plymouth
 own graphical presentation after the kernel starts. ADR-015 separately permits
 an inert packaged theme for the future installed-system GRUB alternative; it
-does not change this live-medium decision.
+does not change this live-medium decision. ADR-017 separately permits a small
+GRUB loopback compatibility file for multiboot launchers; it is not a native
+graphical GRUB live bootloader path.
 
 ### Put Plymouth in `schweisos-branding`
 
@@ -182,6 +191,8 @@ Positive consequences:
   Plymouth daemon exits automatically reveal diagnostics.
 - The live system no longer stops at `systemd-firstboot`; successful graphical
   boot proceeds through SDDM autologin directly to Plasma.
+- Ventoy-style outer GRUB launchers receive an explicit loopback handoff to the
+  same Archiso kernel and initramfs paths as the native systemd-boot entries.
 - Source/package version drift and missing canonical branding payloads stop the
   build before Archiso can compose a stale splash.
 - Post-build validation proves that the built root and initramfs contain the
@@ -202,6 +213,9 @@ Negative consequences:
   experience from being treated as the final original SchweisOS motion identity
   and requires a future DDR/ADR update when original animation work replaces
   it.
+- The profile now has a tiny `grub/` directory. Validators must ensure it
+  remains limited to `loopback.cfg` and does not become a shadow GRUB boot
+  implementation.
 - Static validation cannot prove visual quality; manual boot and hardware
   qualification remain required before release claims.
 - The path watcher and one-second watchdog can prove that the recorded PID is
@@ -216,6 +230,9 @@ The ISO profile validator must fail closed if:
 - `plymouth` is missing from the live package set;
 - the normal boot entry is not quiet/splash-enabled;
 - the debug boot entry hides logs;
+- the approved GRUB loopback file is absent, adds a full GRUB live
+  configuration, or drifts from the same kernel/initramfs and normal/debug
+  policy;
 - either entry permits interactive `systemd-firstboot`, or the live root omits
   the Archiso `C.UTF-8` and UTC defaults;
 - the mkinitcpio hook list omits `kms` or `plymouth`;

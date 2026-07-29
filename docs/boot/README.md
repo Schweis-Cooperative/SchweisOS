@@ -1,6 +1,6 @@
 # SchweisOS Boot Experience
 
-Version: 0.4
+Version: 0.5
 Status: Partial implementation
 Date: 2026-07-29
 
@@ -41,6 +41,28 @@ The systemd-boot menu is intentionally text-oriented. Its polish comes from
 two concise entries, a short timeout, stable console mode, and removal of
 unrelated automatic entries. It does not attempt to imitate a graphical
 bootloader.
+
+## Ventoy and GRUB Loopback Compatibility
+
+The native live path remains systemd-boot, but the ISO also carries
+`/boot/grub/loopback.cfg` for multiboot tools that start the ISO through an
+outer GRUB loopback chain, including Ventoy's GRUB2 mode. That file is copied
+by upstream `mkarchiso` from `iso/profiles/kde/grub/loopback.cfg`; SchweisOS
+does not generate it in the build wrapper.
+
+The loopback entries load the same Archiso kernel and initramfs as the
+systemd-boot entries:
+
+```text
+/schweis/boot/x86_64/vmlinuz-linux
+/schweis/boot/x86_64/initramfs-linux.img
+```
+
+They also pass `archisobasedir=schweis`, `img_dev`, and `img_loop` so the
+Archiso initramfs can mount the ISO file that Ventoy placed on the USB
+filesystem. This is intentionally narrower than enabling a native GRUB live
+bootloader: there is still no live ISO `grub.cfg`, no live GRUB package, no
+BIOS path, and no activation of the installed-system GRUB theme package.
 
 ## Plymouth
 
@@ -98,4 +120,5 @@ qualification remain future work.
 - [ADR-002 UEFI First](../adr/ADR-002-uefi-first.md)
 - [ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
 - [ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md)
+- [ADR-017 Live ISO Loopback Boot Compatibility](../adr/ADR-017-live-iso-loopback-boot-compatibility.md)
 - [DDR-001 Boot Experience](../ddr/DDR-001-boot-experience.md)

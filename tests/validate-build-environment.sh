@@ -166,6 +166,7 @@ required_directories=(
     iso/profiles/kde/airootfs
     iso/profiles/kde/efiboot
     iso/profiles/kde/efiboot/loader/entries
+    iso/profiles/kde/grub
     packages
     packages/calamares
     packages/schweisos-branding
@@ -203,6 +204,7 @@ required_files=(
     iso/profiles/kde/profiledef.sh
     iso/profiles/kde/packages.x86_64
     iso/profiles/kde/pacman.conf
+    iso/profiles/kde/grub/loopback.cfg
     release/README.md
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
@@ -213,6 +215,7 @@ required_files=(
     tests/validate-build-environment.sh
     tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-iso-loopback-boot.sh
     tests/validate-iso-build-manifest.sh
     tests/validate-keyring-package.sh
     tests/validate-installer-config.sh
@@ -365,6 +368,7 @@ required_executables=(
     tests/validate-build-dependencies.sh
     tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-iso-loopback-boot.sh
     tests/validate-iso-build-manifest.sh
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh

@@ -324,17 +324,22 @@ The package does not activate itself, generate `grub.cfg`, or install a
 bootloader. The installer must ensure that the fully resolved theme is readable
 from the selected boot filesystem before setting `GRUB_THEME`.
 
-The live profile configures Archiso's upstream `uefi.systemd-boot` path. Its
-normal entry is quiet and splash-enabled, while a separate debug entry keeps
-verbose kernel and systemd status visible. Automatic loader entries are
-disabled so the live-medium menu is limited to those two audited choices; the
-firmware-selected console mode is retained to avoid an extra visual mode
-transition. The initramfs source uses upstream mkinitcpio `kms` and `plymouth`
-hooks so the SchweisOS Plymouth theme can appear before the Plasma session. The
-theme source currently defines a temporary reference-matched near-black-stage
-animation with delayed canonical-logo fade-in, delayed five-dot circular chase
-loading motion, and progress/quit fade-out behavior derived only from the
-canonical logo. Both entries disable interactive
+The live profile configures Archiso's upstream `uefi.systemd-boot` path as the
+native UEFI boot path. Its normal entry is quiet and splash-enabled, while a
+separate debug entry keeps verbose kernel and systemd status visible.
+Automatic loader entries are disabled so the live-medium menu is limited to
+those two audited choices; the firmware-selected console mode is retained to
+avoid an extra visual mode transition. The profile also carries only the
+upstream-supported `grub/loopback.cfg` compatibility file for Ventoy-style
+outer GRUB launchers. That loopback file mirrors the same normal/debug kernel
+and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; it does
+not make GRUB the native live bootloader and does not add a full `grub.cfg`.
+The initramfs source uses upstream mkinitcpio `kms` and `plymouth` hooks so the
+SchweisOS Plymouth theme can appear before the Plasma session. The theme source
+currently defines a temporary reference-matched near-black-stage animation with
+delayed canonical-logo fade-in, delayed five-dot circular chase loading motion,
+and progress/quit fade-out behavior derived only from the canonical logo. Both
+entries disable interactive
 `systemd-firstboot`; the live-root source carries upstream Archiso's neutral
 `C.UTF-8`/UTC defaults. The live-only units are configured to quit Plymouth and
 restore console diagnostics if emergency mode is reached, SDDM fails, a

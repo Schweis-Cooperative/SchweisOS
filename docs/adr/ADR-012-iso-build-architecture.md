@@ -1,6 +1,6 @@
 # ADR-012 ISO Build Architecture
 
-Version: 1.1
+Version: 1.2
 
 ## Status
 
@@ -19,6 +19,7 @@ Accepted
 - ADR-009 Distribution Identity Packages
 - ADR-011 Repository Architecture
 - ADR-015 GRUB Theme Architecture
+- ADR-017 Live ISO Loopback Boot Compatibility
 
 ## Context
 
@@ -140,6 +141,19 @@ Acceptable uses may include archiso-required live-session links or narrowly scop
 
 It configures how the live medium starts. It does not define how the target system is partitioned or which bootloader the installer writes. Changes here must follow archiso's current profile contract and should stay as close to its supported defaults as practical.
 
+### `grub/`
+
+`grub/` is the Archiso profile area for GRUB boot configuration.
+
+The current SchweisOS live medium does not select Archiso's GRUB boot mode and
+must not carry a full `grub.cfg` under this ADR. The only approved file in this
+directory is the ADR-017 `loopback.cfg` compatibility contract that upstream
+`mkarchiso` copies into `/boot/grub/loopback.cfg` for Ventoy-style outer GRUB
+launchers. It loads the same live kernel and initramfs paths as the native
+systemd-boot entries and passes Archiso's ISO-file handoff parameters. Any
+native live GRUB boot path, BIOS support, or graphical GRUB theme activation
+requires a separate architecture decision.
+
 ### `syslinux/`
 
 `syslinux/` is the archiso profile area for legacy BIOS boot configuration when a Syslinux BIOS boot mode is selected.
@@ -193,6 +207,8 @@ The live-media boot path and the installed-system bootloader are separate concer
 - GRUB remains an installed-system alternative when supported by the installer.
 - The packaged GRUB theme is presentation groundwork and does not by itself
   implement or activate that alternative.
+- The live ISO may carry a minimal GRUB loopback compatibility file for
+  multiboot tools without changing the native live bootloader.
 - Legacy BIOS is not required for the first release.
 - Secure Boot remains outside the first-release scope unless a later ADR changes that decision.
 

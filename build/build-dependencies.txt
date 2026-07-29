@@ -1,5 +1,6 @@
 archiso
 bash
+desktop-file-utils
 diffutils
 git
 jq

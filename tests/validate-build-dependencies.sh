@@ -53,6 +53,7 @@ join_by_space() {
 canonical_packages=(
     archiso
     bash
+    desktop-file-utils
     diffutils
     git
     jq
@@ -70,6 +71,7 @@ declare -A expected_command_owner=(
     [chmod]=coreutils
     [cmp]=diffutils
     [date]=coreutils
+    [desktop-file-validate]=desktop-file-utils
     [df]=coreutils
     [dirname]=coreutils
     [env]=coreutils

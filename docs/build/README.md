@@ -51,6 +51,7 @@ The machine-readable direct package contract is
 
 - `archiso`
 - `bash`
+- `desktop-file-utils`
 - `diffutils`
 - `git`
 - `jq`
@@ -59,16 +60,17 @@ The machine-readable direct package contract is
 - `sudo`
 - `util-linux`
 
-These are SchweisOS's direct dependencies. `diffutils` supplies `cmp` for
-byte-exact source and canonical-JSON comparisons. `jq` owns exact JSON-schema
-validation and structured manifest reads. `mkinitcpio` supplies `lsinitcpio`,
-which the post-build initramfs validator invokes directly. Arch's current
-`archiso` package owns its runtime dependencies, including filesystem, archive,
-ISO, bootstrap, and FAT tooling. SchweisOS does not duplicate that transitive
-list in its manifest. The dependency validator still checks every required
-command and its exact Arch package owner, so a missing transitive dependency or
-unexpected replacement fails closed. It does not pin a historical Archiso
-version; the current upstream Arch package is authoritative.
+These are SchweisOS's direct dependencies. `desktop-file-utils` supplies
+`desktop-file-validate` for installer launcher validation. `diffutils` supplies
+`cmp` for byte-exact source and canonical-JSON comparisons. `jq` owns exact
+JSON-schema validation and structured manifest reads. `mkinitcpio` supplies
+`lsinitcpio`, which the post-build initramfs validator invokes directly.
+Arch's current `archiso` package owns its runtime dependencies, including
+filesystem, archive, ISO, bootstrap, and FAT tooling. SchweisOS does not
+duplicate that transitive list in its manifest. The dependency validator still
+checks every required command and its exact Arch package owner, so a missing
+transitive dependency or unexpected replacement fails closed. It does not pin a
+historical Archiso version; the current upstream Arch package is authoritative.
 
 Optional later review tools include `shellcheck`, `namcap`, `diffoscope`,
 `qemu-desktop`, `edk2-ovmf`, and `gnupg`. They are not part of the initial image

@@ -27,6 +27,7 @@ its direct build-host requirements in
 
 - `archiso`
 - `bash`
+- `desktop-file-utils`
 - `diffutils`
 - `git`
 - `jq`
@@ -35,13 +36,15 @@ its direct build-host requirements in
 - `sudo`
 - `util-linux`
 
-The direct set is deliberately small. `diffutils` supplies the directly used
-`cmp` byte-comparison interface, `jq` owns exact JSON-schema validation and
-structured manifest reads, and `mkinitcpio` supplies the directly used
-post-build `lsinitcpio` inspection command. `archiso` owns its changing upstream
-dependency graph; SchweisOS owns these additional build and validation
-interfaces. The validator still checks all required transitive commands and
-their exact package owners, so this separation does not weaken the build gate.
+The direct set is deliberately small. `desktop-file-utils` supplies the
+directly used `desktop-file-validate` installer launcher validation interface.
+`diffutils` supplies the directly used `cmp` byte-comparison interface, `jq`
+owns exact JSON-schema validation and structured manifest reads, and
+`mkinitcpio` supplies the directly used post-build `lsinitcpio` inspection
+command. `archiso` owns its changing upstream dependency graph; SchweisOS owns
+these additional build and validation interfaces. The validator still checks
+all required transitive commands and their exact package owners, so this
+separation does not weaken the build gate.
 
 Reference metadata:
 

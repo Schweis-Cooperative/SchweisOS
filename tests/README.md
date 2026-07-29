@@ -28,11 +28,12 @@ exact installed packages; required commands; and command package ownership. It
 does not refresh databases, install packages, resolve providers as substitutes,
 or modify the host. It has no mode that skips host checks.
 
-The current direct set is `archiso`, `bash`, `diffutils`, `git`, `jq`,
-`mkinitcpio`, `pacman`, `sudo`, and `util-linux`. In particular, `diffutils`
-owns the directly used `cmp` interface, `jq` owns exact JSON-schema validation
-and structured manifest reads, and `mkinitcpio` owns the directly used
-`lsinitcpio` interface.
+The current direct set is `archiso`, `bash`, `desktop-file-utils`, `diffutils`,
+`git`, `jq`, `mkinitcpio`, `pacman`, `sudo`, and `util-linux`. In particular,
+`desktop-file-utils` owns the directly used `desktop-file-validate` interface
+for installer launcher validation, `diffutils` owns the directly used `cmp`
+interface, `jq` owns exact JSON-schema validation and structured manifest
+reads, and `mkinitcpio` owns the directly used `lsinitcpio` interface.
 
 `validate-build-environment.sh` is the network-free, non-destructive ISO build
 host gate:

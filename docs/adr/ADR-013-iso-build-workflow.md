@@ -67,16 +67,20 @@ The machine-readable source of truth for direct build-host dependencies is
 
 - `archiso`
 - `bash`
+- `desktop-file-utils`
+- `diffutils`
 - `git`
+- `jq`
 - `mkinitcpio`
 - `pacman`
 - `sudo`
 - `util-linux`
 
 This list records packages SchweisOS consumes directly: upstream Archiso,
-shell execution, source-state capture, post-build initramfs inspection, pacman
-configuration and trust queries, narrow privilege escalation, and build locking
-or mount inspection. Dependencies
+shell execution, desktop-entry validation for the live installer, byte-exact
+comparisons, source-state capture, structured JSON manifest validation,
+post-build initramfs inspection, pacman configuration and trust queries, narrow
+privilege escalation, and build locking or mount inspection. Dependencies
 such as `arch-install-scripts`, `dosfstools`, `e2fsprogs`, `erofs-utils`,
 `libarchive`, `libisoburn`, `mtools`, and `squashfs-tools` are intentionally not
 duplicated in the manifest. They are runtime dependencies of Arch's `archiso`
@@ -88,8 +92,11 @@ ownership of every required command, including transitive Archiso tools. This
 detects missing dependencies or unexpected replacements while avoiding a
 second, drifting copy of upstream dependency metadata.
 
-`util-linux` provides `flock` for single-writer build state and `findmnt` for
-mount-aware work-directory cleanup.
+`desktop-file-utils` provides `desktop-file-validate`, which the installer
+configuration validator invokes before `mkarchiso` to prevent broken or
+non-portable launchers from entering the live image. `util-linux` provides
+`flock` for single-writer build state and `findmnt` for mount-aware
+work-directory cleanup.
 
 Recommended validation and release-adjacent tools:
 

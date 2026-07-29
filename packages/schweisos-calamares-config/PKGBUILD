@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -15,6 +15,7 @@ depends=(
   'dosfstools'
   'efibootmgr'
   'e2fsprogs'
+  'kdialog'
   'pacman'
   'polkit'
   'schweisos-branding'
@@ -23,6 +24,8 @@ depends=(
   'schweisos-pacman-config'
   'schweisos-release'
   'systemd'
+  'util-linux'
+  'xorg-xwayland'
 )
 optdepends=(
   'btrfs-progs: optional Btrfs target filesystem support'
@@ -46,6 +49,10 @@ source=(
   'target-packages.x86_64'
   'pacman.conf'
   'schweisos-installer'
+  'schweisos-installer-root'
+  'schweisos-installer-autostart'
+  'schweisos-installer-autostart.desktop'
+  'org.schweisos.installer.policy'
   'schweisos-calamares-preflight'
   'schweisos-calamares-pacstrap'
   'schweisos-calamares-configure-pacman'
@@ -53,31 +60,33 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=(
-  '2d5f1b9a6851d5a59e68acfe766502f6f6a77fe374f961679e332f6ffd382ef3'
-  '3d4f07d689e866e5163f237f2a8e859604236c9a3cafa0929786d2f8e3c743bb'
-  '56a603b6d7218576e1c67e932f24933f8547fd67415ecb7e64e69ce114bba127'
-  '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
-  '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
-  '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
-  'e9a67a11e050c0d1af32bfe47ef4b50b6abd66214c54329f1a07466c0f322068'
-  '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
-  '523bb03e30be3c94ffe055d37b6b83575458a7485491e7bf719ffbd972e6589d'
-  '7104ab6bd275f8158f8a241f10065da067ba1f2bd752d6eee21b19c0c1afc11b'
-  '8f21d0884f82052488a573fe5b9bfebaee43bbf15385f69d99c131719d934869'
-  '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
-  'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
-  '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
-  '7b160c53fb08be6fd6c1190c791a15fb4d2d543fa1905d1998039d2513759e80'
-  '0ae0782d572f9d9d0faa490e739bfe0de8ce375562ba8ef56e0cd2ee9e19f285'
-  '42390d3760e3fb56e23f0ee646532821ec68923f987a79f0a5cd5833df7a6f84'
-  '70ac04a6f72ad5cbbce3f9c864873e8ea0b89dfe41566e1a9e7229b08aac3deb'
-  'd5b4ff3d563f64ef932b717a8c27536191baa1ad25640d1abccd33041a88c9ff'
-  '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
-  'd5f0ae6864749a744269ab68ea520960600b7c3675db16d4813a8c504edf5661'
-  'b7a6ceb1f5091bed1c2c70151e0448dbbe1eb3f430f3170d090fee404c6e2d6b'
-  '2afa3bfbe2ed8c374b270c7b1365348dffc46a53df77f772325f0ea4dd2fbc67'
-)
+sha256sums=('201faff6ba90e3a66d5a8edb6e21e54c973d8d78e88441b8d16f8c4108e2add4'
+            '3d4f07d689e866e5163f237f2a8e859604236c9a3cafa0929786d2f8e3c743bb'
+            '43e1c0695b88d7c54c5b72cb43db295a86c20282efc0ca86e826fbb3f58dcb06'
+            '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
+            '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
+            '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
+            '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
+            '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
+            '1aedc164a3c3632460b7a70eb71cc7ec18e3bd3f647c113e06f270e9a62bc82e'
+            '7104ab6bd275f8158f8a241f10065da067ba1f2bd752d6eee21b19c0c1afc11b'
+            '8f21d0884f82052488a573fe5b9bfebaee43bbf15385f69d99c131719d934869'
+            '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
+            'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
+            '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
+            '7b160c53fb08be6fd6c1190c791a15fb4d2d543fa1905d1998039d2513759e80'
+            '0ae0782d572f9d9d0faa490e739bfe0de8ce375562ba8ef56e0cd2ee9e19f285'
+            '9158a69e1b15ce87021df4575b11980e8626c23f87a4aa7f972eba7e222e5b6f'
+            '737a0100892d98c4664011d83e439975109c7fe97a46911bff3a25f465ebdf34'
+            'f137e7f6ba0b36efb8d9b92335bc0c345fa9fe0d7dd5c863b9116d47c8e4b21f'
+            '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
+            '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
+            '70ac04a6f72ad5cbbce3f9c864873e8ea0b89dfe41566e1a9e7229b08aac3deb'
+            'd5b4ff3d563f64ef932b717a8c27536191baa1ad25640d1abccd33041a88c9ff'
+            '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
+            'd5f0ae6864749a744269ab68ea520960600b7c3675db16d4813a8c504edf5661'
+            'b7a6ceb1f5091bed1c2c70151e0448dbbe1eb3f430f3170d090fee404c6e2d6b'
+            '3ea5833a5e88f683617fbffc5002620ba6244aef7a52a6901bd2341b79b93047')
 
 package() {
   install -Dm644 "${srcdir}/settings.conf" \
@@ -118,6 +127,10 @@ package() {
 
   install -Dm755 "${srcdir}/schweisos-installer" \
     "${pkgdir}/usr/bin/schweisos-installer"
+  install -Dm755 "${srcdir}/schweisos-installer-root" \
+    "${pkgdir}/usr/lib/schweisos-calamares/launch-root"
+  install -Dm755 "${srcdir}/schweisos-installer-autostart" \
+    "${pkgdir}/usr/lib/schweisos-calamares/autostart"
   install -Dm755 "${srcdir}/schweisos-calamares-preflight" \
     "${pkgdir}/usr/lib/schweisos-calamares/preflight"
   install -Dm755 "${srcdir}/schweisos-calamares-pacstrap" \
@@ -131,4 +144,8 @@ package() {
 
   install -Dm644 "${srcdir}/schweisos-installer.desktop" \
     "${pkgdir}/usr/share/applications/schweisos-installer.desktop"
+  install -Dm644 "${srcdir}/schweisos-installer-autostart.desktop" \
+    "${pkgdir}/etc/xdg/autostart/schweisos-installer-autostart.desktop"
+  install -Dm644 "${srcdir}/org.schweisos.installer.policy" \
+    "${pkgdir}/usr/share/polkit-1/actions/org.schweisos.installer.policy"
 }

@@ -2,7 +2,7 @@
 
 pkgname=calamares
 pkgver=3.4.2
-pkgrel=1
+pkgrel=2
 pkgdesc='Distribution-independent installer framework'
 arch=('x86_64')
 url='https://codeberg.org/Calamares/calamares'
@@ -47,4 +47,17 @@ build() {
 
 package() {
   DESTDIR="${pkgdir}" cmake --install build
+
+  # SchweisOS owns one distribution-branded installer launcher through
+  # schweisos-calamares-config. Fail closed if upstream changes the expected
+  # launcher path, then omit the generic "Install System" entry from this
+  # binary package so desktop-file precedence and menu caches cannot expose a
+  # second installer.
+  upstream_launcher="${pkgdir}/usr/share/applications/calamares.desktop"
+  [[ -f "$upstream_launcher" && ! -L "$upstream_launcher" ]] || {
+    printf 'expected upstream Calamares launcher is missing or unsafe: %s\n' \
+      "$upstream_launcher" >&2
+    return 1
+  }
+  unlink -- "$upstream_launcher"
 }

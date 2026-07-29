@@ -167,6 +167,7 @@ required_directories=(
     iso/profiles/kde/efiboot
     iso/profiles/kde/efiboot/loader/entries
     packages
+    packages/calamares
     packages/schweisos-branding
     packages/schweisos-calamares-config
     packages/schweisos-grub-theme
@@ -647,7 +648,7 @@ schweisos_profile_packages=()
 if [[ -f "${profile_dir}/packages.x86_64" ]]; then
     mapfile -t schweisos_profile_packages < <(
         sed 's/[[:space:]]*#.*$//' "${profile_dir}/packages.x86_64" \
-            | awk 'NF && $1 ~ /^schweisos-/ { print $1 }' \
+            | awk 'NF && ($1 == "calamares" || $1 ~ /^schweisos-/) { print $1 }' \
             | sort -u
     )
 fi

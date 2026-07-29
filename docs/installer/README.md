@@ -1,7 +1,7 @@
 # SchweisOS Installer
 
-Version: 0.1
-Status: Faz 1 source architecture
+Version: 0.2
+Status: Faz 1 source implementation; runtime qualification pending
 Date: 2026-07-29
 
 SchweisOS Faz 1 introduces the source architecture for the first installable
@@ -19,14 +19,20 @@ Implemented in source:
 - Live-session administration policy so the autologged-in live user can start
   the graphical installer and other administrative GUI tools without a root
   password prompt.
-- Live desktop menu cleanup so only `Install SchweisOS` is shown, not
-  Calamares' generic upstream `Install System` launcher.
+- Package-level launcher ownership so only `Install SchweisOS` exists; the
+  Calamares binary package omits upstream's generic `Install System` entry.
+- Hidden XDG autostart approximately three seconds after the first live Plasma
+  session, with a persistent-per-boot attempt marker and manual reopen support.
+- Exact-path Polkit and XWayland bridge for the privileged Calamares 3.4 UI.
+- Single-instance locking, UEFI/display/component preflight, a private local
+  launch log, and a visible KDE error dialog on startup failure.
 - UEFI-only preflight policy.
 - systemd-boot installed-system workflow.
 - ext4 default filesystem with Btrfs as advanced optional filesystem support.
 - Target package manifest for a minimal KDE Plasma daily-use system.
 - Target pacman include configuration for the SchweisOS signed repository.
 - Static installer configuration validator.
+- Behavioral launcher and autostart regression tests.
 
 Not yet fully qualified:
 
@@ -42,7 +48,10 @@ Not yet fully qualified:
 
 ```text
 Live ISO
-  -> Install SchweisOS launcher
+  -> first live Plasma session
+  -> one-time delayed Install SchweisOS autostart
+  -> guarded Install SchweisOS launcher
+  -> exact-path Polkit / XWayland bridge
   -> Calamares
   -> UEFI preflight
   -> partition and mount
@@ -62,8 +71,21 @@ Live ISO
 - The installer does not build or sign packages.
 - The installer does not weaken pacman signature policy.
 - The installer does not activate GRUB in the MVP.
+- Automated storage does not expose LUKS or LVM until their boot and recovery
+  contracts are implemented.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future
   decisions.
+
+## Launch State and Diagnostics
+
+The first-session attempt marker, single-instance lock, launch marker, and log
+are stored under `$XDG_STATE_HOME/schweisos-installer`, defaulting to
+`~/.local/state/schweisos-installer`. Closing Calamares never schedules another
+automatic launch. The application-menu entry remains usable for a manual retry.
+
+When preflight, Polkit, XWayland, or Calamares startup fails, a KDE dialog
+identifies `launch.log`. The summary is also written to the journal when
+available. No diagnostic data leaves the machine.
 
 ## Validation
 
@@ -71,6 +93,7 @@ From the repository root:
 
 ```bash
 tests/validate-installer-config.sh
+tests/test-installer-experience.sh
 tests/validate-iso-profile.sh
 git diff --check
 ```

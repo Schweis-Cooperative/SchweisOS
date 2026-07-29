@@ -2,6 +2,14 @@
 
 componentName: schweisos
 
+welcomeStyleCalamares: false
+welcomeExpandingLogo: false
+windowExpanding: normal
+windowSize: 1000px,680px
+windowPlacement: center
+sidebar: widget
+navigation: widget
+
 strings:
   productName: "SchweisOS"
   shortProductName: "SchweisOS"
@@ -18,8 +26,10 @@ strings:
 images:
   productLogo: "/usr/share/schweisos/branding/schweisos.png"
   productIcon: "/usr/share/schweisos/branding/schweisos.png"
+  productWelcome: "/usr/share/schweisos/branding/schweisos.png"
 
 style:
-  sidebarBackground: "#051022"
-  sidebarText: "#d8e3f0"
-  sidebarTextSelect: "#ffffff"
+  SidebarBackground: "#051022"
+  SidebarBackgroundCurrent: "#0b72b9"
+  SidebarText: "#d8e3f0"
+  SidebarTextCurrent: "#ffffff"

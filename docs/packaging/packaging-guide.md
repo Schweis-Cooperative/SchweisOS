@@ -1,6 +1,6 @@
 # SchweisOS Packaging Guide
 
-Version: 0.5
+Version: 0.6
 Status: Draft
 Date: 2026-07-29
 
@@ -23,8 +23,9 @@ Current packages:
   decoration; its runtime logo is an alias to the payload owned by
   `schweisos-branding`, and activation remains installer-owned.
 - `schweisos-calamares-config`: Calamares settings, installer launcher,
-  target package manifest, pacstrap policy, and installer-owned
-  installed-system integration helpers for the Faz 1 MVP.
+  once-only live autostart, exact-path privilege/display bridge, visible
+  startup diagnostics, target package manifest, pacstrap policy, and
+  installer-owned installed-system integration helpers for the Faz 1 MVP.
 
 Allowed next packages:
 
@@ -36,7 +37,9 @@ Calamares itself is a separate package-admission problem. It is not vendored
 into the configuration package or ISO profile. If Arch official repositories do
 not provide it for the release environment, SchweisOS must admit a reviewed
 Calamares binary package through the signed repository workflow before an
-installer ISO can be built.
+installer ISO can be built. That binary package omits Calamares' generic
+desktop entry because `schweisos-calamares-config` is the sole owner of
+distribution installer presentation; no upstream program code is patched.
 
 Bootloader presentation packages must not install a bootloader, edit its
 global configuration, regenerate boot entries, or choose a firmware path from

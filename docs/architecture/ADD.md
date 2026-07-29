@@ -1,6 +1,6 @@
 # SchweisOS Architecture Design Document
 
-Version: 1.0
+Version: 1.1
 Status: Active pre-alpha architecture
 Date: 2026-07-29
 
@@ -32,9 +32,9 @@ production public trust material, role-separated signing tools, a signed local
 production repository workflow, disposable client validation, and a development
 ISO build pipeline.
 
-The following remain unimplemented or incomplete: a built and tested installer
-ISO, Calamares binary package admission into the signed SchweisOS repository,
-runtime validation of installed-system boot configuration, public mirrors and
+The following remain unimplemented or incomplete: a freshly built and tested
+installer ISO from the current package revisions, runtime validation of the
+installer launcher and installed-system boot configuration, public mirrors and
 publication, ISO detached signing, Secure Boot, disk encryption, Flatpak/AUR
 user workflows, gaming integration, Distrobox automation, and release-grade
 hardware/install qualification. This snapshot records implementation state;
@@ -360,6 +360,15 @@ The accepted Faz 1 installer architecture is defined by
 SchweisOS uses Calamares for the graphical installer flow and packages
 SchweisOS-owned installer configuration in `schweisos-calamares-config`.
 
+The binary Calamares package intentionally omits the generic upstream desktop
+launcher. `schweisos-calamares-config` owns the one visible `Install
+SchweisOS` entry, a hidden once-per-live-boot XDG autostart entry, a guarded
+single-instance wrapper, and an exact-path Polkit/XWayland compatibility
+bridge for Calamares 3.4's privileged UI. Launcher failures create a private
+local diagnostic log and a visible KDE error dialog instead of disappearing.
+This user-facing contract is defined in
+[DDR-002 Installer Experience](../ddr/DDR-002-installer-experience.md).
+
 The default install path is UEFI-only with systemd-boot. The EFI system
 partition is mounted at `/boot`, the root filesystem is identified by UUID in
 the loader entry, and the target initramfs is regenerated after bootloader
@@ -371,6 +380,11 @@ The target system is installed with `pacstrap` from signed Arch and SchweisOS
 repositories using a package-owned target manifest. The live root filesystem is
 not cloned into the target, preventing live-only Archiso, autologin, Plymouth,
 or installer payload from becoming installed-system state.
+
+Faz 1 automated partitioning is constrained to GPT with a 512 MiB recommended
+EFI system partition at `/boot`, ext4 by default, and Btrfs as the documented
+advanced choice. LUKS and LVM controls are disabled because the accepted
+initramfs, bootloader, and recovery contracts do not support them yet.
 
 ## Filesystem Architecture
 

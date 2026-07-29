@@ -71,7 +71,6 @@ required_files=(
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog"
-  "${airootfs_dir}/usr/local/share/applications/calamares.desktop"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
   "$schweis_pacman_config"
@@ -475,10 +474,6 @@ expected_overlay_paths=(
   usr/lib/schweisos-live/plymouth-is-stopped
   usr/lib/schweisos-live/plymouth-quit-guarded
   usr/lib/schweisos-live/plymouth-watchdog
-  usr/local
-  usr/local/share
-  usr/local/share/applications
-  usr/local/share/applications/calamares.desktop
   usr/share
   usr/share/plymouth
   usr/share/plymouth/themes
@@ -510,7 +505,6 @@ tmpfiles_line="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/tmpfiles.d/s
 sddm_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf")"
 sudoers_file="${airootfs_dir}/etc/sudoers.d/10-schweisos-live"
 polkit_rule="${airootfs_dir}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules"
-calamares_desktop_override="${airootfs_dir}/usr/local/share/applications/calamares.desktop"
 live_hostname="$(<"${airootfs_dir}/etc/hostname")"
 live_locale="$(<"${airootfs_dir}/etc/locale.conf")"
 [[ "$live_hostname" == schweisos ]] || fail 'unexpected live hostname'
@@ -531,9 +525,9 @@ for required_polkit_fragment in \
   grep -Fq "$required_polkit_fragment" "$polkit_rule" || \
     fail "live polkit rule is missing: ${required_polkit_fragment}"
 done
-calamares_desktop_override_config="$(grep -Ev '^[[:space:]]*($|#)' "$calamares_desktop_override")"
-[[ "$calamares_desktop_override_config" == $'[Desktop Entry]\nType=Application\nName=Install System\nNoDisplay=true\nHidden=true' ]] || \
-  fail 'Calamares upstream launcher override must hide the generic Install System entry'
+[[ ! -e "${airootfs_dir}/usr/local/share/applications/calamares.desktop" \
+    && ! -L "${airootfs_dir}/usr/local/share/applications/calamares.desktop" ]] || \
+  fail 'installer launcher policy must remain package-owned, not profile-overlaid'
 
 plymouth_config="$(grep -Ev '^[[:space:]]*($|#)' "${airootfs_dir}/etc/plymouth/plymouthd.conf")"
 [[ "$plymouth_config" == $'[Daemon]\nTheme=schweisos\nShowDelay=0' ]] || \

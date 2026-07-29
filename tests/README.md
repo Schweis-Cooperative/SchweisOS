@@ -1,6 +1,6 @@
 # Tests Directory
 
-Version: 1.3
+Version: 1.4
 Status: Active
 Date: 2026-07-29
 
@@ -49,8 +49,8 @@ layout and permissions, prohibited `--force` use, symlinks, secrets, private
 signing material, and SchweisOS repository readiness. For local `file://`
 SchweisOS endpoints, it also checks that every database entry has a present
 package file and detached `.sig` sidecar before Archiso is invoked. Every
-`schweisos-*` package listed in the ISO profile must have a matching repository
-package version in every mode. The
+`schweisos-*` package and the reviewed Calamares binary package listed in the
+ISO profile must have a matching repository package version in every mode. The
 selected branding package must also contain the single canonical regular
 runtime logo, omit the stale runtime path, and match the source logo SHA256. It
 neither mutates host package state nor runs the profile validator or
@@ -69,8 +69,8 @@ UEFI normal/debug templates and exact titles, loader entry suppression,
 canonical-logo Plymouth animation primitives, dual unexpected-exit detectors,
 propagated client failures, bounded quit waiting, guarded automatic diagnostic
 fallback, noninteractive first-boot defaults, mkinitcpio inputs, live-overlay
-allowlist, passwordless local live-session administration policy, hidden
-upstream Calamares launcher override, permissions, symlinks, and absence of
+allowlist, passwordless local live-session administration policy, package-owned
+installer launcher boundary, permissions, symlinks, and absence of
 signing material. It also proves that the branding package source resolves to
 `branding/assets/logo/schweisos.png` and that the theme has no second image
 dependency. Pacman parsing uses a disposable sysroot populated from the real
@@ -89,9 +89,22 @@ It verifies the `schweisos-calamares-config` package source, exact dependency
 contract, package source checksums, Calamares sequence, UEFI systemd-boot MVP
 policy, ext4 default with optional Btrfs support, pacstrap target installation,
 target pacman include behavior, live ISO package composition, absence of GRUB
-activation in the MVP path, non-executable repository helper sources, and
-absence of secrets or private-key material. It does not partition disks, start
-Calamares, build an ISO, or prove a graphical installation.
+activation in the MVP path, one package-owned visible launcher, once-only XDG
+autostart, exact-path Polkit/XWayland bridging, private launch logs, visible KDE
+failure handling, non-executable repository helper sources, and absence of
+secrets or private-key material. It does not partition disks, start Calamares,
+build an ISO, or prove a graphical installation.
+
+`test-installer-experience.sh` sources the production launcher and autostart
+helpers while replacing only their live-environment and GUI/process boundaries:
+
+```bash
+tests/test-installer-experience.sh
+```
+
+It proves manual reopen, single-instance locking, visible preflight and
+privileged-process failure, private failure logging, one-time autostart, and
+suppression when a manual launch wins the startup race.
 
 `test-plymouth-watchdog.sh` performs disposable behavioral validation of the
 real watchdog control flow:

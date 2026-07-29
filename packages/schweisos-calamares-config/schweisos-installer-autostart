@@ -1,0 +1,71 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+state_directory() {
+  printf '%s/schweisos-installer\n' \
+    "${XDG_STATE_HOME:-${HOME:?HOME is required}/.local/state}"
+}
+
+report_autostart_failure() {
+  local message=$1
+
+  printf '%s\n' "$message" >&2
+  if [[ -x /usr/bin/systemd-cat ]]; then
+    printf '%s\n' "$message" | /usr/bin/systemd-cat \
+      --identifier=schweisos-installer-autostart --priority=err || true
+  fi
+  if [[ -x /usr/bin/kdialog && -n ${DISPLAY:-} ]]; then
+    /usr/bin/kdialog --title 'Install SchweisOS' --error "$message" || true
+  fi
+}
+
+is_live_session() {
+  [[ $(/usr/bin/id -un) == live \
+    && -d /run/archiso/bootmnt \
+    && -f /etc/sddm.conf.d/10-schweisos-live.conf ]]
+}
+
+wait_for_desktop() {
+  /usr/bin/sleep 3
+}
+
+launch_installer() {
+  /usr/bin/schweisos-installer
+}
+
+main() {
+  local installer_state
+  local autostart_marker
+
+  is_live_session || return 0
+
+  umask 077
+  installer_state=$(state_directory)
+  if ! /usr/bin/mkdir -p -- "$installer_state" \
+      || ! /usr/bin/chmod 0700 -- "$installer_state"; then
+    report_autostart_failure \
+      'Install SchweisOS could not prepare its private automatic-start state.'
+    return 1
+  fi
+
+  autostart_marker="${installer_state}/autostart-attempted"
+  if /usr/bin/mkdir -- "$autostart_marker" 2>/dev/null; then
+    :
+  elif [[ -d "$autostart_marker" && ! -L "$autostart_marker" ]]; then
+    return 0
+  else
+    report_autostart_failure \
+      'Install SchweisOS could not secure its automatic-start marker.'
+    return 1
+  fi
+
+  wait_for_desktop
+  [[ ! -e "${installer_state}/launched" ]] || return 0
+  launch_installer
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi

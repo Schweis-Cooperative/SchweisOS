@@ -1,11 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 [Desktop Entry]
 Type=Application
 Version=1.0
 Name=Install SchweisOS
 GenericName=System Installer
 Comment=Install SchweisOS to this computer
-Exec=schweisos-installer
+TryExec=/usr/bin/schweisos-installer
+Exec=/usr/bin/schweisos-installer
 Icon=schweisos
 Terminal=false
-Categories=System;Settings;
+StartupNotify=true
+StartupWMClass=calamares
+Categories=Qt;System;
 Keywords=install;installer;calamares;schweisos;
+X-AppStream-Ignore=true

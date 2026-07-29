@@ -24,9 +24,11 @@ contains:
   Plasma live session.
 - A packaged graphical GRUB theme that is not yet installer-activated or part
   of the live ISO.
-- Calamares installer architecture for UEFI systemd-boot installs: source
-  configuration, target package manifest, manual/recovery runbooks, and static
-  validation exist, but no installable ISO evidence has been produced yet.
+- Calamares installer architecture for UEFI systemd-boot installs: one branded
+  launcher, once-only live-session autostart, visible startup diagnostics,
+  source configuration, target package manifest, manual/recovery runbooks, and
+  static validation exist, but no current installable ISO evidence has been
+  produced yet.
 - Production public trust material, role-separated signing tooling, and signed
   repository tooling.
 - Disposable pacman, package, repository, ISO-profile, release-artifact, and

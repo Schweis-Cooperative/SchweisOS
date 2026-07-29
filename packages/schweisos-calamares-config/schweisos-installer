@@ -1,12 +1,147 @@
 #!/usr/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-set -euo pipefail
+set -uo pipefail
 
-export LC_ALL=C
+state_directory() {
+  printf '%s/schweisos-installer\n' \
+    "${XDG_STATE_HOME:-${HOME:?HOME is required}/.local/state}"
+}
 
-if [[ ${EUID} -eq 0 ]]; then
-  exec /usr/bin/calamares -D8
+record_failure() {
+  local message=$1
+
+  printf '%s\n' "$message" >&2
+  if [[ -x /usr/bin/systemd-cat ]]; then
+    printf '%s\n' "$message" | /usr/bin/systemd-cat \
+      --identifier=schweisos-installer --priority=err || true
+  fi
+}
+
+show_error() {
+  local message=$1
+
+  record_failure "$message"
+  if [[ -x /usr/bin/kdialog && -n ${DISPLAY:-} ]]; then
+    /usr/bin/kdialog --title 'Install SchweisOS' --error "$message" || true
+  fi
+}
+
+show_already_running() {
+  if [[ -x /usr/bin/kdialog && -n ${DISPLAY:-} ]]; then
+    /usr/bin/kdialog --title 'Install SchweisOS' \
+      --passivepopup 'The SchweisOS installer is already open.' 5 || true
+  fi
+}
+
+preflight() {
+  local missing=()
+  local required
+
+  if [[ $(/usr/bin/id -un) != live \
+      || ! -d /run/archiso/bootmnt \
+      || ! -f /etc/sddm.conf.d/10-schweisos-live.conf ]]; then
+    printf 'This installer may run only in the SchweisOS live session.'
+    return 1
+  fi
+  if [[ ! -d /sys/firmware/efi ]]; then
+    printf 'SchweisOS Faz 1 installation requires a UEFI booted live session.'
+    return 1
+  fi
+  if [[ -z ${DISPLAY:-} || -z ${XAUTHORITY:-} || ! -r ${XAUTHORITY:-/nonexistent} ]]; then
+    printf 'The graphical session is missing XWayland display authorization.'
+    return 1
+  fi
+  for required in \
+    /usr/bin/calamares \
+    /usr/bin/kdialog \
+    /usr/bin/pkexec \
+    /usr/lib/schweisos-calamares/launch-root; do
+    [[ -x "$required" ]] || missing+=("$required")
+  done
+  if (( ${#missing[@]} > 0 )); then
+    printf 'Required installer component is missing: %s' "${missing[*]}"
+    return 1
+  fi
+}
+
+invoke_privileged_installer() {
+  /usr/bin/pkexec /usr/lib/schweisos-calamares/launch-root
+}
+
+main() {
+  local installer_state
+  local launch_log
+  local preflight_error
+  local exit_status
+
+  umask 077
+  installer_state=$(state_directory) || return 1
+  if ! /usr/bin/mkdir -p -- "$installer_state"; then
+    show_error 'The installer could not create its private session state directory.'
+    return 1
+  fi
+  if ! /usr/bin/chmod 0700 -- "$installer_state"; then
+    show_error 'The installer could not secure its private session state directory.'
+    return 1
+  fi
+
+  launch_log="${installer_state}/launch.log"
+  if ! exec 9>"${installer_state}/launch.lock"; then
+    show_error 'The installer could not create its private single-instance lock.'
+    return 1
+  fi
+  if ! /usr/bin/flock -n 9; then
+    show_already_running
+    exec 9>&-
+    return 0
+  fi
+
+  if ! : >"$launch_log" || ! /usr/bin/chmod 0600 -- "$launch_log"; then
+    exec 9>&-
+    show_error 'The installer could not create its private diagnostic log.'
+    return 1
+  fi
+  if ! printf '%s launcher started\n' \
+    "$(/usr/bin/date --utc +%Y-%m-%dT%H:%M:%SZ)" >>"$launch_log"; then
+    exec 9>&-
+    show_error 'The installer could not write its private diagnostic log.'
+    return 1
+  fi
+
+  if ! preflight_error=$(preflight); then
+    printf '%s preflight failed: %s\n' \
+      "$(/usr/bin/date --utc +%Y-%m-%dT%H:%M:%SZ)" "$preflight_error" \
+      >>"$launch_log"
+    exec 9>&-
+    show_error "${preflight_error}"$'\n\n'"Diagnostic log: ${launch_log}"
+    return 1
+  fi
+
+  if ! : >"${installer_state}/launched" \
+      || ! /usr/bin/chmod 0600 -- "${installer_state}/launched"; then
+    exec 9>&-
+    show_error 'The installer could not record its private session launch state.'
+    return 1
+  fi
+
+  invoke_privileged_installer >>"$launch_log" 2>&1
+  exit_status=$?
+  if (( exit_status == 0 )); then
+    printf '%s launcher completed successfully\n' \
+      "$(/usr/bin/date --utc +%Y-%m-%dT%H:%M:%SZ)" >>"$launch_log"
+    exec 9>&-
+    return 0
+  fi
+
+  printf '%s launcher failed with exit status %d\n' \
+    "$(/usr/bin/date --utc +%Y-%m-%dT%H:%M:%SZ)" "$exit_status" \
+    >>"$launch_log"
+  exec 9>&-
+  show_error 'The SchweisOS installer exited with an error. Review its diagnostic log before retrying.'$'\n\n'"Diagnostic log: ${launch_log}"
+  return "$exit_status"
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
 fi
-
-exec /usr/bin/pkexec /usr/bin/calamares -D8

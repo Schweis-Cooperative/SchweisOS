@@ -2,8 +2,8 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.1
-Status: Installer MVP configuration source
+Version: 0.2
+Status: Installer MVP configuration and live launch integration
 Date: 2026-07-29
 
 `schweisos-calamares-config` provides the SchweisOS-owned configuration and
@@ -28,8 +28,11 @@ This package owns:
 - `/etc/calamares/branding/schweisos/branding.desc`
 - `/etc/calamares/modules/*.conf` for SchweisOS installer policy
 - `/usr/bin/schweisos-installer`
-- `/usr/lib/schweisos-calamares/*`
+- `/usr/lib/schweisos-calamares/*`, including the exact-path privileged
+  XWayland bridge and once-only live autostart helper
 - `/usr/share/applications/schweisos-installer.desktop`
+- `/etc/xdg/autostart/schweisos-installer-autostart.desktop`
+- `/usr/share/polkit-1/actions/org.schweisos.installer.policy`
 - `/usr/share/schweisos/calamares/target-packages.x86_64`
 - `/usr/share/schweisos/calamares/pacman.conf`
 
@@ -60,6 +63,23 @@ snapshot or rollback promise is made in this phase.
 
 The default bootloader is systemd-boot on UEFI. GRUB remains a documented
 future/alternative installed-system path and is not activated by this package.
+
+## Live Launch Contract
+
+The package owns the only visible installer entry. The separately packaged
+Calamares binary omits its generic upstream desktop entry, so no profile-level
+desktop-file override or menu-cache behavior is part of the contract.
+
+The hidden XDG autostart entry runs only for the `live` Archiso session and
+attempts one launch about three seconds after Plasma starts. State in the
+ephemeral live home prevents automatic reopening after the installer is
+closed. Manual use of `Install SchweisOS` remains available.
+
+Calamares 3.4 requires a privileged UI. The exact-path Polkit helper accepts no
+arguments, sanitizes loader and Qt plugin environment variables, and selects
+Qt's `xcb` backend over packaged XWayland. The public wrapper checks UEFI and
+display authorization, prevents concurrent instances, captures a private
+launch log, and displays a KDE error dialog for launch or runtime failures.
 
 ## Calamares Binary Package
 

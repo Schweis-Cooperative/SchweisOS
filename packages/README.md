@@ -1,6 +1,6 @@
 # Packages Directory
 
-Version: 0.4
+Version: 0.5
 Status: Active
 Date: 2026-07-29
 
@@ -29,8 +29,11 @@ alternative. It is not part of the current live ISO and does not install or
 configure a bootloader.
 
 `schweisos-calamares-config` owns the first Calamares configuration, installer
-launcher, target package manifest, pacstrap policy, and installed-system
-systemd-boot integration helpers. It does not package Calamares itself and it
-is not installed into the target system by the MVP package manifest.
+launcher, once-only live autostart, exact-path privilege/display bridge,
+visible startup diagnostics, target package manifest, pacstrap policy, and
+installed-system systemd-boot integration helpers. The separately reviewed
+Calamares binary package omits upstream's generic launcher so only the
+SchweisOS entry is visible. Neither package is installed into the target
+system by the MVP package manifest.
 
 Policy reference: [docs/packaging/packaging-guide.md](../docs/packaging/packaging-guide.md).

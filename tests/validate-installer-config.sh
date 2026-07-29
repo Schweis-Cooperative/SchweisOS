@@ -14,15 +14,19 @@ require_tool() {
   command -v "$1" >/dev/null 2>&1 || fail "required tool not found: $1"
 }
 
-for tool in awk bash find git grep makepkg readlink sed sha256sum sort stat uniq; do
+for tool in awk bash desktop-file-validate find git grep makepkg readlink sed \
+  sha256sum sort stat uniq; do
   require_tool "$tool"
 done
 
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 package_dir="${project_root}/packages/schweisos-calamares-config"
+calamares_package_dir="${project_root}/packages/calamares"
 release_package_dir="${project_root}/packages/schweisos-release"
 profile_packages="${project_root}/iso/profiles/kde/packages.x86_64"
+profile_airootfs="${project_root}/iso/profiles/kde/airootfs"
 adr="${project_root}/docs/adr/ADR-016-installer-architecture.md"
+ddr="${project_root}/docs/ddr/DDR-002-installer-experience.md"
 add_doc="${project_root}/docs/architecture/ADD.md"
 installer_docs="${project_root}/docs/installer"
 tmp_dir="$(mktemp -d)"
@@ -50,7 +54,11 @@ required_files=(
   "${package_dir}/target-packages.x86_64"
   "${package_dir}/pacman.conf"
   "${package_dir}/schweisos-installer.desktop"
+  "${package_dir}/schweisos-installer-autostart.desktop"
+  "${package_dir}/org.schweisos.installer.policy"
+  "${calamares_package_dir}/PKGBUILD"
   "$adr"
+  "$ddr"
   "${installer_docs}/README.md"
   "${installer_docs}/manual-installation-runbook.md"
   "${installer_docs}/recovery-runbook.md"
@@ -58,6 +66,8 @@ required_files=(
 
 helper_sources=(
   "${package_dir}/schweisos-installer"
+  "${package_dir}/schweisos-installer-root"
+  "${package_dir}/schweisos-installer-autostart"
   "${package_dir}/schweisos-calamares-preflight"
   "${package_dir}/schweisos-calamares-pacstrap"
   "${package_dir}/schweisos-calamares-configure-pacman"
@@ -78,8 +88,11 @@ for helper_source in "${helper_sources[@]}"; do
 done
 
 bash -n "${helper_sources[@]}" "${package_dir}/PKGBUILD" "${BASH_SOURCE[0]}"
+desktop-file-validate "${package_dir}/schweisos-installer.desktop"
+desktop-file-validate "${package_dir}/schweisos-installer-autostart.desktop"
 
 srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
+calamares_srcinfo="$(cd -- "$calamares_package_dir" && makepkg --printsrcinfo)"
 release_srcinfo="$(cd -- "$release_package_dir" && makepkg --printsrcinfo)"
 release_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$release_srcinfo")"
 [[ -n "$release_pkgver" ]] || fail 'schweisos-release package version is unreadable'
@@ -91,9 +104,9 @@ grep -Fxq $'\tarch = any' <<<"$srcinfo" || \
 grep -Fxq $'\turl = https://schweisos.org' <<<"$srcinfo" || \
   fail 'installer config package URL is not canonical'
 for dependency in \
-  arch-install-scripts bash calamares dosfstools efibootmgr e2fsprogs pacman \
+  arch-install-scripts bash calamares dosfstools efibootmgr e2fsprogs kdialog pacman \
   polkit schweisos-branding schweisos-keyring schweisos-mirrorlist \
-  schweisos-pacman-config schweisos-release systemd; do
+  schweisos-pacman-config schweisos-release systemd util-linux xorg-xwayland; do
   grep -Fxq $'\tdepends = '"$dependency" <<<"$srcinfo" || \
     fail "installer config package dependency is missing: ${dependency}"
 done
@@ -110,6 +123,29 @@ for helper_name in \
   grep -Fq "install -Dm755 \"\${srcdir}/${helper_name}\"" "${package_dir}/PKGBUILD" || \
     fail "installer helper must be installed executable by PKGBUILD: ${helper_name}"
 done
+grep -Fq 'install -Dm755 "${srcdir}/schweisos-installer-root"' "${package_dir}/PKGBUILD" || \
+  fail 'exact-path privileged installer helper must be installed executable'
+grep -Fq '"${pkgdir}/usr/lib/schweisos-calamares/launch-root"' "${package_dir}/PKGBUILD" || \
+  fail 'privileged installer helper must use its policy-bound runtime path'
+grep -Fq 'install -Dm755 "${srcdir}/schweisos-installer-autostart"' "${package_dir}/PKGBUILD" || \
+  fail 'installer autostart helper must be installed executable'
+grep -Fq '"${pkgdir}/etc/xdg/autostart/schweisos-installer-autostart.desktop"' \
+  "${package_dir}/PKGBUILD" || fail 'installer XDG autostart entry is not packaged'
+grep -Fq '"${pkgdir}/usr/share/polkit-1/actions/org.schweisos.installer.policy"' \
+  "${package_dir}/PKGBUILD" || fail 'installer Polkit action is not packaged'
+
+grep -Fxq 'pkgname = calamares' <<<"$calamares_srcinfo" || \
+  fail 'unexpected Calamares package source name'
+grep -Fq 'upstream_launcher="${pkgdir}/usr/share/applications/calamares.desktop"' \
+  "${calamares_package_dir}/PKGBUILD" || \
+  fail 'Calamares package must identify the generic launcher by exact path'
+grep -Fq 'unlink -- "$upstream_launcher"' "${calamares_package_dir}/PKGBUILD" || \
+  fail 'Calamares package must omit the generic Install System launcher'
+! grep -Eq 'rm[[:space:]]+-[[:alnum:]]*f' "${calamares_package_dir}/PKGBUILD" || \
+  fail 'Calamares launcher omission must not use a force flag'
+[[ ! -e "${profile_airootfs}/usr/local/share/applications/calamares.desktop" \
+    && ! -L "${profile_airootfs}/usr/local/share/applications/calamares.desktop" ]] || \
+  fail 'the ISO profile must not retain a second-layer Calamares launcher mask'
 ! grep -Eq '(^|[[:space:]])(grub-install|grub-mkconfig)([[:space:]]|$)' \
   "${package_dir}/"*.conf "${package_dir}/schweisos-calamares-"* || \
   fail 'installer MVP must not activate GRUB'
@@ -135,10 +171,18 @@ grep -Fq 'defaultFileSystemType: "ext4"' "${package_dir}/partition.conf" || \
   fail 'installer MVP must default to ext4'
 grep -Fq '  - "btrfs"' "${package_dir}/partition.conf" || \
   fail 'installer MVP must expose Btrfs only as documented optional support'
-grep -Fq 'efiSystemPartition: "/boot"' "${package_dir}/partition.conf" || \
+grep -Fq '  mountPoint: "/boot"' "${package_dir}/partition.conf" || \
   fail 'installer MVP must mount the EFI system partition at /boot'
-grep -Fq 'efiSystemPartitionSize: 512MiB' "${package_dir}/partition.conf" || \
+grep -Fq '  recommendedSize: 512MiB' "${package_dir}/partition.conf" || \
   fail 'installer MVP must use the documented ESP size'
+grep -Fxq 'requiredPartitionTableType: gpt' "${package_dir}/partition.conf" || \
+  fail 'installer MVP must constrain the target partition table to GPT'
+grep -Fxq 'enableLuksAutomatedPartitioning: false' "${package_dir}/partition.conf" || \
+  fail 'installer MVP must not expose unsupported automated encryption'
+grep -A1 -Fxq 'lvm:' "${package_dir}/partition.conf" || \
+  fail 'installer partition policy must explicitly configure LVM'
+grep -A1 -Fx 'lvm:' "${package_dir}/partition.conf" | grep -Fxq '  enable: false' || \
+  fail 'installer MVP must not expose unsupported LVM'
 grep -Fq 'region: "Etc"' "${package_dir}/locale.conf" || \
   fail 'installer locale baseline must remain neutral'
 grep -Fq 'zone: "UTC"' "${package_dir}/locale.conf" || \
@@ -173,8 +217,76 @@ grep -Fq 'systemctl enable NetworkManager.service' "${package_dir}/schweisos-cal
   fail 'installer must enable NetworkManager in the target'
 grep -Fq 'systemctl enable sddm.service' "${package_dir}/schweisos-calamares-enable-services" || \
   fail 'installer must enable SDDM in the target'
-grep -Fq 'Exec=schweisos-installer' "${package_dir}/schweisos-installer.desktop" || \
+grep -Fxq 'Name=Install SchweisOS' "${package_dir}/schweisos-installer.desktop" || \
+  fail 'desktop launcher must use the SchweisOS product name'
+grep -Fxq 'Exec=/usr/bin/schweisos-installer' "${package_dir}/schweisos-installer.desktop" || \
   fail 'desktop launcher must use the packaged installer wrapper'
+grep -Fxq 'Icon=schweisos' "${package_dir}/schweisos-installer.desktop" || \
+  fail 'desktop launcher must use the canonical SchweisOS icon name'
+grep -Fxq 'StartupNotify=true' "${package_dir}/schweisos-installer.desktop" || \
+  fail 'desktop launcher must expose startup feedback'
+
+for autostart_fragment in \
+  'Exec=/usr/lib/schweisos-calamares/autostart' \
+  'NoDisplay=true' \
+  'OnlyShowIn=KDE;'; do
+  grep -Fxq "$autostart_fragment" "${package_dir}/schweisos-installer-autostart.desktop" || \
+    fail "installer autostart entry is missing: ${autostart_fragment}"
+done
+for autostart_source_fragment in \
+  '$(/usr/bin/id -un) == live' \
+  '-d /run/archiso/bootmnt' \
+  '/usr/bin/sleep 3' \
+  'autostart-attempted' \
+  'report_autostart_failure' \
+  '! -L "$autostart_marker"' \
+  '"${installer_state}/launched"' \
+  '/usr/bin/schweisos-installer'; do
+  grep -Fq -- "$autostart_source_fragment" "${package_dir}/schweisos-installer-autostart" || \
+    fail "installer once-only autostart contract is missing: ${autostart_source_fragment}"
+done
+for launcher_fragment in \
+  '/sys/firmware/efi' \
+  'XAUTHORITY' \
+  '/usr/bin/flock -n' \
+  '/usr/bin/chmod 0600' \
+  'launch.log' \
+  '/usr/bin/kdialog' \
+  '/usr/bin/pkexec /usr/lib/schweisos-calamares/launch-root'; do
+  grep -Fq "$launcher_fragment" "${package_dir}/schweisos-installer" || \
+    fail "installer guarded launcher contract is missing: ${launcher_fragment}"
+done
+for privileged_fragment in \
+  'if (( $# != 0 ))' \
+  'unset LD_LIBRARY_PATH LD_PRELOAD' \
+  'export QT_QPA_PLATFORM=xcb' \
+  'exec /usr/bin/calamares -D6'; do
+  grep -Fq "$privileged_fragment" "${package_dir}/schweisos-installer-root" || \
+    fail "installer privileged bridge is missing: ${privileged_fragment}"
+done
+for policy_fragment in \
+  '<action id="org.schweisos.installer.launch">' \
+  '<annotate key="org.freedesktop.policykit.exec.path">/usr/lib/schweisos-calamares/launch-root</annotate>' \
+  '<annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>'; do
+  grep -Fq "$policy_fragment" "${package_dir}/org.schweisos.installer.policy" || \
+    fail "installer Polkit policy is missing: ${policy_fragment}"
+done
+for branding_fragment in \
+  'productLogo: "/usr/share/schweisos/branding/schweisos.png"' \
+  'productIcon: "/usr/share/schweisos/branding/schweisos.png"' \
+  'productWelcome: "/usr/share/schweisos/branding/schweisos.png"' \
+  'SidebarBackground: "#051022"' \
+  'SidebarTextCurrent: "#ffffff"'; do
+  grep -Fq "$branding_fragment" "${package_dir}/branding.desc" || \
+    fail "Calamares branding contract is missing: ${branding_fragment}"
+done
+! grep -Eq '^[[:space:]]+(sidebarBackground|sidebarText|sidebarTextSelect):' \
+  "${package_dir}/branding.desc" || fail 'Calamares branding uses invalid case-sensitive style keys'
+for required_welcome_condition in storage ram internet root; do
+  grep -A5 '^[[:space:]]*required:' "${package_dir}/welcome.conf" \
+    | grep -Fxq "    - ${required_welcome_condition}" || \
+    fail "installer welcome gate is not required: ${required_welcome_condition}"
+done
 
 sed 's/[[:space:]]*#.*$//' "${package_dir}/target-packages.x86_64" \
   | awk 'NF { print }' >"${tmp_dir}/target-packages.normalized"
@@ -218,6 +330,8 @@ done
 
 grep -Fq 'ADR-016 Installer Architecture' "${project_root}/docs/adr/README.md" || \
   fail 'ADR index must reference ADR-016'
+grep -Fq 'DDR-002 Installer Experience' "${project_root}/docs/ddr/README.md" || \
+  fail 'DDR index must reference DDR-002'
 grep -Fq 'schweisos-calamares-config' "$add_doc" || \
   fail 'ADD must document installer package ownership'
 grep -Fq 'Manual Installation Runbook' "${installer_docs}/README.md" || \
@@ -233,10 +347,15 @@ fi
 git -C "$project_root" diff --check -- \
   docs/adr/ADR-016-installer-architecture.md \
   docs/architecture/ADD.md \
+  docs/ddr \
   docs/installer \
   iso/profiles/kde \
+  packages/calamares \
   packages/schweisos-calamares-config \
+  tests/test-installer-experience.sh \
   tests/validate-installer-config.sh
+
+"${project_root}/tests/test-installer-experience.sh"
 
 printf 'Installer configuration validation passed.\n'
 printf '  package: schweisos-calamares-config\n'

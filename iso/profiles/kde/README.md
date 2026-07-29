@@ -60,19 +60,14 @@ The following files are temporary live-media exceptions:
   canonical logo edge tone, delayed logo fade-in, and five-dot circular chase
   loader sampled from the canonical `schweisos.png`, then clears the retained
   frame during the normal handoff.
-- `/usr/local/share/applications/calamares.desktop` is a live-only XDG
-  higher-precedence desktop-entry override that hides Calamares' generic
-  upstream `Install System` launcher. The visible entry remains the packaged
-  `Install SchweisOS` launcher owned by `schweisos-calamares-config`.
-
 The UEFI loader retains the firmware-selected console mode and shows exactly
 `SchweisOS Live` and `SchweisOS Live (Debug)`. Automatic firmware/OS entries and
 interactive kernel-command-line editing are disabled for the live medium.
 
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction, create the passwordless automatic
-live session, authorize local live-session administration, hide live-only
-launcher clutter, or define the live medium's ephemeral hostname. The
+live session, authorize local live-session administration, or define the live
+medium's ephemeral hostname. The
 mkinitcpio files must exist before the kernel package creates the image. The
 remaining files should move to a narrowly scoped, live-only package if one is
 designed and approved later.
@@ -96,6 +91,8 @@ target manifest, and installed-system helpers.
 
 No installer configuration, Calamares module payload, target package manifest,
 or SchweisOS-owned installer launcher is allowed in `airootfs/`. The profile
-may carry only the live-session administration policy and the XDG override that
-hides Calamares' generic upstream launcher. The target system is installed with
-`pacstrap`; it is not cloned from the live root.
+may carry only the live-session administration policy. The Calamares binary
+package omits its generic launcher; `schweisos-calamares-config` owns the
+visible branded launcher, hidden once-per-live-boot autostart, exact-path
+privilege bridge, and visible failure handling. The target system is installed
+with `pacstrap`; it is not cloned from the live root.

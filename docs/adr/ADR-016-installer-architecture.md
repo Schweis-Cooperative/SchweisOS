@@ -1,6 +1,6 @@
 # ADR-016 Installer Architecture
 
-Version: 0.1
+Version: 0.2
 
 ## Status
 
@@ -22,6 +22,7 @@ Accepted for Faz 1 source implementation
 - ADR-014 Live Boot Experience Architecture
 - ADR-015 GRUB Theme Architecture
 - DDR-001 Boot Experience
+- DDR-002 Installer Experience
 
 ## Context
 
@@ -89,8 +90,27 @@ other administrative live-session tools without knowing a root password. This
 is implemented as a live-only account, sudoers, and polkit exception in
 `iso/profiles/kde/airootfs/`. The exception is intentionally scoped to the
 local active live session and must never be copied into the installed system.
-The visible launcher is `Install SchweisOS`; the profile hides Calamares'
-generic upstream `Install System` desktop entry with a live-only XDG override.
+
+The visible launcher is `Install SchweisOS`. The SchweisOS Calamares binary
+package omits upstream's generic `Install System` desktop entry, so launcher
+ownership is resolved at package construction rather than with a profile
+overlay or desktop-menu precedence assumption. `schweisos-calamares-config`
+owns the public launcher, a hidden first-session XDG autostart entry, an
+exact-path Polkit action, and the bounded privilege/display helper.
+
+Calamares 3.4 still runs its UI as root. The packaged helper accepts no
+arguments, removes unsafe loader/plugin environment variables, and forces the
+Qt `xcb` backend. Polkit's `allow_gui` annotation carries the live session's
+X11 authorization to that exact helper so it can use packaged XWayland under a
+native Plasma Wayland session. The public launcher adds a per-session
+single-instance lock, UEFI/display/component preflight, a private local launch
+log, and a KDE error dialog for non-zero startup results.
+
+The installer autostarts three seconds after the first live Plasma session.
+An atomic state marker in the ephemeral live home prevents any later automatic
+reopen during the same medium boot. Closing the installer is respected; the
+same branded menu entry remains available for manual reopening. The complete
+interaction contract is owned by DDR-002.
 
 The installer must not clone the live root filesystem into the target system.
 Live-root cloning would copy Archiso-only mkinitcpio configuration, live
@@ -179,11 +199,15 @@ mirrors, or temporary keys.
 - `docs/adr/ADR-016-installer-architecture.md` owns this decision.
 - `docs/installer/` owns installer, manual installation, and recovery runbooks.
 - `packages/schweisos-calamares-config/` owns reusable Calamares configuration,
-  installer launcher, target package manifest, pacstrap pacman configuration,
+  the single visible installer launcher, live-session autostart, exact-path
+  privilege bridge, target package manifest, pacstrap pacman configuration,
   and installer helper scripts.
+- `packages/calamares/` owns the reviewed upstream binary package and omission
+  of its generic launcher; it does not own SchweisOS desktop presentation.
 - `iso/profiles/kde/packages.x86_64` owns inclusion of Calamares and
   `schweisos-calamares-config` in the live image.
-- `iso/profiles/kde/airootfs/` must not contain installer payloads.
+- `iso/profiles/kde/airootfs/` owns only live account authorization and must not
+  contain installer payloads or launcher masks.
 - `schweisos-grub-theme` remains inert and future installer-owned for GRUB
   activation.
 - `tools/release/` and `tools/signing/` continue to own repository and signing
@@ -255,6 +279,11 @@ Negative:
 The installer configuration validator must fail closed if:
 
 - `schweisos-calamares-config` sources are missing or unsafe;
+- the Calamares binary package retains its generic desktop launcher;
+- the branded launcher, once-only autostart, exact-path Polkit action,
+  XWayland bridge, single-instance lock, local log, or visible error path is
+  missing;
+- Calamares branding uses invalid schema keys or a non-canonical logo path;
 - package source checksums are skipped;
 - Calamares configuration is not package-owned under `/etc/calamares`;
 - the ISO profile omits required installer packages;

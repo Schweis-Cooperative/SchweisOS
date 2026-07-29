@@ -175,7 +175,6 @@ rootfs_payloads=(
     usr/lib/schweisos-live/plymouth-is-stopped
     usr/lib/schweisos-live/plymouth-quit-guarded
     usr/lib/schweisos-live/plymouth-watchdog
-    usr/local/share/applications/calamares.desktop
     usr/share/plymouth/themes/schweisos/schweisos.plymouth
     usr/share/plymouth/themes/schweisos/schweisos.script
 )
@@ -222,8 +221,56 @@ for required_polkit_fragment in \
         "${rootfs}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules" || \
         fail "built live polkit rule is missing: ${required_polkit_fragment}"
 done
-grep -Fxq 'Hidden=true' "${rootfs}/usr/local/share/applications/calamares.desktop" || \
-    fail 'built live root does not hide the generic Calamares launcher'
+[[ ! -e "${rootfs}/usr/share/applications/calamares.desktop" \
+    && ! -L "${rootfs}/usr/share/applications/calamares.desktop" ]] || \
+    fail 'built live root retains the generic Calamares launcher'
+installer_desktop="${rootfs}/usr/share/applications/schweisos-installer.desktop"
+installer_autostart="${rootfs}/etc/xdg/autostart/schweisos-installer-autostart.desktop"
+installer_wrapper="${rootfs}/usr/bin/schweisos-installer"
+installer_autostart_helper="${rootfs}/usr/lib/schweisos-calamares/autostart"
+installer_root_helper="${rootfs}/usr/lib/schweisos-calamares/launch-root"
+installer_policy="${rootfs}/usr/share/polkit-1/actions/org.schweisos.installer.policy"
+for installer_payload in \
+    "$installer_desktop" \
+    "$installer_autostart" \
+    "$installer_wrapper" \
+    "$installer_autostart_helper" \
+    "$installer_root_helper" \
+    "$installer_policy"; do
+    [[ -f "$installer_payload" && ! -L "$installer_payload" ]] || \
+        fail "built live root is missing installer experience payload: ${installer_payload#"$rootfs"/}"
+done
+[[ "$(stat -c %a -- "$installer_wrapper")" == 755 \
+    && "$(stat -c %a -- "$installer_autostart_helper")" == 755 \
+    && "$(stat -c %a -- "$installer_root_helper")" == 755 ]] || \
+    fail 'built installer launch helpers are not executable'
+grep -Fxq 'Name=Install SchweisOS' "$installer_desktop" || \
+    fail 'built installer launcher does not use the SchweisOS product name'
+grep -Fxq 'Icon=schweisos' "$installer_desktop" || \
+    fail 'built installer launcher does not use the canonical icon name'
+grep -Fxq 'NoDisplay=true' "$installer_autostart" || \
+    fail 'built installer autostart entry is visible in the application menu'
+grep -Fxq 'Exec=/usr/lib/schweisos-calamares/autostart' "$installer_autostart" || \
+    fail 'built installer autostart entry does not use the packaged helper'
+grep -Fq '/usr/bin/sleep 3' "$installer_autostart_helper" || \
+    fail 'built installer autostart does not preserve the desktop-settle delay'
+grep -Fq 'autostart-attempted' "$installer_autostart_helper" || \
+    fail 'built installer autostart is not once-only'
+grep -Fq '/usr/bin/flock -n' "$installer_wrapper" || \
+    fail 'built installer launcher lacks its single-instance guard'
+grep -Fq '/usr/bin/kdialog' "$installer_wrapper" || \
+    fail 'built installer launcher lacks visible failure handling'
+grep -Fxq 'export QT_QPA_PLATFORM=xcb' "$installer_root_helper" || \
+    fail 'built installer root helper does not use the XWayland bridge'
+grep -Fq '/usr/lib/schweisos-calamares/launch-root</annotate>' "$installer_policy" || \
+    fail 'built installer Polkit policy is not bound to the exact helper path'
+grep -Fq 'org.freedesktop.policykit.exec.allow_gui">true</annotate>' "$installer_policy" || \
+    fail 'built installer Polkit policy cannot carry display authorization'
+generic_installer_entry="$(grep -RIl --include='*.desktop' \
+    '^Name=Install System$' "${rootfs}/usr/share/applications" \
+    "${rootfs}/usr/local/share/applications" 2>/dev/null || true)"
+[[ -z "$generic_installer_entry" ]] || \
+    fail "built live root exposes a generic installer launcher: ${generic_installer_entry#"$rootfs"/}"
 for plymouth_activation in \
     sysinit.target.wants/plymouth-start.service:../plymouth-start.service \
     multi-user.target.wants/plymouth-quit.service:../plymouth-quit.service \

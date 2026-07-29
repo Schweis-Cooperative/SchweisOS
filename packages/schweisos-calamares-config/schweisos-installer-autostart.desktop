@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SchweisOS Installer Autostart
+Comment=Start Install SchweisOS once in the first live session
+TryExec=/usr/bin/schweisos-installer
+Exec=/usr/lib/schweisos-calamares/autostart
+Icon=schweisos
+Terminal=false
+NoDisplay=true
+OnlyShowIn=KDE;
+StartupNotify=false
+X-KDE-autostart-phase=2
+X-GNOME-Autostart-enabled=true

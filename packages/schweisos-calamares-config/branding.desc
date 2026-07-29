@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+componentName: schweisos
+
+strings:
+  productName: "SchweisOS"
+  shortProductName: "SchweisOS"
+  version: "2026.07.27"
+  shortVersion: "2026.07.27"
+  versionedName: "SchweisOS 2026.07.27"
+  shortVersionedName: "SchweisOS"
+  bootloaderEntryName: "SchweisOS"
+  productUrl: "https://schweisos.org"
+  supportUrl: "https://docs.schweisos.org/support"
+  knownIssuesUrl: "https://docs.schweisos.org"
+  releaseNotesUrl: "https://docs.schweisos.org"
+
+images:
+  productLogo: "/usr/share/schweisos/branding/schweisos.png"
+  productIcon: "/usr/share/schweisos/branding/schweisos.png"
+
+style:
+  sidebarBackground: "#051022"
+  sidebarText: "#d8e3f0"
+  sidebarTextSelect: "#ffffff"

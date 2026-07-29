@@ -108,6 +108,7 @@ returns nonzero. The legal build sequence is:
 ```text
 validate-build-dependencies.sh
   -> validate-build-environment.sh
+  -> validate-installer-config.sh
   -> validate-iso-profile.sh
   -> mkarchiso
   -> validate-built-iso-identity.sh
@@ -117,7 +118,7 @@ validate-build-dependencies.sh
 
 `validate-build-environment.sh` invokes the full dependency validator itself;
 the expanded sequence above makes the ownership boundary explicit. A failure
-in either pre-build gate prevents `mkarchiso`; a completed-image failure stops
+in any pre-build gate prevents `mkarchiso`; a completed-image failure stops
 checksum publication and final build success.
 
 ## Resolution
@@ -133,9 +134,10 @@ The recorded blockers were later resolved without weakening the gates:
 - An earlier pipeline produced a versioned KDE development ISO and exercised
   the then-existing identity checks.
 
-This resolution does not imply a public mirror, ISO signature, installer,
-stable release, or public release readiness. It also is not successful ISO
-evidence for the current first-boot, Plymouth-watchdog, built-boot, or exact-v2
-manifest contracts. A fresh production-host build must create that evidence
-later; the older local ISO and its failed or legacy manifests cannot satisfy
-the current gates.
+This resolution does not imply a public mirror, ISO signature, validated
+installable ISO, stable release, or public release readiness. It also is not
+successful ISO evidence for the current first-boot, Plymouth-watchdog,
+built-boot, installer, or exact-v2 manifest contracts. A fresh production-host
+build with admitted installer packages must create that evidence later; the
+older local ISO and its failed or legacy manifests cannot satisfy the current
+gates.

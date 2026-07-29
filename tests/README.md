@@ -1,8 +1,8 @@
 # Tests Directory
 
-Version: 1.2
+Version: 1.3
 Status: Active
-Date: 2026-07-28
+Date: 2026-07-29
 
 This directory owns repository-level validation that crosses package boundaries.
 
@@ -47,14 +47,15 @@ ADR-013 dependencies and command provenance, pacman
 trust policy, at least 20 GiB free space, generated path safety, repository
 layout and permissions, prohibited `--force` use, symlinks, secrets, private
 signing material, and SchweisOS repository readiness. For local `file://`
-SchweisOS endpoints, it also
-checks that every database entry has a present package file and detached `.sig`
-sidecar before Archiso is invoked. All five source/repository package versions
-must match in every mode. The selected branding package must also contain the
-single canonical regular runtime logo, omit the stale runtime path, and match
-the source logo SHA256. It neither mutates host package state nor runs the
-profile validator or `mkarchiso`. `scripts/build-iso.sh` runs this gate before
-every other substantive build step.
+SchweisOS endpoints, it also checks that every database entry has a present
+package file and detached `.sig` sidecar before Archiso is invoked. Every
+`schweisos-*` package listed in the ISO profile must have a matching repository
+package version in every mode. The
+selected branding package must also contain the single canonical regular
+runtime logo, omit the stale runtime path, and match the source logo SHA256. It
+neither mutates host package state nor runs the profile validator or
+`mkarchiso`. `scripts/build-iso.sh` runs this gate before every other
+substantive build step.
 
 `validate-iso-profile.sh` performs profile-only static validation of the KDE
 Archiso profile without requiring Archiso itself or network access:
@@ -75,6 +76,21 @@ dependency. Pacman parsing uses a disposable sysroot populated from the real
 bootstrap configuration files; it does not modify `/etc`, contact repositories,
 or invent endpoints. Repository availability remains a separate build-host
 preflight.
+
+`validate-installer-config.sh` performs static validation of the Faz 1
+Calamares installer configuration:
+
+```bash
+tests/validate-installer-config.sh
+```
+
+It verifies the `schweisos-calamares-config` package source, exact dependency
+contract, package source checksums, Calamares sequence, UEFI systemd-boot MVP
+policy, ext4 default with optional Btrfs support, pacstrap target installation,
+target pacman include behavior, live ISO package composition, absence of GRUB
+activation in the MVP path, non-executable repository helper sources, and
+absence of secrets or private-key material. It does not partition disks, start
+Calamares, build an ISO, or prove a graphical installation.
 
 `test-plymouth-watchdog.sh` performs disposable behavioral validation of the
 real watchdog control flow:
@@ -224,7 +240,7 @@ tests/validate-iso-build-manifest.sh \
 The build manifest uses `schweisos.iso-build-manifest.v2` and records both
 post-build validators explicitly. The validator requires canonical JSON that
 byte-matches `jq --indent 2`, exact top-level and nested key sets, correct
-types, a clean completed build, one artifact candidate, all five gates as
+types, a clean completed build, one artifact candidate, all six build gates as
 `pass`, and internally consistent artifact and sidecar names. Missing, extra,
 duplicate, ambiguous, legacy, failed, dirty, or partially completed manifests
 are rejected. In `--release` mode it additionally requires

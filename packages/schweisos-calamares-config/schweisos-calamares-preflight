@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+export LC_ALL=C
+
+target_root=${1:?target root argument is required}
+
+if [[ "$target_root" == / || -z "$target_root" ]]; then
+  printf 'schweisos installer preflight: unsafe target root\n' >&2
+  exit 1
+fi
+
+if [[ ! -d /sys/firmware/efi ]]; then
+  printf 'schweisos installer preflight: UEFI firmware is required for the MVP installer path\n' >&2
+  exit 1
+fi
+
+for required_command in pacstrap arch-chroot bootctl findmnt blkid; do
+  if ! command -v "$required_command" >/dev/null 2>&1; then
+    printf 'schweisos installer preflight: required command is missing: %s\n' "$required_command" >&2
+    exit 1
+  fi
+done

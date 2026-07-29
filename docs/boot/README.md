@@ -68,12 +68,12 @@ with an old branding package.
 ## Installed-System Direction
 
 The accepted installed-system default is systemd-boot on UEFI. GRUB is an
-alternative that a future installer may offer.
+alternative that a later GRUB-capable installer path may offer.
 
 `schweisos-grub-theme` now provides inert, reusable GRUB theme groundwork. It
 does not install GRUB, activate itself, edit `/etc/default/grub`, generate
-`grub.cfg`, add GRUB to the live ISO, or claim BIOS support. The future
-installer owns those operations and must ensure that the resolved theme is
+`grub.cfg`, add GRUB to the live ISO, or claim BIOS support. A GRUB-capable
+installer path owns those operations and must ensure that the resolved theme is
 available on the bootloader-readable filesystem.
 
 The intended visual journey is:
@@ -86,10 +86,12 @@ UEFI
   -> Plasma
 ```
 
-Only the live `systemd-boot -> Plymouth -> SDDM -> Plasma` portion is currently
-implemented. The GRUB theme is packaged groundwork; installer activation,
-installed-system Plymouth, SDDM branding, and VM/hardware qualification remain
-future work.
+Only the live `systemd-boot -> Plymouth -> SDDM -> Plasma` portion is
+runtime-proven in source. Faz 1 now has a Calamares source path for UEFI
+systemd-boot installation, but installable ISO, VM install, and first-boot
+evidence remain pending. The GRUB theme is packaged groundwork; GRUB installer
+activation, installed-system Plymouth, SDDM branding, and VM/hardware
+qualification remain future work.
 
 ## Canonical Decisions
 

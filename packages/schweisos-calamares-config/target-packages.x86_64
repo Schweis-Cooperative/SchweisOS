@@ -1,16 +1,16 @@
-# Archiso runtime
+# Base system
 base
 linux
 linux-firmware
-mkinitcpio
-mkinitcpio-archiso
-plymouth
-zstd
+sudo
 
-# CPU microcode is hardware-specific and must be selected by the installer or
-# build workflow. Do not install intel-ucode and amd-ucode together by default.
+# Filesystem and boot support
+btrfs-progs
+dosfstools
+e2fsprogs
+efibootmgr
 
-# Minimal KDE live desktop
+# KDE desktop
 discover
 dolphin
 firefox
@@ -38,18 +38,9 @@ openssh
 pciutils
 reflector
 rsync
-sudo
 usbutils
 wget
 xdg-utils
-
-# Graphical installer
-arch-install-scripts
-btrfs-progs
-calamares
-dosfstools
-efibootmgr
-schweisos-calamares-config
 
 # Container tooling
 distrobox

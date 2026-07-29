@@ -168,6 +168,7 @@ required_directories=(
     iso/profiles/kde/efiboot/loader/entries
     packages
     packages/schweisos-branding
+    packages/schweisos-calamares-config
     packages/schweisos-grub-theme
     packages/schweisos-keyring
     packages/schweisos-mirrorlist
@@ -191,8 +192,12 @@ required_files=(
     docs/adr/ADR-013-iso-build-workflow.md
     docs/adr/ADR-014-live-boot-experience-architecture.md
     docs/adr/ADR-015-grub-theme-architecture.md
+    docs/adr/ADR-016-installer-architecture.md
     docs/boot/README.md
     docs/build/environment-readiness.md
+    docs/installer/README.md
+    docs/installer/manual-installation-runbook.md
+    docs/installer/recovery-runbook.md
     docs/release/release-artifact-pipeline.md
     iso/profiles/kde/profiledef.sh
     iso/profiles/kde/packages.x86_64
@@ -209,6 +214,7 @@ required_files=(
     tests/validate-built-iso-identity.sh
     tests/validate-iso-build-manifest.sh
     tests/validate-keyring-package.sh
+    tests/validate-installer-config.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
     tests/validate-signing-tooling.sh
@@ -360,6 +366,7 @@ required_executables=(
     tests/validate-distribution-identity.sh
     tests/validate-build-environment.sh
     tests/validate-grub-theme.sh
+    tests/validate-installer-config.sh
     tests/validate-keyring-package.sh
     tests/validate-iso-profile.sh
     tests/validate-release-artifacts.sh
@@ -636,13 +643,14 @@ bootstrap_host_packages=(
     schweisos-pacman-config
 )
 missing_bootstrap_packages=()
-identity_packages=(
-    schweisos-branding
-    schweisos-keyring
-    schweisos-mirrorlist
-    schweisos-pacman-config
-    schweisos-release
-)
+schweisos_profile_packages=()
+if [[ -f "${profile_dir}/packages.x86_64" ]]; then
+    mapfile -t schweisos_profile_packages < <(
+        sed 's/[[:space:]]*#.*$//' "${profile_dir}/packages.x86_64" \
+            | awk 'NF && $1 ~ /^schweisos-/ { print $1 }' \
+            | sort -u
+    )
+fi
 
 if ! type -P pacman >/dev/null 2>&1 || ! type -P pacman-conf >/dev/null 2>&1; then
     repository_ready=0
@@ -734,8 +742,15 @@ fi
 
 if (( repository_ready )); then
     repository_version_failures=()
-    for package in "${identity_packages[@]}"; do
+    if (( ${#schweisos_profile_packages[@]} == 0 )); then
+        repository_version_failures+=('profile-schweisos-package-list-empty')
+    fi
+    for package in "${schweisos_profile_packages[@]}"; do
         package_dir="${project_root}/packages/${package}"
+        if [[ ! -d "$package_dir" || -L "$package_dir" ]]; then
+            repository_version_failures+=("${package}:source-directory-missing")
+            continue
+        fi
         if ! source_info="$(cd -- "$package_dir" && makepkg --printsrcinfo 2>/dev/null)"; then
             repository_version_failures+=("${package}:source-metadata-unavailable")
             continue

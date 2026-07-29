@@ -1,8 +1,8 @@
 # SchweisOS Testing Strategy
 
-Version: 0.5
+Version: 0.6
 Status: Draft
-Date: 2026-07-28
+Date: 2026-07-29
 
 ## Goal
 
@@ -13,6 +13,9 @@ Testing must be realistic for a one-developer distribution. The first test suite
 - Documentation review: decisions and limitations are current.
 - Package linting: PKGBUILDs reviewed with Arch tooling where practical.
 - VM smoke tests: ISO boots, installer starts, installation completes.
+- Installer static validation: Calamares package configuration, target package
+  manifest, pacstrap policy, and installed-system systemd-boot helpers are
+  internally consistent before an ISO is built.
 - Installed-system tests: bootloader works, user can log in, updates work.
 - GRUB theme static validation: canonical logo ownership, inert packaging,
   required theme components, and absence from the systemd-boot live profile.

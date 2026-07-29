@@ -142,6 +142,7 @@ finished_timestamp=''
 final_exit_code=''
 failure_code=''
 environment_validation=not_run
+installer_validation=not_run
 profile_validation=not_run
 built_identity_validation=not_run
 built_boot_validation=not_run
@@ -227,6 +228,7 @@ write_manifest_target() {
         printf '  "expected_iso_name": %s,\n' "$(json_string_or_null "$expected_iso_name")"
         printf '  "validation": {\n'
         printf '    "build_environment": %s,\n' "$(json_string "$environment_validation")"
+        printf '    "installer_config": %s,\n' "$(json_string "$installer_validation")"
         printf '    "iso_profile": %s,\n' "$(json_string "$profile_validation")"
         printf '    "built_iso_identity": %s,\n' "$(json_string "$built_identity_validation")"
         printf '    "built_iso_boot": %s,\n' "$(json_string "$built_boot_validation")"
@@ -371,6 +373,7 @@ else
 fi
 
 environment_validator="${repo_root}/tests/validate-build-environment.sh"
+installer_validator="${repo_root}/tests/validate-installer-config.sh"
 profile_validator="${repo_root}/tests/validate-iso-profile.sh"
 built_identity_validator="${repo_root}/tests/validate-built-iso-identity.sh"
 built_boot_validator="${repo_root}/tests/validate-built-iso-boot.sh"
@@ -380,10 +383,21 @@ checkpoint_manifest
 if ! "$environment_validator"; then
     environment_validation=fail
     failure_code=build_environment_validation_failed
-    error 'Build environment validation failed; profile validation and mkarchiso were not invoked.'
+    error 'Build environment validation failed; installer/profile validation and mkarchiso were not invoked.'
     exit 1
 fi
 environment_validation=pass
+checkpoint_manifest
+
+current_stage=installer_config_validation
+checkpoint_manifest
+if ! "$installer_validator"; then
+    installer_validation=fail
+    failure_code=installer_config_validation_failed
+    error 'Installer configuration validation failed; profile validation and mkarchiso were not invoked.'
+    exit 1
+fi
+installer_validation=pass
 checkpoint_manifest
 
 current_stage=iso_profile_validation

@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+export LC_ALL=C
+
+if [[ ${EUID} -eq 0 ]]; then
+  exec /usr/bin/calamares -D8
+fi
+
+exec /usr/bin/pkexec /usr/bin/calamares -D8

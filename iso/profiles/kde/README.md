@@ -72,3 +72,15 @@ check. The overlay contains no custom binary, package
 archive, copied branding asset, installer payload, first-run wizard, timezone
 wizard, or secret. Keeping this README outside `airootfs/` prevents profile
 documentation from being copied to `/README.md` in the live filesystem.
+
+## Installer Integration
+
+The profile includes the graphical installer only as signed package content:
+`calamares`, `arch-install-scripts`, storage helpers, and
+`schweisos-calamares-config` appear in `packages.x86_64`. The installer
+configuration package owns `/etc/calamares`, the desktop launcher, pacstrap
+target manifest, and installed-system helpers.
+
+No installer configuration, Calamares module payload, target package manifest,
+or installer launcher is allowed in `airootfs/`. The target system is installed
+with `pacstrap`; it is not cloned from the live root.

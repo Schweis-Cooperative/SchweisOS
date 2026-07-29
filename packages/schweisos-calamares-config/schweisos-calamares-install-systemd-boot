@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+export LC_ALL=C
+
+target_root=${1:?target root argument is required}
+
+if [[ "$target_root" == / || -z "$target_root" ]]; then
+  printf 'schweisos systemd-boot: unsafe target root\n' >&2
+  exit 1
+fi
+if [[ ! -d "${target_root}/boot" ]] || ! findmnt --target "${target_root}/boot" >/dev/null 2>&1; then
+  printf 'schweisos systemd-boot: /boot must be the mounted EFI system partition\n' >&2
+  exit 1
+fi
+
+root_source="$(findmnt --target "$target_root" --noheadings --output SOURCE | head -n 1)"
+if [[ -z "$root_source" ]]; then
+  printf 'schweisos systemd-boot: unable to resolve target root source\n' >&2
+  exit 1
+fi
+root_uuid="$(blkid -s UUID -o value -- "$root_source" 2>/dev/null || true)"
+if [[ -z "$root_uuid" ]]; then
+  printf 'schweisos systemd-boot: unable to resolve target root UUID for %s\n' "$root_source" >&2
+  exit 1
+fi
+
+arch-chroot "$target_root" bootctl install
+
+install -d "${target_root}/boot/loader/entries"
+cat > "${target_root}/boot/loader/loader.conf" <<'EOF'
+timeout 3
+default schweisos.conf
+editor no
+auto-entries no
+auto-firmware no
+EOF
+
+cat > "${target_root}/boot/loader/entries/schweisos.conf" <<EOF
+title   SchweisOS
+linux   /vmlinuz-linux
+initrd  /initramfs-linux.img
+options root=UUID=${root_uuid} rw quiet loglevel=3 systemd.show_status=auto
+EOF
+
+arch-chroot "$target_root" mkinitcpio -P

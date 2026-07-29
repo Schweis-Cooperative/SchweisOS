@@ -1,8 +1,8 @@
 # SchweisOS Documentation Index
 
-Version: 0.6
+Version: 0.7
 Status: Active
-Date: 2026-07-28
+Date: 2026-07-29
 
 This directory is the source of truth for SchweisOS engineering and design
 decisions. Important decisions must not remain only in chat history; they must
@@ -24,9 +24,10 @@ ADR.
 11. [ISO Build Workflow](build/README.md)
 12. [Testing Strategy](testing/testing-strategy.md)
 13. [Boot Experience](boot/README.md)
-14. [Developer Handbook](developer/developer-handbook.md)
-15. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
-16. [Product Roadmap](roadmap/product-roadmap.md)
+14. [Installer](installer/README.md)
+15. [Developer Handbook](developer/developer-handbook.md)
+16. [New Conversation Master Prompt](developer/MASTER_PROMPT.md)
+17. [Product Roadmap](roadmap/product-roadmap.md)
 
 Historical operational snapshots remain useful evidence but are not active
 requirements:

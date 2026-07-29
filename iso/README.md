@@ -31,7 +31,7 @@ small upstream-compatible profile:
 
 - `profiledef.sh` declares image metadata and UEFI systemd-boot policy.
 - `packages.x86_64` lists the minimum Arch and SchweisOS packages for the KDE
-  live environment.
+  live environment and installer launcher.
 - `pacman.conf` is used only while resolving packages for image assembly.
 - `efiboot/` contains the systemd-boot loader configuration required by the
   selected upstream boot mode, including only the normal and debug live
@@ -53,8 +53,10 @@ Both entries disable interactive `systemd-firstboot`; the live overlay matches
 upstream Archiso's `C.UTF-8` and UTC defaults and configures SDDM to hand the
 ephemeral account directly to Plasma.
 
-Installer integration, KDE defaults, wallpapers, SDDM theming, and installed
-system boot policy are intentionally absent. The live-only overlay and its
+KDE defaults, wallpapers, SDDM theming, and installed-system boot policy are
+intentionally absent from the profile. Installer integration is consumed only
+through packages such as `calamares` and `schweisos-calamares-config`; no
+installer payload is copied into `airootfs/`. The live-only overlay and its
 removal condition are documented in `profiles/kde/README.md`; documentation is
 kept outside `airootfs/` so it is not copied into the live root filesystem.
 
@@ -68,8 +70,11 @@ dependencies provide the SchweisOS keyring and mirrorlist.
 A build host must install `schweisos-pacman-config` before running
 `mkarchiso`. Its dependencies install `schweisos-keyring` and
 `schweisos-mirrorlist`. The profile resolves the four Distribution Identity
-Layer packages plus `schweisos-branding` from the configured SchweisOS
-repository into the image.
+Layer packages, `schweisos-branding`, and package-owned SchweisOS installer
+configuration from the configured SchweisOS repository into the image. Because
+Arch official repositories do not provide Calamares in the evaluated
+environment, installer ISO builds also require an admitted signed Calamares
+package in an approved SchweisOS repository.
 
 The profile does not embed a repository URL, mirrorlist, signing key, or a copy
 of the packaged repository snippet.
@@ -106,8 +111,9 @@ There is no current successful ISO evidence for the newly changed first-boot
 payload, Plymouth watchdog, built-boot validator, or exact v2 manifest
 contract. A fresh production-host build must create that evidence later. The
 older local ISO and its failed or legacy manifests do not validate the current
-profile. A clean build still requires current Archiso tooling, the five signed
-live SchweisOS foundation packages, the signed repository database in release
-mode, and every validator to pass. Construction, both post-build inspections,
-manual boot testing, installer testing, ISO signing, and publication remain
-distinct release-engineering gates.
+profile. A clean build still requires current Archiso tooling, the signed live
+SchweisOS foundation packages, the signed installer configuration package, an
+admitted Calamares package, the signed repository database in release mode, and
+every validator to pass. Installer configuration validation, construction,
+both post-build inspections, manual boot testing, installer testing, ISO
+signing, and publication remain distinct release-engineering gates.

@@ -1,8 +1,8 @@
 # SchweisOS Packaging Guide
 
-Version: 0.4
+Version: 0.5
 Status: Draft
-Date: 2026-07-28
+Date: 2026-07-29
 
 ## Goal
 
@@ -22,13 +22,21 @@ Current packages:
 - `schweisos-grub-theme`: inert reusable GRUB theme behavior and non-logo
   decoration; its runtime logo is an alias to the payload owned by
   `schweisos-branding`, and activation remains installer-owned.
+- `schweisos-calamares-config`: Calamares settings, installer launcher,
+  target package manifest, pacstrap policy, and installer-owned
+  installed-system integration helpers for the Faz 1 MVP.
 
 Allowed next packages:
 
-- Installer configuration.
 - Desktop defaults.
 - Small meta packages.
 - Documentation packages.
+
+Calamares itself is a separate package-admission problem. It is not vendored
+into the configuration package or ISO profile. If Arch official repositories do
+not provide it for the release environment, SchweisOS must admit a reviewed
+Calamares binary package through the signed repository workflow before an
+installer ISO can be built.
 
 Bootloader presentation packages must not install a bootloader, edit its
 global configuration, regenerate boot entries, or choose a firmware path from

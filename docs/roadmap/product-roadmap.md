@@ -1,8 +1,8 @@
 # SchweisOS Product Roadmap
 
-Version: 1.2
+Version: 1.3
 Status: Active pre-alpha roadmap
-Date: 2026-07-28
+Date: 2026-07-29
 
 This roadmap describes intended scope, not fixed release promises.
 
@@ -18,11 +18,14 @@ component is not automatically a public-release feature.
 - [x] Signed local production repository and disposable pacman validation.
 - [x] Minimal KDE Archiso profile and versioned development ISO build.
 - [x] Inert packaged GRUB theme groundwork with canonical-logo ownership.
-- [ ] Reconcile ISO and release-artifact naming/version contracts.
+- [x] Reconcile ISO and release-artifact naming/version contracts.
 - [ ] Implement ISO detached signing and verification.
 - [ ] Complete repeatable VM/live-session qualification for the current image.
-- Installer prototype for UEFI + systemd-boot + ext4.
-- Basic smoke test checklist.
+- [ ] Complete installer prototype proof for UEFI + systemd-boot + ext4.
+- [x] Add installer architecture, Calamares configuration package source, and
+  static installer validation.
+- [ ] Build/sign/admit Calamares and `schweisos-calamares-config` packages.
+- [ ] Build an installer ISO and complete installation smoke testing.
 
 ## Beta
 

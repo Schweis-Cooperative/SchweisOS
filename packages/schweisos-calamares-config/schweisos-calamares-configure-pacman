@@ -1,0 +1,28 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+export LC_ALL=C
+
+target_root=${1:?target root argument is required}
+target_pacman_conf="${target_root}/etc/pacman.conf"
+include_line='Include = /etc/pacman.d/schweisos.conf'
+
+if [[ "$target_root" == / || -z "$target_root" ]]; then
+  printf 'schweisos pacman config: unsafe target root\n' >&2
+  exit 1
+fi
+if [[ ! -f "$target_pacman_conf" || -L "$target_pacman_conf" ]]; then
+  printf 'schweisos pacman config: target pacman.conf is missing or unsafe\n' >&2
+  exit 1
+fi
+if [[ ! -f "${target_root}/etc/pacman.d/schweisos.conf" ]]; then
+  printf 'schweisos pacman config: SchweisOS repository snippet is missing in target\n' >&2
+  exit 1
+fi
+if grep -Fxq "$include_line" "$target_pacman_conf"; then
+  exit 0
+fi
+
+printf '\n# SchweisOS signed repository configuration\n%s\n' "$include_line" >> "$target_pacman_conf"

@@ -125,9 +125,9 @@ artifact_candidate_count, artifact, build_log, failure_code
 
 Its exact nested objects are `git` with `commit`, `dirty_at_start`, and
 `dirty_at_finish`; `host` with `id` and `architecture`; `validation` with
-`build_environment`, `iso_profile`, `built_iso_identity`, `built_iso_boot`, and
-`artifact`; and the artifact object with `name`, `size_bytes`, `sha256`,
-`blake2b_512`, and `sha256_file`.
+`build_environment`, `installer_config`, `iso_profile`, `built_iso_identity`,
+`built_iso_boot`, and `artifact`; and the artifact object with `name`,
+`size_bytes`, `sha256`, `blake2b_512`, and `sha256_file`.
 
 Release staging accepts only the completed-success release form: clean Git
 state, `build_mode=release`, `epoch_origin=environment`, canonical Arch x86_64
@@ -169,8 +169,8 @@ The fixed schema values are `schema_version` as numeric `2`,
 timestamp fields have fixed string formats.
 
 `validator_versions` contains exactly
-`release_artifact_validator: "2"`. `validator_results` contains exactly the six
-documented gates, all set to `pass`. The release validator revalidates the
+`release_artifact_validator: "2"`. `validator_results` contains exactly the
+seven documented gates, all set to `pass`. The release validator revalidates the
 copied build manifest against the staged ISO, then cross-checks release
 identifier and filename, profile, build timestamp, Git commit, Archiso version,
 `SOURCE_DATE_EPOCH`, ISO size, SHA256, BLAKE2b-512, and validator results.

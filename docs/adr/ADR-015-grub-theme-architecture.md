@@ -34,10 +34,12 @@ and timeout indicators. This makes it appropriate for users or hardware paths
 that select GRUB and want a visual experience consistent with SchweisOS
 Plymouth branding.
 
-The repository currently has no installer. Theme availability must not be
-misrepresented as bootloader installation, configuration, BIOS support, or a
-validated installed-system boot path. The theme must also avoid copying the
-canonical SchweisOS logo into another source owner.
+The repository now has a Faz 1 Calamares configuration source for the default
+UEFI systemd-boot path, but it still has no implemented GRUB installer path.
+Theme availability must not be misrepresented as GRUB installation,
+configuration, BIOS support, or a validated installed-system GRUB boot path.
+The theme must also avoid copying the canonical SchweisOS logo into another
+source owner.
 
 ## Decision
 

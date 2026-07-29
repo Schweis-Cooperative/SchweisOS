@@ -97,6 +97,7 @@ The wrapper executes this ordered pipeline:
 ```text
 safe path and log initialization
   -> validate-build-environment.sh
+  -> validate-installer-config.sh
   -> validate-iso-profile.sh
   -> epoch and expected-name preparation
   -> output and privilege preflight
@@ -110,8 +111,10 @@ safe path and log initialization
 
 A failed gate prevents every later gate from running. In particular:
 
-- A failed environment gate leaves profile validation as `not_run` and never
-  invokes `mkarchiso`.
+- A failed environment gate leaves installer/profile validation as `not_run`
+  and never invokes `mkarchiso`.
+- A failed installer configuration gate leaves profile validation as `not_run`
+  and never invokes `mkarchiso`.
 - A failed profile gate never invokes `mkarchiso`.
 - A nonzero `mkarchiso` result never becomes an artifact-validation success.
 - A built identity or boot-payload failure prevents checksum publication and
@@ -156,10 +159,10 @@ This keeps missing package signatures from surfacing later as an interactive
 pacman transaction failure.
 
 Development mode also does not allow source/package drift. Updating Git does
-not update a signed repository: all five SchweisOS foundation package versions
-must match their PKGBUILDs before either mode may invoke Archiso. The resolved
-branding package must contain the current canonical logo payload, not merely a
-valid signature over an older package.
+not update a signed repository: every `schweisos-*` package listed in the ISO
+profile must match its PKGBUILD before either mode may invoke Archiso. The
+resolved branding package must contain the current canonical logo payload, not
+merely a valid signature over an older package.
 
 The wrapper never cleans ISO output. An existing ISO or ISO checksum must be
 archived or removed explicitly before another build so stale output cannot be
@@ -367,10 +370,10 @@ artifact_candidate_count, artifact, build_log, failure_code
 
 The nested objects are also exact: `git` contains only `commit`,
 `dirty_at_start`, and `dirty_at_finish`; `host` contains only `id` and
-`architecture`; `validation` contains only `build_environment`, `iso_profile`,
-`built_iso_identity`, `built_iso_boot`, and `artifact`; and the artifact object
-contains only `name`, `size_bytes`, `sha256`, `blake2b_512`, and
-`sha256_file`.
+`architecture`; `validation` contains only `build_environment`,
+`installer_config`, `iso_profile`, `built_iso_identity`, `built_iso_boot`, and
+`artifact`; and the artifact object contains only `name`, `size_bytes`,
+`sha256`, `blake2b_512`, and `sha256_file`.
 
 `tests/validate-iso-build-manifest.sh` owns the completed-success contract. It
 requires the file to byte-match its `jq --indent 2` normalization and rejects
@@ -378,7 +381,7 @@ missing, extra, duplicated, ambiguously parsed, incorrectly typed, or
 noncanonical fields. A release-eligible manifest must describe a clean Git
 tree, `build_mode=release`, `epoch_origin=environment`, a canonical Arch
 x86_64 host, `status=success`, `stage=complete`, zero wrapper and `mkarchiso`
-exit codes, exactly one artifact candidate, all five validation results as
+exit codes, exactly one artifact candidate, all six validation results as
 `pass`, an artifact name equal to `expected_iso_name`, a positive integer
 size, a valid SHA256, a non-null BLAKE2b-512 value, the canonical SHA256
 sidecar name, and no failure code. BLAKE2b-512 remains nullable only for
@@ -406,7 +409,8 @@ signature, authenticity proof, or release authorization.
 
 `scripts/build-iso.sh` owns orchestration, the build-local cache directive,
 logging, invocation, and artifact checks. Host policy is centralized in
-`validate-build-environment.sh`; profile policy is centralized in
+`validate-build-environment.sh`; installer policy is centralized in
+`validate-installer-config.sh`; profile policy is centralized in
 `validate-iso-profile.sh`; completed-image identity and boot composition are
 centralized in the two built-ISO validators.
 
@@ -444,9 +448,9 @@ Every clean build still requires all of the following:
 - Host-installed `schweisos-keyring`, `schweisos-mirrorlist`, and
   `schweisos-pacman-config` through an approved bootstrap process.
 - A real SchweisOS repository source resolving every profile package, including
-  all five live SchweisOS foundation packages. Package signatures remain
-  required and trusted in every mode; repository database signatures are also
-  required and trusted in release mode.
+  the SchweisOS foundation packages and package-owned installer configuration.
+  Package signatures remain required and trusted in every mode; repository
+  database signatures are also required and trusted in release mode.
 - All pre- and post-build validators passing, empty or explicitly cleaned work
   state, and no
   pre-existing ISO or ISO checksum in `out/iso/`.

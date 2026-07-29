@@ -1,8 +1,8 @@
 # SchweisOS
 
-Version: 0.4
+Version: 0.5
 Status: Pre-alpha engineering
-Date: 2026-07-28
+Date: 2026-07-29
 
 SchweisOS is an independent Arch-based Linux distribution by Schweis Project.
 
@@ -15,14 +15,18 @@ SchweisOS is not a new kernel, a new package manager, or an Arch rewrite. It is 
 SchweisOS has moved beyond a documentation-only bootstrap. The repository now
 contains:
 
-- Five live/repository foundation packages plus an inert, separately packaged
-  SchweisOS GRUB theme for future installer integration.
+- Five live/repository foundation packages, an inert separately packaged
+  SchweisOS GRUB theme, and a package-owned Calamares installer configuration
+  source for the first installable MVP.
 - A KDE Archiso profile and a fail-closed ISO build wrapper.
 - A restrained two-entry systemd-boot menu, animated Plymouth live splash,
   automatic diagnostic fallback, and a noninteractive handoff directly to the
   Plasma live session.
 - A packaged graphical GRUB theme that is not yet installer-activated or part
   of the live ISO.
+- Calamares installer architecture for UEFI systemd-boot installs: source
+  configuration, target package manifest, manual/recovery runbooks, and static
+  validation exist, but no installable ISO evidence has been produced yet.
 - Production public trust material, role-separated signing tooling, and signed
   repository tooling.
 - Disposable pacman, package, repository, ISO-profile, release-artifact, and
@@ -31,11 +35,11 @@ contains:
   identity, and checksum evidence. An old or copied ISO outside that pipeline
   is not release evidence.
 
-This is still a pre-alpha engineering state. There is no installer, public
-mirror network, public release channel, Secure Boot support, disk encryption,
-or stable release. A generated ISO is not a public release until the documented
-release gates, manual boot testing, verification material, and publication
-process have all completed.
+This is still a pre-alpha engineering state. There is no validated installable
+ISO, public mirror network, public release channel, Secure Boot support, disk
+encryption, or stable release. A generated ISO is not a public release until
+the documented release gates, installation testing, manual boot testing,
+verification material, and publication process have all completed.
 
 ## Core Principles
 
@@ -60,6 +64,7 @@ process have all completed.
 - [Release Engineering Guide](docs/release/release-engineering-guide.md)
 - [Testing Strategy](docs/testing/testing-strategy.md)
 - [Boot Experience](docs/boot/README.md)
+- [Installer](docs/installer/README.md)
 
 ## Repository Layout
 

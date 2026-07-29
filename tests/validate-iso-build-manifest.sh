@@ -72,10 +72,11 @@ if ! jq -e '
     and (.expected_iso_name | type == "string"
         and test("^schweisos-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-x86_64\\.iso$"))
     and (.validation | exact_keys([
-        "build_environment", "iso_profile", "built_iso_identity",
-        "built_iso_boot", "artifact"
+        "build_environment", "installer_config", "iso_profile",
+        "built_iso_identity", "built_iso_boot", "artifact"
     ]))
     and .validation.build_environment == "pass"
+    and .validation.installer_config == "pass"
     and .validation.iso_profile == "pass"
     and .validation.built_iso_identity == "pass"
     and .validation.built_iso_boot == "pass"

@@ -212,8 +212,13 @@ if ! awk '
 fi
 
 required_packages=(
+  arch-install-scripts
   base
+  btrfs-progs
+  calamares
+  dosfstools
   dolphin
+  efibootmgr
   firefox
   kate
   konsole
@@ -227,6 +232,7 @@ required_packages=(
   plasma-systemmonitor
   plymouth
   schweisos-branding
+  schweisos-calamares-config
   schweisos-keyring
   schweisos-mirrorlist
   schweisos-pacman-config

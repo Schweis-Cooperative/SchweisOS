@@ -104,17 +104,23 @@ At the time this handoff was written, the repository contained:
 - Five live/repository foundation packages:
   `schweisos-release`, `schweisos-keyring`, `schweisos-mirrorlist`,
   `schweisos-pacman-config`, and `schweisos-branding`, plus the inert
-  `schweisos-grub-theme` package for future installer-owned GRUB activation.
+  `schweisos-grub-theme` package for future installer-owned GRUB activation
+  and `schweisos-calamares-config` for package-owned installer configuration.
 - A KDE Archiso profile under `iso/profiles/kde/`.
 - A UEFI-first live-medium path using upstream
   `uefi.systemd-boot`; installed-system systemd-boot policy remains installer
   architecture, not implemented installer behavior.
 - A packaged graphical GRUB theme that does not install, configure, or activate
   GRUB and is not part of the live ISO.
+- Calamares installer source architecture for UEFI systemd-boot installs:
+  package-owned configuration, target package manifest, manual/recovery
+  runbooks, and static validation exist; installable ISO and runtime install
+  evidence are not yet produced.
 - A date-based `YYYY.MM.DD` release and image contract.
-- A fail-closed build wrapper that validates the host and profile before
-  invoking `mkarchiso`, validates built identity and boot/initramfs composition,
-  then records checksums and privacy-minimized manifests.
+- A fail-closed build wrapper that validates the host, installer configuration,
+  and profile before invoking `mkarchiso`, validates built identity and
+  boot/initramfs composition, then records checksums and privacy-minimized
+  manifests.
 - Separate unsigned local-bootstrap repository tooling and signed production
   repository tooling.
 - An admitted production public certificate, a certification-only primary,
@@ -154,6 +160,11 @@ implementation has legitimately changed.
 - `schweisos-grub-theme` owns only reusable GRUB theme behavior and non-logo
   decoration. The future installer owns activation and boot-filesystem
   deployment.
+- `schweisos-calamares-config` owns Calamares configuration, the installer
+  launcher, target package manifest, pacstrap policy, and installer-owned
+  installed-system integration helpers. It must not package Calamares itself,
+  clone the live root, sign packages, publish repositories, or activate GRUB in
+  the MVP path.
 - `packages/` owns reusable and updateable payloads.
 - `iso/profiles/kde/` owns image composition, Archiso boot inputs, and only
   genuinely live-only overlay files.
@@ -227,8 +238,9 @@ layers.
 
 At the time of this handoff:
 
-- No installer or Calamares configuration existed.
-- No installed-system boot workflow had been implemented.
+- Calamares configuration and a UEFI systemd-boot installed-system source
+  workflow exist, but no built installer ISO, graphical installation proof, or
+  first-boot evidence exists yet.
 - No public canonical endpoint or mirror network existed; the repository
   endpoint was local to controlled build/release infrastructure.
 - ISO detached signing was not integrated.

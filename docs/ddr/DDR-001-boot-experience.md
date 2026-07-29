@@ -74,8 +74,8 @@ Plymouth after the kernel starts.
 
 ### Graphical GRUB Alternative
 
-GRUB may provide a graphical menu when a future installer offers it as the
-installed-system alternative. Its SchweisOS theme uses:
+GRUB may provide a graphical menu when a later GRUB-capable installer path
+offers it as the installed-system alternative. Its SchweisOS theme uses:
 
 - the same dark blue visual field as Plymouth;
 - a centered official logo with ample negative space;
@@ -129,7 +129,8 @@ surface immediately, it is one boot-menu choice away.
 Both entries use `systemd.firstboot=no`. The live root supplies the same neutral
 `LANG=C.UTF-8` and UTC defaults as upstream Archiso. This prevents the generic
 systemd locale, keymap, timezone, and root-password questionnaire from blocking
-the graphical live session; those choices belong to the future installer.
+the graphical live session; those choices belong to the Calamares installer
+flow.
 
 ### Automatic Failure Reveal
 
@@ -195,8 +196,8 @@ profile's neutral locale/timezone files and `systemd.firstboot=no` own the
 pre-SDDM contract; SDDM autologin owns the configured final handoff to the
 `live` Plasma session.
 
-Installer decisions belong to the future graphical installer, not to the live
-boot path.
+Installer decisions belong to the graphical installer, not to the live boot
+path.
 
 ## Configured Boot Flow
 
@@ -314,11 +315,12 @@ SDDM success, Plasma arrival, or hardware compatibility.
 
 - No ISO build as part of this decision.
 - No VM or hardware boot claim without future validation.
-- No installed-system bootloader implementation.
+- No installed-system bootloader runtime proof as part of this boot-experience
+  decision.
 - No automatic GRUB activation or GRUB live-medium path.
 - No Secure Boot policy.
 - No BIOS boot path.
-- No installer screen, timezone wizard, or first-run setup.
+- No live-session installer screen, timezone wizard, or first-run setup.
 - No KDE theme, wallpaper, SDDM theme, or desktop defaults.
 
 ## Future Review Triggers

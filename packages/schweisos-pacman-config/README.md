@@ -154,6 +154,7 @@ Unnecessary complexity:
 
 Future improvements:
 
-- Add installer documentation describing when `/etc/pacman.d/schweisos.conf` is included.
+- Validate the installer-owned `/etc/pacman.conf` include path in a completed
+  installed-system smoke test.
 - Continue validating each repository generation in a disposable pacman root.
 - Add testing and staging snippets only when those channels become operational.

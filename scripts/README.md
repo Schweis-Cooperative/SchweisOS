@@ -1,8 +1,8 @@
 # Scripts Directory
 
-Version: 0.5
+Version: 0.6
 Status: Active
-Date: 2026-07-28
+Date: 2026-07-29
 
 This directory contains small orchestration scripts. Scripts must preserve the
 ownership boundaries established by the project ADRs and must not hide package
@@ -15,6 +15,7 @@ text log and privacy-minimized latest-attempt manifest, then enforces:
 
 ```text
 validate-build-environment.sh
+  -> validate-installer-config.sh
   -> validate-iso-profile.sh
   -> mkarchiso
   -> validate-built-iso-identity.sh

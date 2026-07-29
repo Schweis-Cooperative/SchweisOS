@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 0.9
+Version: 1.0
 Status: Active pre-alpha architecture
-Date: 2026-07-28
+Date: 2026-07-29
 
 ## Scope
 
@@ -25,18 +25,20 @@ The answer must be technical:
 ## Implementation Snapshot
 
 Architecture and implementation are deliberately separated. As of
-2026-07-28, the repository contains a KDE Archiso profile, five
+2026-07-29, the repository contains a KDE Archiso profile, five
 live/repository foundation packages, an inert GRUB theme package for future
-installer integration, production public trust material, role-separated
-signing tools, a signed local production repository workflow, disposable
-client validation, and a development ISO build pipeline.
+installer integration, a Calamares installer-configuration package source,
+production public trust material, role-separated signing tools, a signed local
+production repository workflow, disposable client validation, and a development
+ISO build pipeline.
 
-The following remain unimplemented or incomplete: an installer, activation and
-validation of installed-system boot configuration, public mirrors and
+The following remain unimplemented or incomplete: a built and tested installer
+ISO, Calamares binary package admission into the signed SchweisOS repository,
+runtime validation of installed-system boot configuration, public mirrors and
 publication, ISO detached signing, Secure Boot, disk encryption, Flatpak/AUR
 user workflows, gaming integration, Distrobox automation, and release-grade
-hardware/boot qualification. This snapshot records implementation state; ADRs
-remain the authority for accepted design.
+hardware/install qualification. This snapshot records implementation state;
+ADRs remain the authority for accepted design.
 
 ## System Layers
 
@@ -64,7 +66,7 @@ flowchart TD
 | Upstream Arch | Kernel, base system, pacman, systemd, KDE packages, most applications | Use directly wherever possible |
 | SchweisOS repository | Identity packages, keyring, mirror config, installer config, default settings, small meta packages | Keep small and signed |
 | ISO layer | Live image, future installer entry point, hardware-friendly package set | KDE Archiso profile implemented with upstream archiso |
-| Installer layer | UEFI-first installation, systemd-boot default, ext4 default, optional Btrfs, GRUB alternative | Calamares later, no full disk encryption in first release |
+| Installer layer | UEFI-first installation, systemd-boot default, ext4 default, optional Btrfs, GRUB alternative | Calamares selected for Faz 1 source architecture; runtime proof pending |
 | Desktop layer | KDE Plasma defaults, first-run guidance, Flatpak/AUR/Distrobox education | Avoid heavy custom shell patches |
 | Software source layer | Explain and separate official repo, SchweisOS repo, Flatpak, AUR, Distrobox | Do not present all sources as equally trusted |
 | Gaming layer | Steam, Proton-adjacent packages, GameMode/MangoHud/Gamescope where measurable | No folklore tweaks by default |
@@ -165,8 +167,10 @@ Initial package categories:
 - `schweisos-branding`: minimal runtime visual identity assets.
 - `schweisos-grub-theme`: optional, inert GRUB theme for future
   installer-owned activation.
+- `schweisos-calamares-config`: Calamares installer configuration, launcher,
+  target package manifest, pacstrap policy, and installer-owned target
+  integration helpers.
 - `schweisos-kde-settings`: KDE defaults through configuration files, not patched Plasma packages.
-- `schweisos-calamares-config`: future installer configuration.
 - `schweisos-gaming-meta`: optional gaming package set.
 - `schweisos-flatpak-meta`: optional Flatpak integration package set.
 - `schweisos-distrobox-meta`: optional Distrobox/Podman integration package set.
@@ -253,19 +257,29 @@ The current profile lives under `iso/profiles/kde/` and separates these concerns
 
 Persistent, reusable, security-relevant, or updateable configuration belongs in packages rather than `airootfs/`. This provides pacman ownership, signatures, versioned upgrades, removal behavior, and independent validation. The overlay remains an exception for archiso-native or genuinely ephemeral live-session files.
 
-Expected future ISO-facing packages include KDE defaults, installer configuration and launcher integration, offline documentation, and any substantial live-session helper that cannot be supplied upstream. Minimal properly licensed branding is now delivered by `schweisos-branding`; broader visual customization still requires separate package design. Exact contents require their own package design; the profile should only list the resulting package names.
+Expected future ISO-facing packages include KDE defaults, offline
+documentation, and any substantial live-session helper that cannot be supplied
+upstream. Installer configuration and launcher integration are now owned by
+`schweisos-calamares-config`; the profile consumes the package by name and must
+not copy its payload into `airootfs/`. Minimal properly licensed branding is
+now delivered by `schweisos-branding`; broader visual customization still
+requires separate package design. Exact contents require their own package
+design; the profile should only list the resulting package names.
 
 The current KDE live-profile source is configured for UEFI boot, a two-entry
 SchweisOS systemd-boot menu, an animated canonical-logo Plymouth splash with
 automatic diagnostic fallback, a noninteractive SDDM handoff to KDE Plasma,
-networking, and a compact troubleshooting/user utility set. Neutral
-`C.UTF-8`/UTC defaults are scoped only to the intended ephemeral live system;
-installer-owned locale and timezone choices remain future work. The ISO must
-still gain:
+networking, a compact troubleshooting/user utility set, and package-list
+composition for Calamares plus the SchweisOS installer configuration package.
+Neutral `C.UTF-8`/UTC defaults are scoped only to the intended ephemeral live
+system; installed locale and timezone choices are owned by the Calamares
+workflow. The ISO must still gain:
 
-- A clear installer launcher.
+- A signed repository generation containing the Calamares binary and
+  `schweisos-calamares-config` package.
+- Runtime proof that the graphical installer starts and completes.
 - Offline access to essential installation and troubleshooting documentation.
-- Release-grade boot and hardware validation.
+- Release-grade boot, install, and hardware validation.
 
 These are source and composition contracts, not a runtime boot-success claim.
 No current successful ISO evidence covers the newly changed first-boot payload,
@@ -329,22 +343,44 @@ retained-splash quit handoff completes with a non-success result, or the
 runtime path watcher or boot-bounded liveness watchdog finds no live Plymouth
 daemon before the normal quit handoff.
 
-This live boot experience and the packaged GRUB theme do not implement
-installed-system bootloader configuration. Installed-system Plymouth,
-bootloader installation and activation, Secure Boot, and BIOS behavior remain
-future installer architecture.
+This live boot experience and the packaged GRUB theme do not themselves
+implement installed-system bootloader configuration. Faz 1 installer source
+architecture now owns the UEFI systemd-boot target workflow. Installed-system
+Plymouth, GRUB activation, Secure Boot, and BIOS behavior remain future
+installer architecture.
 
 References: [systemd-boot - ArchWiki](https://wiki.archlinux.org/title/Systemd-boot),
 [systemd-boot manual](https://man.archlinux.org/man/core/systemd/systemd-boot.7.en),
 and [ADR-015 GRUB Theme Architecture](../adr/ADR-015-grub-theme-architecture.md).
 
+## Installation Architecture
+
+The accepted Faz 1 installer architecture is defined by
+[ADR-016 Installer Architecture](../adr/ADR-016-installer-architecture.md).
+SchweisOS uses Calamares for the graphical installer flow and packages
+SchweisOS-owned installer configuration in `schweisos-calamares-config`.
+
+The default install path is UEFI-only with systemd-boot. The EFI system
+partition is mounted at `/boot`, the root filesystem is identified by UUID in
+the loader entry, and the target initramfs is regenerated after bootloader
+configuration. GRUB remains an installed-system alternative for a later
+installer-owned path; the MVP must not run `grub-install` or activate the GRUB
+theme.
+
+The target system is installed with `pacstrap` from signed Arch and SchweisOS
+repositories using a package-owned target manifest. The live root filesystem is
+not cloned into the target, preventing live-only Archiso, autologin, Plymouth,
+or installer payload from becoming installed-system state.
+
 ## Filesystem Architecture
 
-The default root filesystem is ext4. Btrfs is supported as an installer option but not the default.
+The default root filesystem is ext4. Btrfs is supported as an advanced
+installer option but not the default.
 
 This keeps the first release understandable and reliable while leaving room for future snapshot-based workflows. Btrfs support must not imply automatic rollback until rollback behavior is designed, tested, and documented.
 
-Related decision: [ADR-004 Default Filesystem](../adr/ADR-004-default-filesystem.md).
+Related decisions: [ADR-004 Default Filesystem](../adr/ADR-004-default-filesystem.md)
+and [ADR-016 Installer Architecture](../adr/ADR-016-installer-architecture.md).
 
 ## Update Architecture
 
@@ -442,22 +478,35 @@ Detailed policy: [Security Model](../security/security-model.md).
 
 The documentation, identity package set, trust bootstrap, signed local
 repository, minimal KDE profile, and ISO build/validation source are available
-as engineering foundations. The next dependency-ordered sequence is:
+as engineering foundations. Faz 1 now adds the Calamares installer source
+architecture, package-owned configuration, target package manifest, manual
+installation runbook, recovery runbook, and static installer validation. The
+next dependency-ordered sequence is:
 
-1. Produce fresh production-host ISO evidence with both completed-image gates
-   and the exact v2 manifest contract; do not reuse the older local ISO.
-2. Add ISO signing and verification without placing private keys on the build
+1. Build, sign, and publish a reviewed Calamares binary package in the
+   SchweisOS repository, or admit an audited upstream-compatible Calamares
+   package source through the same release workflow.
+2. Build, sign, and publish `schweisos-calamares-config` from its repository
+   source.
+3. Produce a fresh production-host installer ISO from a repository state
+   containing both Calamares and `schweisos-calamares-config`; do not reuse
+   older local ISO evidence.
+4. Run static ISO, built-ISO identity, built-ISO boot, and installer
+   configuration validators against the produced image and source tree.
+5. Boot-test the live ISO, start Calamares, complete an ext4 UEFI
+   systemd-boot installation on disposable test storage, and verify first
+   boot to Plasma.
+6. Repeat install validation on at least one real UEFI machine before making
+   hardware claims.
+7. Add ISO signing and verification without placing private keys on the build
    host.
-3. Design and implement the installer prototype for UEFI, systemd-boot, and
-   ext4, then integrate the optional packaged GRUB theme only through the
-   installer-owned GRUB path.
-4. Validate a complete installation and first boot on disposable test storage.
-5. Add the optional Btrfs path after the ext4 path is reliable.
-6. Establish a public publication endpoint and mirror operations.
-7. Implement Flatpak integration and the AUR first-use warning workflow.
-8. Add a measured gaming package/test matrix.
-9. Document the installed Distrobox/Podman baseline before any automation.
-10. Complete alpha release qualification and known-issues documentation.
+8. Promote the optional Btrfs path only after ext4 install recovery is
+   reliable and documented.
+9. Establish a public publication endpoint and mirror operations.
+10. Implement Flatpak integration and the AUR first-use warning workflow.
+11. Add a measured gaming package/test matrix.
+12. Document the installed Distrobox/Podman baseline before any automation.
+13. Complete alpha release qualification and known-issues documentation.
 
 Trust infrastructure remains ahead of user-facing customization so later
 features can consume an auditable release path.
@@ -466,8 +515,10 @@ features can consume an auditable release path.
 
 - Which AUR helper, if any, should be recommended?
 - Should the first ISO include NVIDIA proprietary driver support or install it post-install only?
-- What exact Calamares version and module set will be used?
-- Should Btrfs use a subvolume layout in the first installer path, even without snapshots?
+- What exact reviewed Calamares package version will be admitted into the
+  SchweisOS repository for the first installer ISO?
+- Should Btrfs gain a defined subvolume layout in a later recovery phase, and
+  what rollback behavior would justify it?
 - What minimum hardware target should define the KDE experience?
 
 These questions require later ADRs before implementation.

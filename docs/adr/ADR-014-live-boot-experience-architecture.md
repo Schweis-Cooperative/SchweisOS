@@ -59,7 +59,7 @@ The profile will:
   logging and visible systemd status;
 - set `systemd.firstboot=no` on both entries, provide the upstream Archiso
   `LANG=C.UTF-8` and UTC live defaults, and reserve locale, timezone, keymap,
-  account, and storage choices for the future installer;
+  account, and storage choices for the installer;
 - include the upstream Arch `plymouth` package in the live package set;
 - add upstream mkinitcpio `kms` and `plymouth` hooks to the live initramfs hook
   chain;
@@ -93,9 +93,9 @@ The profile will:
   early-marker handoff race.
 
 The theme and fallback units are live-medium profile exceptions. They are not
-installed-system policy and do not imply that SchweisOS has implemented an
-installer bootloader workflow, Secure Boot, BIOS support, or installed-system
-Plymouth integration.
+installed-system policy and do not imply that SchweisOS has proven an
+installable system, Secure Boot, BIOS support, or installed-system Plymouth
+integration.
 
 If the same boot artwork or fallback policy becomes persistent installed-system
 behavior later, it must move into a separate package or installer-owned
@@ -113,7 +113,7 @@ configuration with its own ADR update.
 - `schweisos-branding` owns only the runtime logo file consumed by the theme.
 - `branding/assets/logo/schweisos.png` is the one canonical source artwork
   owner for SchweisOS boot and runtime logo consumers.
-- Installed-system boot configuration remains future installer architecture.
+- Installed-system boot configuration remains installer-owned architecture.
 
 ## Alternatives Considered
 

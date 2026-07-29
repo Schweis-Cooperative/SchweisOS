@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+export LC_ALL=C
+
+target_root=${1:?target root argument is required}
+
+if [[ "$target_root" == / || -z "$target_root" ]]; then
+  printf 'schweisos services: unsafe target root\n' >&2
+  exit 1
+fi
+
+arch-chroot "$target_root" systemctl enable NetworkManager.service
+arch-chroot "$target_root" systemctl enable sddm.service

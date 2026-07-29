@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install SchweisOS
+GenericName=System Installer
+Comment=Install SchweisOS to this computer
+Exec=schweisos-installer
+Icon=schweisos
+Terminal=false
+Categories=System;Settings;
+Keywords=install;installer;calamares;schweisos;

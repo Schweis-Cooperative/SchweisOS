@@ -78,6 +78,7 @@ write_fixture() {
   "expected_iso_name": "${iso_name}",
   "validation": {
     "build_environment": "pass",
+    "installer_config": "pass",
     "iso_profile": "pass",
     "built_iso_identity": "pass",
     "built_iso_boot": "pass",

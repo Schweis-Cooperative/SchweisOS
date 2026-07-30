@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+build() {
+    add_runscript
+    add_module loop
+
+    add_binary find
+    add_binary grep
+    add_binary losetup
+    add_binary lsblk
+    add_binary modprobe
+    add_binary mount
+    add_binary umount
+}
+
+help() {
+    cat <<HELPEOF
+  This hook provides SchweisOS' narrow ISO-file discovery fallback for
+  multiboot firmware paths that start the native systemd-boot entry from an ISO
+  stored as a file on removable media without passing img_dev/img_loop.
+HELPEOF
+}

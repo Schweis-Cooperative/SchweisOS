@@ -41,7 +41,11 @@ small upstream-compatible profile:
   GRUB loopback launchers can load the same kernel and initramfs while passing
   Archiso's `img_dev`/`img_loop` ISO-file handoff. The live initramfs hook list
   must include `archiso_loop_mnt` so that handoff is honored after the kernel
-  starts. This is not a native GRUB live boot configuration.
+  starts. It also includes SchweisOS' `schweisos_iso_file_fallback` hook for
+  Ventoy normal UEFI launches that enter the native systemd-boot entry without
+  `img_dev/img_loop`; that fallback searches removable media for the ISO file
+  containing the generated Archiso UUID marker and delegates back to upstream
+  Archiso. This is not a native GRUB live boot configuration.
 - `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
   SDDM autologin, NetworkManager startup, passwordless local live-session
   administration, Plymouth selection, canonical-logo animation, neutral
@@ -52,9 +56,10 @@ small upstream-compatible profile:
 The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 `efiboot/loader/` files are a small adaptation of the current upstream archiso
 templates and use only archiso-supported template identifiers.
-The profile also carries the upstream Archiso loopback compatibility file and
-matching initramfs hook for multiboot launchers; no full `grub.cfg`, syslinux
-profile, BIOS path, or GRUB package is part of the current live image.
+The profile also carries the upstream Archiso loopback compatibility file,
+matching `archiso_loop_mnt` hook, and SchweisOS' narrow removable ISO-file
+fallback for Ventoy normal-mode launches; no full `grub.cfg`, syslinux profile,
+BIOS path, or GRUB package is part of the current live image.
 The text-oriented loader keeps the firmware console mode, disables automatic
 entries and editing, and exposes `SchweisOS Live` plus
 `SchweisOS Live (Debug)`. The source contract configures graphical
@@ -118,10 +123,11 @@ a renderer displayed pixels.
 and `tests/validate-built-iso-boot.sh` are complementary post-build gates. On a
 completed image the loopback validator inspects only the bootloader-visible ISO
 root and proves the kernel, initramfs, EFI image, boot catalog, systemd-boot
-entries, and `/boot/grub/loopback.cfg` handoff before the more expensive
-SquashFS checks. The built identity and built boot validators then extract the
-SquashFS and initramfs and prove the effective distribution identity, signed
-branding package version, canonical logo, Plymouth script/runtime, first-boot
+entries, `/boot/grub/loopback.cfg` handoff, and raw UUID-marker discoverability
+needed by the ISO-file fallback before the more expensive SquashFS checks. The
+built identity and built boot validators then extract the SquashFS and
+initramfs and prove the effective distribution identity, signed branding
+package version, canonical logo, Plymouth script/runtime, first-boot
 defaults, systemd fallback units, installer runtime payload, and Plasma
 handoff inputs. The wrapper requires the post-build gates before publishing
 checksums.

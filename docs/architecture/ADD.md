@@ -334,7 +334,12 @@ upstream-supported `grub/loopback.cfg` compatibility file for Ventoy-style
 outer GRUB launchers. That loopback file mirrors the same normal/debug kernel
 and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; the
 initramfs source includes the matching upstream `archiso_loop_mnt` hook so that
-handoff works after the kernel starts. This does not make GRUB the native live
+handoff works after the kernel starts. A separate SchweisOS
+`schweisos_iso_file_fallback` initramfs hook covers Ventoy normal UEFI launches
+that enter the native systemd-boot entry without `img_dev/img_loop`: it scans
+only removable media for an ISO carrying the requested Archiso UUID marker,
+creates a read-only loop device, clears the native search variables, and
+delegates back to upstream Archiso. This does not make GRUB the native live
 bootloader and does not add a full `grub.cfg`. The initramfs source also uses
 upstream mkinitcpio `kms` and `plymouth` hooks so the SchweisOS Plymouth theme
 can appear before the Plasma session. The theme source

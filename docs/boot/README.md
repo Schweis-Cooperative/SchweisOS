@@ -46,9 +46,9 @@ bootloader.
 
 The native live path remains systemd-boot, but the ISO also carries
 `/boot/grub/loopback.cfg` for multiboot tools that start the ISO through an
-outer GRUB loopback chain, including Ventoy's GRUB2 mode. That file is copied
-by upstream `mkarchiso` from `iso/profiles/kde/grub/loopback.cfg`; SchweisOS
-does not generate it in the build wrapper.
+outer GRUB loopback chain. That file is copied by upstream `mkarchiso` from
+`iso/profiles/kde/grub/loopback.cfg`; SchweisOS does not generate it in the
+build wrapper.
 
 The loopback entries load the same Archiso kernel and initramfs as the
 systemd-boot entries:
@@ -63,10 +63,23 @@ Archiso initramfs can mount the ISO file that Ventoy placed on the USB
 filesystem. The live initramfs therefore includes Archiso's
 `archiso_loop_mnt` hook in addition to the native `archiso` hook; the loopback
 kernel parameters are not useful unless the initramfs contains the hook that
-turns `img_dev/img_loop` into the loop device Archiso mounts. This is
-intentionally narrower than enabling a native GRUB live bootloader: there is
-still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and no
-activation of the installed-system GRUB theme package.
+turns `img_dev/img_loop` into the loop device Archiso mounts.
+
+Some Ventoy UEFI paths start the ISO's native systemd-boot entry instead of the
+GRUB loopback entry. In that case the kernel command line contains
+`archisosearchuuid` but no `img_dev/img_loop`, so `archiso_loop_mnt` is present
+but intentionally passive. SchweisOS therefore adds one narrow initramfs
+fallback hook, `schweisos_iso_file_fallback`, after `archiso_loop_mnt`. It
+first preserves native removable-media boot by checking for Archiso's marker
+directly on removable partitions. If the marker is not there, it searches only
+removable media for ISO files whose raw contents contain the requested
+`<uuid>.uuid` marker, mounts the matching ISO read-only through a loop device,
+clears the native search variables, and delegates back to upstream
+`archiso_mount_handler`.
+
+This is intentionally narrower than enabling a native GRUB live bootloader:
+there is still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and
+no activation of the installed-system GRUB theme package.
 
 ## Plymouth
 

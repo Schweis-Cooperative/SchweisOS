@@ -9,9 +9,17 @@ contains only live-media exceptions that cannot yet be delivered by a package.
 The following files are temporary live-media exceptions:
 
 - `/etc/mkinitcpio.conf.d/archiso.conf` uses the upstream Archiso hook chain
-  plus upstream `kms`, `plymouth`, and `archiso_loop_mnt` hooks so the
-  initramfs can locate and mount the live root filesystem in both native
-  Archiso and outer-GRUB loopback paths while showing the SchweisOS splash.
+  plus upstream `kms`, `plymouth`, and `archiso_loop_mnt` hooks and the narrow
+  SchweisOS `schweisos_iso_file_fallback` hook so the initramfs can locate and
+  mount the live root filesystem in native Archiso, outer-GRUB loopback, and
+  Ventoy normal-mode systemd-boot paths while showing the SchweisOS splash.
+- `/usr/lib/initcpio/hooks/schweisos_iso_file_fallback` and
+  `/usr/lib/initcpio/install/schweisos_iso_file_fallback` are live-only
+  initramfs inputs. They do nothing when upstream `archiso_loop_mnt` receives a
+  proper `img_dev/img_loop` handoff. When Ventoy starts the native systemd-boot
+  entry and only `archisosearchuuid` is available, they search removable media
+  for the ISO file containing the requested UUID marker, create a read-only
+  loop device, and delegate back to upstream Archiso.
 - `/etc/mkinitcpio.d/linux.preset` generates the initramfs path referenced by
   the UEFI loader entry.
 - `/etc/plymouth/plymouthd.conf` selects the SchweisOS live Plymouth theme.
@@ -73,6 +81,8 @@ loopback chain can load `/schweis/boot/x86_64/vmlinuz-linux` and
 `archiso_loop_mnt` initramfs hook is mandatory: without it, the kernel and
 initramfs can start but Archiso cannot mount the ISO file from Ventoy's USB
 filesystem and falls back to searching native UUID marker devices. The
+SchweisOS ISO-file fallback covers the separate Ventoy normal-mode path where
+the native systemd-boot entry starts without `img_dev/img_loop`. The
 loopback file mirrors the systemd-boot normal and debug entries, but it does
 not enable Archiso's GRUB boot mode, add a full `grub.cfg`, add a BIOS path, or
 activate the packaged installed-system GRUB theme.

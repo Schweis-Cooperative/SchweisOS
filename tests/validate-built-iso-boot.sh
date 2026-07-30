@@ -189,6 +189,8 @@ rootfs_payloads=(
     etc/sysusers.d/schweisos-live.conf
     etc/sudoers.d/10-schweisos-live
     etc/tmpfiles.d/schweisos-live.conf
+    usr/lib/initcpio/hooks/schweisos_iso_file_fallback
+    usr/lib/initcpio/install/schweisos_iso_file_fallback
     usr/lib/schweisos-live/plymouth-is-stopped
     usr/lib/schweisos-live/plymouth-quit-guarded
     usr/lib/schweisos-live/plymouth-watchdog
@@ -328,9 +330,9 @@ bsdtar -xOf "$iso_path" "$initramfs_member" >"${tmp_dir}/initramfs-linux.img" ||
 [[ -s "${tmp_dir}/initramfs-linux.img" ]] || fail 'extracted live initramfs is empty'
 initramfs_config="$(lsinitcpio --config "${tmp_dir}/initramfs-linux.img")" || \
     fail 'unable to read the live initramfs configuration'
-grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems)' \
+grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt schweisos_iso_file_fallback block filesystems)' \
     <<<"$initramfs_config" || \
-    fail 'built initramfs does not contain the approved Plymouth and loopback hook order'
+    fail 'built initramfs does not contain the approved Plymouth, loopback, and ISO-file fallback hook order'
 
 mkdir -p "${tmp_dir}/initramfs-root"
 (
@@ -363,11 +365,31 @@ cmp -s "$canonical_logo" "$initramfs_logo" || \
 [[ -f "${initramfs_root}/usr/lib/plymouth/script.so" \
     && -x "${initramfs_root}/usr/bin/plymouth" ]] || \
     fail 'initramfs is missing the Plymouth script runtime'
+[[ -f "${initramfs_root}/hooks/schweisos_iso_file_fallback" \
+    && -x "${initramfs_root}/hooks/schweisos_iso_file_fallback" ]] || \
+    fail 'initramfs is missing the SchweisOS ISO-file fallback runtime hook'
+cmp -s "${profile_dir}/airootfs/usr/lib/initcpio/hooks/schweisos_iso_file_fallback" \
+    "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
+    fail 'initramfs ISO-file fallback runtime hook differs from source'
+for fallback_runtime in \
+    usr/bin/find \
+    usr/bin/grep \
+    usr/bin/losetup \
+    usr/bin/lsblk \
+    usr/bin/modprobe \
+    usr/bin/mount \
+    usr/bin/umount; do
+    [[ -x "${initramfs_root}/${fallback_runtime}" ]] || \
+        fail "initramfs is missing ISO-file fallback runtime binary: ${fallback_runtime}"
+done
+grep -Fq "mount_handler='schweisos_iso_file_mount_handler'" \
+    "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
+    fail 'initramfs ISO-file fallback hook does not install the SchweisOS mount handler'
 
 printf 'Built ISO boot validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"
 printf '  branding: schweisos-branding %s\n' "$installed_branding_version"
 printf '  logo SHA256: %s\n' "$(sha256sum -- "$runtime_logo" | awk '{ print $1 }')"
-printf '  loopback: GRUB loopback kernel/initramfs handoff verified\n'
+printf '  loopback: GRUB loopback kernel/initramfs handoff and Ventoy native fallback verified\n'
 printf '  live defaults: LANG=C.UTF-8, UTC, systemd-firstboot disabled\n'
 printf '  initramfs: Plymouth theme, script plugin, and canonical logo verified\n'

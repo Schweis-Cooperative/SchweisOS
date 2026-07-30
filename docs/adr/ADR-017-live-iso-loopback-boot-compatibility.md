@@ -1,6 +1,6 @@
 # ADR-017 Live ISO Loopback Boot Compatibility
 
-Version: 1.1
+Version: 1.2
 
 ## Status
 
@@ -73,6 +73,28 @@ The initramfs must also include Archiso's `archiso_loop_mnt` hook; otherwise
 those parameters are present on the kernel command line but no early-userspace
 component consumes them.
 
+After adding `archiso_loop_mnt`, a third real-hardware Ventoy test proved that
+the hook was present and executed, but Ventoy's normal UEFI path had booted
+the ISO's native systemd-boot entry rather than the GRUB loopback entry. The
+observed initramfs log contained both:
+
+```text
+:: running hook [archiso]
+:: running hook [archiso_loop_mnt]
+Waiting 10 seconds for device /dev/disk/by-uuid/<Archiso UUID marker> ...
+:: Searching for '/boot/<Archiso UUID marker>.uuid' in '/dev/sda1'
+ERROR: Device '<Archiso UUID marker>' not found
+```
+
+That proves `archiso_loop_mnt` was no longer missing. It also proves the
+kernel command line did not contain `img_dev` and `img_loop`, because the
+upstream `archiso_loop_mnt` hook only replaces the mount handler when those
+parameters are present. In Ventoy normal mode the ISO file remains stored on
+the USB filesystem, while the native systemd-boot command line asks Archiso to
+find a marker file directly on a block device. The marker exists inside the ISO
+file, not beside it on Ventoy's exFAT partition, so the stock
+`archisosearchuuid` path cannot discover the live root.
+
 ## Decision
 
 SchweisOS will keep the native KDE live-medium boot mode as upstream Archiso
@@ -82,6 +104,8 @@ compatibility file plus its matching initramfs hook:
 ```text
 iso/profiles/kde/grub/loopback.cfg
 iso/profiles/kde/airootfs/etc/mkinitcpio.conf.d/archiso.conf
+iso/profiles/kde/airootfs/usr/lib/initcpio/hooks/schweisos_iso_file_fallback
+iso/profiles/kde/airootfs/usr/lib/initcpio/install/schweisos_iso_file_fallback
 ```
 
 The profile-owned loopback file will:
@@ -100,11 +124,31 @@ The profile-owned loopback file will:
 - provide only small utility entries that are safe in GRUB loopback context.
 
 The live initramfs hook list will include `archiso_loop_mnt` immediately after
-`archiso`. The native systemd-boot entries continue to use
+`archiso` and SchweisOS' ISO-file fallback hook immediately after
+`archiso_loop_mnt`. The native systemd-boot entries continue to use
 `archisosearchuuid=%ARCHISO_UUID%`, matching upstream Archiso's native
-search-marker behavior. SchweisOS must not replace the native entries with
-label-only discovery to solve a Ventoy loopback problem; Ventoy's ISO-file
-path is handled by `img_dev/img_loop` and `archiso_loop_mnt`.
+search-marker behavior.
+
+The SchweisOS fallback hook is intentionally narrow:
+
+- it does nothing when `archiso_loop_mnt` has already selected the upstream
+  loopback mount handler from `img_dev/img_loop`;
+- it runs only when the native `archisosearchuuid` contract is active and no
+  `img_dev/img_loop` handoff exists;
+- it first preserves native removable-media boot by looking for the requested
+  marker directly on removable partitions;
+- if the direct marker is absent, it searches removable media for ISO files
+  whose raw contents contain the requested `<uuid>.uuid` marker;
+- when a matching ISO is found, it creates a read-only loop device, clears the
+  native search variables, and delegates back to upstream
+  `archiso_mount_handler`;
+- it does not scan non-removable internal disks before falling back to the
+  upstream Archiso handler.
+
+SchweisOS must not replace the native entries with label-only discovery to
+solve a Ventoy problem. Normal Ventoy GRUB2 mode is handled by
+`img_dev/img_loop` and `archiso_loop_mnt`; Ventoy normal-mode/systemd-boot
+paths are handled by the SchweisOS ISO-file fallback when needed.
 
 This decision does not enable Archiso's `uefi.grub` boot mode, add the `grub`
 package to the live ISO, create a full `/boot/grub/grub.cfg`, add BIOS support,
@@ -116,8 +160,12 @@ installer and bootloader decisions.
 - `iso/profiles/kde/grub/loopback.cfg` owns only live ISO loopback
   compatibility for outer GRUB/multiboot launchers.
 - `iso/profiles/kde/airootfs/etc/mkinitcpio.conf.d/archiso.conf` owns the
-  narrowly scoped live initramfs hook extension required to consume that
-  loopback handoff.
+  narrowly scoped live initramfs hook order required to consume loopback
+  handoffs and then try SchweisOS' removable ISO-file fallback.
+- `iso/profiles/kde/airootfs/usr/lib/initcpio/hooks/` and
+  `iso/profiles/kde/airootfs/usr/lib/initcpio/install/` own only the
+  SchweisOS-specific ISO-file fallback needed for Ventoy native systemd-boot
+  handoffs that lack `img_dev/img_loop`.
 - `iso/profiles/kde/efiboot/` continues to own the native systemd-boot live
   path.
 - `schweisos-grub-theme` remains inert installed-system theme groundwork and is
@@ -151,6 +199,22 @@ Rejected. The tested real-hardware failure shows that relying on an inferred
 or generated menu can select an incompatible kernel/initramfs handoff. The ISO
 must carry the project-reviewed loopback contract itself.
 
+### Require Users to Select Ventoy GRUB2 Mode
+
+Rejected as the only fix. The reviewed outer-GRUB loopback path remains
+supported by `loopback.cfg`, but the real failing path was Ventoy's normal UEFI
+path entering SchweisOS' native systemd-boot entry. A production desktop ISO
+should not require users to know Ventoy's alternate boot mode before the live
+system can start.
+
+### Add Ventoy-Specific Runtime Integration
+
+Deferred. Ventoy has distro-specific mechanisms for deeply integrated ISO-file
+mounting, but adopting them would add a new downstream compatibility surface
+and potential vendored tooling. The accepted hook is smaller: it relies only
+on the Archiso marker already generated by `mkarchiso`, scans only removable
+media, and delegates the actual live-root mount back to upstream Archiso.
+
 ### Move Kernel or Initramfs Paths
 
 Rejected. The current kernel and initramfs locations match the Archiso
@@ -177,9 +241,13 @@ Positive consequences:
 - The native systemd-boot path remains minimal, fast, and upstream-compatible.
 - The loopback path mirrors the same normal/debug behavior as the native live
   entries, preserving debuggability.
+- Ventoy's normal UEFI path can recover when it starts the native
+  systemd-boot entry without an `img_dev/img_loop` handoff, because the
+  initramfs can now discover the ISO file containing the requested Archiso
+  UUID marker on removable media.
 - Kernel filename, initramfs filename, `install_dir`, architecture, Archiso
-  ISO-file handoff, and required loopback hook drift are now statically
-  validated.
+  ISO-file handoff, required hook drift, and raw marker discoverability are now
+  statically validated.
 - Completed ISO validation now checks the bootloader-visible ISO root, ISO
   volume label, UUID marker, native command lines, loopback command lines, and
   initramfs hook list before expensive SquashFS inspection.
@@ -189,6 +257,10 @@ Negative consequences:
 - The live profile now contains a tiny `grub/` directory despite not using GRUB
   as its native bootloader. Validators must keep that directory restricted to
   `loopback.cfg`.
+- The live profile now contains one SchweisOS-specific initramfs hook. Its
+  maintenance cost is intentionally bounded by limiting it to removable media,
+  marker-based ISO identification, and immediate delegation back to upstream
+  Archiso.
 - Static validation can prove ISO structure and handoff parameters, but only
   real Ventoy hardware testing can prove a specific firmware, USB device, and
   Ventoy version combination.
@@ -205,7 +277,13 @@ Pre-build validation must fail closed if:
   paths;
 - either entry omits `archisobasedir`, `img_dev`, `img_loop`, or
   `systemd.firstboot=no`;
-- the live mkinitcpio hook list omits `archiso_loop_mnt` after `archiso`;
+- the live mkinitcpio hook list omits `archiso_loop_mnt` after `archiso` or
+  `schweisos_iso_file_fallback` after `archiso_loop_mnt`;
+- the fallback hook scans non-removable disks before preserving upstream
+  Archiso fallback;
+- the fallback hook stops clearing `archisosearchuuid` and
+  `archisosearchfilename` before delegating a discovered ISO loop device to
+  upstream Archiso;
 - the quiet and debug entries drift from the existing live boot policy.
 
 Completed ISO validation must fail closed if:
@@ -218,11 +296,16 @@ Completed ISO validation must fail closed if:
   catalog, or exactly one Archiso UUID marker;
 - the ISO volume label, `grubenv` label, native `archisosearchuuid`, and UUID
   marker metadata no longer agree;
-- the live initramfs omits `archiso_loop_mnt`;
+- the ISO UUID marker is not raw-discoverable by the initramfs fallback scan;
+- the live initramfs omits `archiso_loop_mnt` or
+  `schweisos_iso_file_fallback`;
+- the live initramfs omits the binaries required by the fallback scan and loop
+  setup;
 - a full `boot/grub/grub.cfg` or syslinux configuration enters the image under
   the current UEFI-only live contract.
 
 Manual Ventoy hardware boot remains required release evidence. Passing these
 validators means the repository no longer reproduces the known missing
-loopback contracts that caused the reported pre-kernel GRUB failure and the
-later initramfs device-discovery failure.
+loopback contracts that caused the reported pre-kernel GRUB failure, the
+missing `archiso_loop_mnt` initramfs failure, or the later Ventoy normal-mode
+device-discovery failure where `archiso_loop_mnt` was present but passive.

@@ -169,7 +169,9 @@ marker, compares the built loopback file to the reviewed profile source after
 Archiso token substitution, rejects unresolved template tokens, validates the
 `archisobasedir`, `img_dev`, and `img_loop` handoff, and confirms that the live
 initramfs contains `archiso_loop_mnt` so the handoff can be consumed after the
-kernel starts.
+kernel starts. It also confirms that the ISO marker is raw-discoverable by the
+SchweisOS initramfs fallback used when Ventoy starts the native systemd-boot
+entry without `img_dev/img_loop`.
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust
 contract between `schweisos-mirrorlist` and `schweisos-pacman-config`. It builds
@@ -272,8 +274,8 @@ systemd-boot entries, disabled interactive firstboot, the exact installed
 defaults, SDDM/Plasma handoff inputs, live fallback unit payloads including the
 boot-bounded watchdog, live sudo/polkit administration policy, hidden upstream
 Calamares launcher override, merged systemd unit validity, and the Plymouth
-configuration, script plugin, theme, and canonical logo inside the actual
-initramfs. A stale signed
+configuration, script plugin, theme, canonical logo, and SchweisOS ISO-file
+fallback runtime hook inside the actual initramfs. A stale signed
 branding package therefore fails before the wrapper publishes checksums even
 if source-only profile validation passes.
 

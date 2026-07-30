@@ -54,6 +54,8 @@ required_files=(
   "${airootfs_dir}/etc/locale.conf"
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf"
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset"
+  "${airootfs_dir}/usr/lib/initcpio/hooks/schweisos_iso_file_fallback"
+  "${airootfs_dir}/usr/lib/initcpio/install/schweisos_iso_file_fallback"
   "${airootfs_dir}/etc/plymouth/plymouthd.conf"
   "${airootfs_dir}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules"
   "${airootfs_dir}/etc/sddm.conf.d/10-schweisos-live.conf"
@@ -136,6 +138,8 @@ bash -n \
   "$profiledef" \
   "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" \
   "${airootfs_dir}/etc/mkinitcpio.d/linux.preset" \
+  "${airootfs_dir}/usr/lib/initcpio/hooks/schweisos_iso_file_fallback" \
+  "${airootfs_dir}/usr/lib/initcpio/install/schweisos_iso_file_fallback" \
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped" \
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded" \
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog" \
@@ -483,9 +487,46 @@ done
 bash -c '
   set -euo pipefail
   source "$1"
-  [[ "${HOOKS[*]}" == "base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems" ]]
+  [[ "${HOOKS[*]}" == "base udev modconf kms plymouth archiso archiso_loop_mnt schweisos_iso_file_fallback block filesystems" ]]
 ' _ "${airootfs_dir}/etc/mkinitcpio.conf.d/archiso.conf" || \
-  fail 'mkinitcpio hook list does not match the approved Plymouth and loopback live-boot contract'
+  fail 'mkinitcpio hook list does not match the approved Plymouth, loopback, and ISO-file fallback contract'
+
+iso_file_fallback_hook="${airootfs_dir}/usr/lib/initcpio/hooks/schweisos_iso_file_fallback"
+iso_file_fallback_install="${airootfs_dir}/usr/lib/initcpio/install/schweisos_iso_file_fallback"
+for required_fallback_fragment in \
+  "mount_handler:-" \
+  "archiso_loop_mount_handler" \
+  "getarg 'img_dev'" \
+  "getarg 'img_loop'" \
+  "mount_handler='schweisos_iso_file_mount_handler'" \
+  "RM == 1 && ( TYPE == \"part\" || TYPE == \"rom\" )" \
+  "grep -a -m 1 -F" \
+  "losetup --find --show --read-only" \
+  "export archisodevice" \
+  "export archisosearchuuid=''" \
+  "export archisosearchfilename=''" \
+  "archiso_mount_handler \"\${newroot}\"" \
+  "copytoram" \
+  "launch_interactive_shell"; do
+  grep -Fq "$required_fallback_fragment" "$iso_file_fallback_hook" || \
+    fail "ISO-file fallback hook is missing: ${required_fallback_fragment}"
+done
+if grep -Fq 'RM == 0' "$iso_file_fallback_hook"; then
+  fail 'ISO-file fallback must not scan non-removable disks before preserving upstream Archiso fallback'
+fi
+for required_install_fragment in \
+  'add_runscript' \
+  'add_module loop' \
+  'add_binary find' \
+  'add_binary grep' \
+  'add_binary losetup' \
+  'add_binary lsblk' \
+  'add_binary modprobe' \
+  'add_binary mount' \
+  'add_binary umount'; do
+  grep -Fq "$required_install_fragment" "$iso_file_fallback_install" || \
+    fail "ISO-file fallback install hook is missing: ${required_install_fragment}"
+done
 
 bash -c '
   set -euo pipefail
@@ -542,6 +583,11 @@ expected_overlay_paths=(
   etc/tmpfiles.d/schweisos-live.conf
   usr
   usr/lib
+  usr/lib/initcpio
+  usr/lib/initcpio/hooks
+  usr/lib/initcpio/hooks/schweisos_iso_file_fallback
+  usr/lib/initcpio/install
+  usr/lib/initcpio/install/schweisos_iso_file_fallback
   usr/lib/schweisos-live
   usr/lib/schweisos-live/plymouth-is-stopped
   usr/lib/schweisos-live/plymouth-quit-guarded
@@ -803,7 +849,7 @@ if [[ -f "${upstream_baseline}/mkinitcpio.conf.d/archiso.conf" \
     fail 'locale.conf differs from the installed Archiso baseline'
   [[ "$(readlink -- "${upstream_baseline}/localtime")" == "$(readlink -- "$localtime_link")" ]] || \
     fail 'localtime differs from the installed Archiso baseline'
-  upstream_status='installed baseline matched except approved live boot, loopback, and Plymouth extensions'
+  upstream_status='installed baseline matched except approved live boot, loopback, ISO-file fallback, and Plymouth extensions'
 fi
 
 git -C "$project_root" diff --check -- \

@@ -1,0 +1,122 @@
+#!/usr/bin/ash
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Ventoy's normal UEFI path can boot the ISO's native systemd-boot entry
+# without providing Archiso's img_dev/img_loop loopback handoff. In that mode
+# the stock archiso hook falls back to archisosearchuuid and searches for the
+# marker file on the USB partition itself, not inside the ISO file stored on
+# that partition. This narrowly scoped fallback preserves the native Archiso
+# search first, then searches removable media for a SchweisOS ISO file carrying
+# the requested UUID marker and hands the resulting loop device back to Archiso.
+
+_schweisos_search_mount=/run/schweisos/iso-file-search
+
+_schweisos_scan_direct_marker_on_removable() {
+    local search_dev
+
+    install -dm755 "${_schweisos_search_mount}"
+
+    for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
+        [ -b "${search_dev}" ] || continue
+
+        msg ":: Searching for native Archiso marker '${archisosearchfilename}' in '${search_dev}'"
+        umount "${_schweisos_search_mount}" 2>/dev/null
+
+        if mount -o 'x-initrd.mount' -r "${search_dev}" "${_schweisos_search_mount}" 2>/dev/null; then
+            if [ -e "${_schweisos_search_mount}${archisosearchfilename}" ]; then
+                umount "${_schweisos_search_mount}" 2>/dev/null
+                archisodevice="${search_dev}"
+                return 0
+            fi
+        fi
+    done
+
+    umount "${_schweisos_search_mount}" 2>/dev/null
+    return 1
+}
+
+_schweisos_scan_iso_file_on_removable() {
+    local candidate marker search_dev
+
+    marker="${archisosearchuuid}.uuid"
+    install -dm755 "${_schweisos_search_mount}"
+
+    for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
+        [ -b "${search_dev}" ] || continue
+
+        msg ":: Searching removable ISO files for '${marker}' in '${search_dev}'"
+        umount "${_schweisos_search_mount}" 2>/dev/null
+
+        if ! mount -o 'x-initrd.mount' -r "${search_dev}" "${_schweisos_search_mount}" 2>/dev/null; then
+            continue
+        fi
+
+        while IFS= read -r candidate; do
+            [ -f "${candidate}" ] || continue
+            if grep -a -m 1 -F "${marker}" "${candidate}" >/dev/null 2>&1; then
+                schweisos_iso_file="${candidate}"
+                schweisos_iso_source_device="${search_dev}"
+                return 0
+            fi
+        done <<EOF
+$(find "${_schweisos_search_mount}" -type f \( -name '*.iso' -o -name '*.ISO' \) 2>/dev/null)
+EOF
+    done
+
+    umount "${_schweisos_search_mount}" 2>/dev/null
+    rmdir "${_schweisos_search_mount}" 2>/dev/null
+    return 1
+}
+
+run_hook() {
+    if [ "${mount_handler:-}" = 'archiso_loop_mount_handler' ]; then
+        return 0
+    fi
+
+    [ -n "${archisosearchuuid:-}" ] || return 0
+    [ -n "${archisosearchfilename:-}" ] || return 0
+    [ -z "$(getarg 'img_dev')" ] || return 0
+    [ -z "$(getarg 'img_loop')" ] || return 0
+
+    export mount_handler='schweisos_iso_file_mount_handler'
+}
+
+schweisos_iso_file_mount_handler() {
+    local newroot="${1}"
+    local loopdev
+
+    if _schweisos_scan_direct_marker_on_removable; then
+        export archisodevice
+        export archisosearchuuid=''
+        export archisosearchfilename=''
+        archiso_mount_handler "${newroot}"
+        return
+    fi
+
+    if _schweisos_scan_iso_file_on_removable; then
+        msg ":: Found SchweisOS ISO '${schweisos_iso_file}' on '${schweisos_iso_source_device}'"
+        modprobe loop 2>/dev/null || true
+
+        if loopdev="$(losetup --find --show --read-only "${schweisos_iso_file}")"; then
+            export archisodevice="${loopdev}"
+            export archisosearchuuid=''
+            export archisosearchfilename=''
+            archiso_mount_handler "${newroot}"
+
+            if [ "${copytoram}" = 'y' ]; then
+                losetup -d "${loopdev}" 2>/dev/null
+                umount "${_schweisos_search_mount}" 2>/dev/null
+                rmdir "${_schweisos_search_mount}" 2>/dev/null
+            fi
+            return
+        fi
+
+        echo "ERROR: Setting loopback device for ISO file '${schweisos_iso_file}'"
+        launch_interactive_shell
+    fi
+
+    archiso_mount_handler "${newroot}"
+}
+
+# vim: set ft=sh:

@@ -272,8 +272,9 @@ It:
 - Prevents concurrent wrappers from sharing work, output, cache, or manifest
   state.
 - Validates generated artifact identity, the bootloader-visible loopback
-  handoff, live root, initramfs boot payload, and checksums, then atomically
-  records a privacy-minimized build manifest.
+  handoff, Ventoy/native ISO-file fallback payload, live root, initramfs boot
+  payload, and checksums, then atomically records a privacy-minimized build
+  manifest.
 
 It must not:
 

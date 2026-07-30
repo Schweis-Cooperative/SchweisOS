@@ -238,7 +238,8 @@ It checks:
 - Noninteractive live first-boot behavior through exact
   `systemd.firstboot=no`, `LANG=C.UTF-8`, and UTC contracts.
 - The approved mkinitcpio hook contract and kernel preset, including the
-  live-boot `kms`, `plymouth`, and `archiso_loop_mnt` hook extensions.
+  live-boot `kms`, `plymouth`, `archiso_loop_mnt`, and
+  `schweisos_iso_file_fallback` hook extensions.
 - Propagated Plymouth client failures, bounded quit waiting, guarded normal
   handoff, and automatic diagnostic fallback.
 - The explicit live-overlay allowlist and shipped permissions.

@@ -150,9 +150,11 @@ must not carry a full `grub.cfg` under this ADR. The only approved file in this
 directory is the ADR-017 `loopback.cfg` compatibility contract that upstream
 `mkarchiso` copies into `/boot/grub/loopback.cfg` for Ventoy-style outer GRUB
 launchers. It loads the same live kernel and initramfs paths as the native
-systemd-boot entries and passes Archiso's ISO-file handoff parameters. Any
-native live GRUB boot path, BIOS support, or graphical GRUB theme activation
-requires a separate architecture decision.
+systemd-boot entries and passes Archiso's ISO-file handoff parameters. The
+profile's initramfs inputs also include ADR-017's narrow ISO-file fallback for
+Ventoy normal-mode paths that enter native systemd-boot without that handoff.
+Any native live GRUB boot path, BIOS support, or graphical GRUB theme
+activation requires a separate architecture decision.
 
 ### `syslinux/`
 
@@ -208,7 +210,8 @@ The live-media boot path and the installed-system bootloader are separate concer
 - The packaged GRUB theme is presentation groundwork and does not by itself
   implement or activate that alternative.
 - The live ISO may carry a minimal GRUB loopback compatibility file for
-  multiboot tools without changing the native live bootloader.
+  multiboot tools and a narrow matching initramfs ISO-file fallback without
+  changing the native live bootloader.
 - Legacy BIOS is not required for the first release.
 - Secure Boot remains outside the first-release scope unless a later ADR changes that decision.
 

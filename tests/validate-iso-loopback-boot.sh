@@ -7,7 +7,9 @@
 # systemd-boot entries, and upstream-Archiso-style loopback.cfg that can hand
 # img_dev/img_loop to the Archiso initramfs. It also proves that the generated
 # ISO volume metadata, Archiso UUID marker, native systemd-boot cmdlines, and
-# initramfs hook list agree with one another.
+# initramfs hook list agree with one another, including SchweisOS' narrow
+# removable ISO-file fallback for Ventoy paths that boot native systemd-boot
+# without an img_dev/img_loop handoff.
 set -euo pipefail
 
 export LC_ALL=C
@@ -102,6 +104,8 @@ iso_uuid="${uuid_members[0]#boot/}"
 iso_uuid="${iso_uuid%.uuid}"
 [[ "$iso_uuid" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}$ ]] || \
     fail "Archiso UUID marker has an unexpected format: ${iso_uuid}"
+grep -a -m 1 -F "${iso_uuid}.uuid" "$iso_path" >/dev/null 2>&1 || \
+    fail 'ISO UUID marker is not discoverable by the initramfs ISO-file fallback scan'
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
@@ -229,16 +233,17 @@ bsdtar -xOf "$iso_path" "${install_dir}/boot/${arch}/initramfs-linux.img" \
     fail 'unable to extract the live initramfs'
 initramfs_config="$(lsinitcpio --config "${tmp_dir}/initramfs-linux.img")" || \
     fail 'unable to read the live initramfs configuration'
-grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt block filesystems)' \
+grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt schweisos_iso_file_fallback block filesystems)' \
     <<<"$initramfs_config" || \
-    fail 'live initramfs is missing the archiso_loop_mnt hook required for img_dev/img_loop boot'
+    fail 'live initramfs is missing the approved loopback and ISO-file fallback hook order'
 
 printf 'ISO loopback boot validation passed.\n'
 printf '  ISO: %s\n' "$iso_path"
 printf '  volume label: %s\n' "$volume_id"
 printf '  Archiso UUID marker: %s\n' "$iso_uuid"
+printf '  ISO-file marker scan: raw marker discoverable\n'
 printf '  kernel: /%s/boot/%s/vmlinuz-linux\n' "$install_dir" "$arch"
 printf '  initramfs: /%s/boot/%s/initramfs-linux.img\n' "$install_dir" "$arch"
 printf '  native boot: archisosearchuuid matches the ISO UUID marker\n'
 printf '  loopback: /boot/grub/loopback.cfg with img_dev/img_loop handoff\n'
-printf '  initramfs: archiso_loop_mnt accepts the loopback handoff\n'
+printf '  initramfs: archiso_loop_mnt plus SchweisOS ISO-file fallback verified\n'

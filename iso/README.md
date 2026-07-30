@@ -37,15 +37,17 @@ small upstream-compatible profile:
   selected upstream boot mode, including only the normal and debug live
   entries.
 - `grub/loopback.cfg` contains the only approved GRUB profile file. Upstream
-  `mkarchiso` copies it to `/boot/grub/loopback.cfg` so Ventoy-style outer
-  GRUB loopback launchers can load the same kernel and initramfs while passing
-  Archiso's `img_dev`/`img_loop` ISO-file handoff. The live initramfs hook list
-  must include `archiso_loop_mnt` so that handoff is honored after the kernel
-  starts. It also includes SchweisOS' `schweisos_iso_file_fallback` hook for
-  Ventoy normal UEFI launches that enter the native systemd-boot entry without
-  `img_dev/img_loop`; that fallback searches removable media for the ISO file
+  `mkarchiso` copies it to `/boot/grub/loopback.cfg` so an outer GRUB that
+  consumes Archiso's loopback contract can load the same kernel and initramfs
+  while passing `img_dev`/`img_loop`. The live initramfs hook list must include
+  `archiso_loop_mnt` so that handoff is honored after the kernel starts. It
+  also includes SchweisOS' `schweisos_iso_file_fallback` hook for multiboot
+  command lines that use native Archiso search without `img_dev/img_loop`;
+  that fallback searches removable media for the ISO file
   containing the generated Archiso UUID marker and delegates back to upstream
-  Archiso. This is not a native GRUB live boot configuration.
+  Archiso. Ventoy mode labels are not proof that `loopback.cfg` was consumed;
+  the resulting kernel command line identifies the actual path. This is not a
+  native GRUB live boot configuration.
 - `airootfs/` contains bounded live-only plumbing for an ephemeral KDE account,
   SDDM autologin, NetworkManager startup, passwordless local live-session
   administration, Plymouth selection, canonical-logo animation, neutral
@@ -58,8 +60,9 @@ The profile selects the upstream `uefi.systemd-boot` boot mode. Its
 templates and use only archiso-supported template identifiers.
 The profile also carries the upstream Archiso loopback compatibility file,
 matching `archiso_loop_mnt` hook, and SchweisOS' narrow removable ISO-file
-fallback for Ventoy normal-mode launches; no full `grub.cfg`, syslinux profile,
-BIOS path, or GRUB package is part of the current live image.
+fallback for multiboot command lines using native Archiso search; no full
+`grub.cfg`, syslinux profile, BIOS path, or GRUB package is part of the current
+live image.
 The text-oriented loader keeps the firmware console mode, disables automatic
 entries and editing, and exposes `SchweisOS Live` plus
 `SchweisOS Live (Debug)`. The source contract configures graphical
@@ -74,7 +77,9 @@ through packages such as `calamares` and `schweisos-calamares-config`; no
 installer payload is copied into `airootfs/`. The Calamares binary package
 omits its generic launcher, while `schweisos-calamares-config` owns the single
 visible launcher, once-only live autostart, and privilege/display bridge. The
-live-only overlay and its removal condition are
+profile supplies only an inert live-session marker consumed with runtime
+Archiso evidence; it does not copy installer payload. The live-only overlay
+and its removal condition are
 documented in `profiles/kde/README.md`; documentation is kept outside
 `airootfs/` so it is not copied into the live root filesystem.
 
@@ -131,6 +136,20 @@ package version, canonical logo, Plymouth script/runtime, first-boot
 defaults, systemd fallback units, installer runtime payload, and Plasma
 handoff inputs. The wrapper requires the post-build gates before publishing
 checksums.
+
+After those gates pass and the ISO is copied to a file-based boot medium,
+`tests/validate-boot-media-copy.sh BUILD_MANIFEST SOURCE_ISO COPIED_ISO` must
+verify the actual destination before hardware boot. It binds the source to a
+successful clean completed build manifest from the current clean checkout,
+reruns the current built-ISO identity and boot-composition validators, rejects
+the same filesystem object, requires a read-only block-device-backed
+destination distinct from the host root filesystem, requires exactly one
+SchweisOS ISO, and proves canonical basename, size, SHA256, and byte equality.
+The copy must be synchronized, safely unmounted, physically reinserted, and
+mounted read-only before this check. This prevents an older same-named,
+unflushed, or additional SchweisOS ISO on a multiboot filesystem from being
+mistaken for the validated build. Whole-device imaging requires a separate
+readback procedure and is outside this mounted-file gate.
 
 There is no current successful ISO evidence for the newly changed first-boot
 payload, Plymouth watchdog, built-boot validator, or exact v2 manifest

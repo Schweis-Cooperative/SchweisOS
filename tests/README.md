@@ -1,15 +1,17 @@
 # Tests Directory
 
-Version: 1.5
+Version: 1.6
 Status: Active
-Date: 2026-07-29
+Date: 2026-07-30
 
 This directory owns repository-level validation that crosses package boundaries.
 
 `validate-distribution-identity.sh` builds and inspects `schweisos-release`,
 validates the standard `os-release` fields and project URLs, verifies the
-relative `/etc/os-release` ownership link, and checks the JSON metadata. It
-does not install the package on the host:
+relative `/etc/os-release` ownership link, and checks the JSON metadata.
+SchweisOS-owned packages use the project URL; the separately packaged
+third-party Calamares source retains its canonical upstream URL. It does not
+install the package on the host:
 
 ```bash
 tests/validate-distribution-identity.sh
@@ -67,7 +69,8 @@ tests/validate-iso-profile.sh
 
 It validates the profile contract, package manifest, build-time pacman syntax,
 UEFI normal/debug templates and exact titles, loader entry suppression, GRUB
-loopback compatibility for Ventoy-style multiboot launchers, canonical-logo
+loopback compatibility for outer launchers that consume Archiso's contract,
+canonical-logo
 Plymouth animation primitives, dual unexpected-exit detectors, propagated
 client failures, bounded quit waiting, guarded automatic diagnostic fallback,
 noninteractive first-boot defaults, mkinitcpio inputs, live-overlay allowlist,
@@ -107,7 +110,10 @@ tests/test-installer-experience.sh
 
 It proves manual reopen, single-instance locking, visible preflight and
 privileged-process failure, private failure logging, one-time autostart, and
-suppression when a manual launch wins the startup race.
+suppression when a manual launch wins the startup race. It also exercises the
+real shared live-session predicate, including a valid Archiso copy-to-RAM
+session with no `/run/archiso/bootmnt`, and rejects wrong users, missing
+`airootfs`, wrong kernel tokens, and invalid profile markers.
 
 `validate-installer-runtime-payload.sh` inspects the staged Archiso live root
 after package installation and before SquashFS compression:
@@ -154,7 +160,7 @@ live profile may contain only the ADR-017 `grub/loopback.cfg` compatibility
 file; a full live GRUB configuration remains forbidden.
 
 `validate-iso-loopback-boot.sh` performs a completed-ISO bootloader-layer
-inspection for Ventoy-style GRUB loopback compatibility:
+inspection for the reviewed Archiso outer-GRUB loopback contract:
 
 ```bash
 tests/validate-iso-loopback-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
@@ -170,8 +176,38 @@ Archiso token substitution, rejects unresolved template tokens, validates the
 `archisobasedir`, `img_dev`, and `img_loop` handoff, and confirms that the live
 initramfs contains `archiso_loop_mnt` so the handoff can be consumed after the
 kernel starts. It also confirms that the ISO marker is raw-discoverable by the
-SchweisOS initramfs fallback used when Ventoy starts the native systemd-boot
-entry without `img_dev/img_loop`.
+SchweisOS initramfs fallback used when a multiboot command line supplies native
+Archiso search without `img_dev/img_loop`.
+
+Ventoy's mode label does not prove that this loopback file was consumed; the
+resulting `/proc/cmdline` distinguishes an `img_dev`/`img_loop` handoff from
+the native `archisosearchuuid` path.
+
+`validate-boot-media-copy.sh` performs the final read-only source-to-media
+binding after completed-ISO validation and before a file-based multiboot
+hardware boot:
+
+```bash
+tests/validate-boot-media-copy.sh BUILD_MANIFEST SOURCE_ISO COPIED_ISO
+```
+
+It first binds the source bytes and clean build commit to a successful
+completed build manifest, requires that commit to be the current clean
+checkout, and reruns the current built-ISO identity and boot-composition
+validators. It rejects the same path or filesystem object, a destination
+without a distinct block-device-backed filesystem, a destination that is not
+mounted read-only, a renamed artifact, zero or multiple SchweisOS ISOs, size
+or SHA256 drift, and any byte difference. Copy, synchronize, safely unmount,
+physically reinsert, and mount read-only before invoking it. It deliberately
+does not claim to validate raw whole-device writes.
+
+`test-boot-media-copy.sh` covers manifest binding and representative success
+and rejection paths without requiring removable media. Build-environment
+validation runs this regression test:
+
+```bash
+tests/test-boot-media-copy.sh
+```
 
 `validate-repository-bootstrap.sh` checks the Sprint A ownership and trust
 contract between `schweisos-mirrorlist` and `schweisos-pacman-config`. It builds

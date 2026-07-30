@@ -1,6 +1,6 @@
 # ADR-012 ISO Build Architecture
 
-Version: 1.2
+Version: 1.3
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-28
+2026-07-30
 
 ## Related ADRs
 
@@ -148,11 +148,14 @@ It configures how the live medium starts. It does not define how the target syst
 The current SchweisOS live medium does not select Archiso's GRUB boot mode and
 must not carry a full `grub.cfg` under this ADR. The only approved file in this
 directory is the ADR-017 `loopback.cfg` compatibility contract that upstream
-`mkarchiso` copies into `/boot/grub/loopback.cfg` for Ventoy-style outer GRUB
-launchers. It loads the same live kernel and initramfs paths as the native
-systemd-boot entries and passes Archiso's ISO-file handoff parameters. The
-profile's initramfs inputs also include ADR-017's narrow ISO-file fallback for
-Ventoy normal-mode paths that enter native systemd-boot without that handoff.
+`mkarchiso` copies into `/boot/grub/loopback.cfg` for outer GRUB launchers that
+consume Archiso's loopback contract. It loads the same live kernel and
+initramfs paths as the native systemd-boot entries and passes Archiso's
+ISO-file handoff parameters. The profile's initramfs inputs also include
+ADR-017's narrow ISO-file fallback for multiboot paths that supply the native
+Archiso search contract without that handoff. A Ventoy mode label does not
+prove which loader or handoff path was selected; the resulting kernel command
+line does.
 Any native live GRUB boot path, BIOS support, or graphical GRUB theme
 activation requires a separate architecture decision.
 

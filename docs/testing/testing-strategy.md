@@ -1,8 +1,8 @@
 # SchweisOS Testing Strategy
 
-Version: 0.6
+Version: 0.7
 Status: Draft
-Date: 2026-07-29
+Date: 2026-07-30
 
 ## Goal
 
@@ -96,6 +96,31 @@ merged unit set in the extracted live root.
 This gate proves composition, not pixels or successful hardware initialization.
 A VM and hardware boot remain necessary to observe animation, renderer
 selection, SDDM autologin, and the final Plasma desktop.
+
+## File-Based Boot Media Evidence
+
+Before a Ventoy or other file-based multiboot hardware test, run:
+
+```bash
+tests/validate-boot-media-copy.sh \
+  logs/iso/build-manifest.json \
+  out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
+  /path/to/mounted-media/schweisos-YYYY.MM.DD-x86_64.iso
+```
+
+Before invoking the read-only gate, copy the ISO, run `sync`, safely unmount
+the medium, physically reinsert it, and mount the data partition read-only.
+The gate then binds the copied bytes to the successful clean build manifest
+and current clean repository commit, reruns the current built-ISO identity and
+boot-composition validators, rejects a source/destination alias, requires a
+read-only block-device-backed destination different from the host root
+filesystem, and permits exactly one SchweisOS ISO on that filesystem. Safely
+unmount it again before booting. It is not a raw-device readback validator for
+`dd`, Etcher, or similar whole-image writers.
+
+The subsequent hardware record must capture the exact ISO SHA256 and
+`/proc/cmdline` (or equivalent debug evidence). A Ventoy menu label is not
+evidence of which kernel-command-line handoff actually ran.
 
 ## Gaming Validation
 

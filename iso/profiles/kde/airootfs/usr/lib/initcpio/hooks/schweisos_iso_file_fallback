@@ -2,13 +2,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Ventoy's normal UEFI path can boot the ISO's native systemd-boot entry
-# without providing Archiso's img_dev/img_loop loopback handoff. In that mode
-# the stock archiso hook falls back to archisosearchuuid and searches for the
-# marker file on the USB partition itself, not inside the ISO file stored on
-# that partition. This narrowly scoped fallback preserves the native Archiso
-# search first, then searches removable media for a SchweisOS ISO file carrying
-# the requested UUID marker and hands the resulting loop device back to Archiso.
+# A file-based multiboot path can reach initramfs with Archiso's native
+# archisosearchuuid contract but without an img_dev/img_loop handoff. The stock
+# hook then searches for the marker on the outer removable partition, not
+# inside the ISO file stored on that partition. This narrowly scoped fallback
+# preserves native Archiso search first, then searches removable media for a
+# SchweisOS ISO carrying the requested marker and hands its loop device back to
+# Archiso. The kernel command line, not a multiboot mode label, identifies this
+# runtime path.
 
 _schweisos_search_mount=/run/schweisos/iso-file-search
 

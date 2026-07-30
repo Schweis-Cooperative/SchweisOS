@@ -18,7 +18,7 @@ build() {
 help() {
     cat <<HELPEOF
   This hook provides SchweisOS' narrow ISO-file discovery fallback for
-  multiboot firmware paths that start the native systemd-boot entry from an ISO
-  stored as a file on removable media without passing img_dev/img_loop.
+  multiboot command lines that use native Archiso search for an ISO stored as a
+  file on removable media without passing img_dev/img_loop.
 HELPEOF
 }

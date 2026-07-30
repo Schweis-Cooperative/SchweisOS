@@ -66,7 +66,8 @@ esac
 
 if [[ "$iso_build_mode" == release ]]; then
     release_input_failures=()
-    if ! release_git_status="$(git -C "$project_root" status --porcelain 2>/dev/null)"; then
+    if ! release_git_status="$(git -c status.showUntrackedFiles=all \
+        -C "$project_root" status --porcelain --untracked-files=all 2>/dev/null)"; then
         release_input_failures+=('git-state-unavailable')
     elif [[ -n "$release_git_status" ]]; then
         release_input_failures+=('git-tree-dirty')
@@ -123,6 +124,16 @@ else
     record_fail 'dependencies: validation failed; run tests/validate-build-dependencies.sh for details'
 fi
 unset dependency_output
+
+boot_media_test="${project_root}/tests/test-boot-media-copy.sh"
+if [[ -f "$boot_media_test" && ! -L "$boot_media_test" \
+    && -x "$boot_media_test" ]] \
+    && boot_media_test_output="$("$boot_media_test" 2>&1)"; then
+    record_pass 'boot media validator: manifest, device, and byte-binding regressions passed'
+else
+    record_fail 'boot media validator: behavioral regression test failed'
+fi
+unset boot_media_test_output
 
 if type -P pacman >/dev/null 2>&1; then
     pending_updates="$(pacman -Quq 2>/dev/null)"
@@ -208,6 +219,7 @@ required_files=(
     release/README.md
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
+    tests/test-boot-media-copy.sh
     tests/test-plymouth-watchdog.sh
     tests/validate-grub-theme.sh
     tests/validate-build-dependencies.sh
@@ -215,6 +227,7 @@ required_files=(
     tests/validate-build-environment.sh
     tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-boot-media-copy.sh
     tests/validate-iso-loopback-boot.sh
     tests/validate-iso-build-manifest.sh
     tests/validate-keyring-package.sh
@@ -362,12 +375,14 @@ required_executables=(
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
     tests/install-local-bootstrap-packages.sh
+    tests/test-boot-media-copy.sh
     tests/test-installer-experience.sh
     tests/test-plymouth-watchdog.sh
     tests/test-release-artifacts.sh
     tests/validate-build-dependencies.sh
     tests/validate-built-iso-boot.sh
     tests/validate-built-iso-identity.sh
+    tests/validate-boot-media-copy.sh
     tests/validate-iso-loopback-boot.sh
     tests/validate-iso-build-manifest.sh
     tests/validate-distribution-identity.sh

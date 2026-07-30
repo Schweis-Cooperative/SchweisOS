@@ -1,8 +1,8 @@
 # SchweisOS Boot Experience
 
-Version: 0.5
+Version: 0.6
 Status: Partial implementation
-Date: 2026-07-29
+Date: 2026-07-30
 
 SchweisOS treats the live-medium boot path and the installed-system bootloader
 as separate systems.
@@ -42,13 +42,14 @@ two concise entries, a short timeout, stable console mode, and removal of
 unrelated automatic entries. It does not attempt to imitate a graphical
 bootloader.
 
-## Ventoy and GRUB Loopback Compatibility
+## Outer-GRUB and Ventoy Compatibility
 
 The native live path remains systemd-boot, but the ISO also carries
-`/boot/grub/loopback.cfg` for multiboot tools that start the ISO through an
-outer GRUB loopback chain. That file is copied by upstream `mkarchiso` from
+`/boot/grub/loopback.cfg` for an outer GRUB that elects to consume Archiso's
+loopback contract. That file is copied by upstream `mkarchiso` from
 `iso/profiles/kde/grub/loopback.cfg`; SchweisOS does not generate it in the
-build wrapper.
+build wrapper. Ventoy's GRUB2 mode does not guarantee that it consumes this
+path, so its menu label is not treated as runtime evidence.
 
 The loopback entries load the same Archiso kernel and initramfs as the
 systemd-boot entries:
@@ -59,16 +60,17 @@ systemd-boot entries:
 ```
 
 They also pass `archisobasedir=schweis`, `img_dev`, and `img_loop` so the
-Archiso initramfs can mount the ISO file that Ventoy placed on the USB
-filesystem. The live initramfs therefore includes Archiso's
+Archiso initramfs can mount the ISO file on the outer filesystem. The live
+initramfs therefore includes Archiso's
 `archiso_loop_mnt` hook in addition to the native `archiso` hook; the loopback
 kernel parameters are not useful unless the initramfs contains the hook that
 turns `img_dev/img_loop` into the loop device Archiso mounts.
 
-Some Ventoy UEFI paths start the ISO's native systemd-boot entry instead of the
-GRUB loopback entry. In that case the kernel command line contains
-`archisosearchuuid` but no `img_dev/img_loop`, so `archiso_loop_mnt` is present
-but intentionally passive. SchweisOS therefore adds one narrow initramfs
+Some multiboot paths produce a kernel command line with
+`archisosearchuuid` but no `img_dev/img_loop`. That proves native Archiso
+search is active, not which bootloader generated the entry, and leaves
+`archiso_loop_mnt` present but intentionally passive. SchweisOS therefore adds
+one narrow initramfs
 fallback hook, `schweisos_iso_file_fallback`, after `archiso_loop_mnt`. It
 first preserves native removable-media boot by checking for Archiso's marker
 directly on removable partitions. If the marker is not there, it searches only
@@ -80,6 +82,38 @@ clears the native search variables, and delegates back to upstream
 This is intentionally narrower than enabling a native GRUB live bootloader:
 there is still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and
 no activation of the installed-system GRUB theme package.
+
+The actual handoff is classified from `/proc/cmdline`, not from the multiboot
+menu label. `img_dev` plus `img_loop` selects upstream `archiso_loop_mnt`.
+`archisosearchuuid` without those parameters selects native marker discovery
+and allows `schweisos_iso_file_fallback` to intervene.
+
+Before booting file-based multiboot media, bind the destination to the
+successful clean build manifest and its exact completed source ISO:
+
+```bash
+tests/validate-boot-media-copy.sh \
+  logs/iso/build-manifest.json \
+  /path/to/validated/schweisos-2026.07.27-x86_64.iso \
+  /path/to/mounted-media/schweisos-2026.07.27-x86_64.iso
+```
+
+This gate is independent of Ventoy or the file-copy tool. A PASS proves that
+the source is the successful clean build artifact from the current clean
+repository commit, the current built-ISO identity and boot-composition
+contracts pass, the destination is a different block-device-backed filesystem
+from the host root, exactly one SchweisOS ISO is present, and the basename,
+size, SHA256, and bytes match. The destination must be read-only during the
+check.
+
+The evidence sequence is: copy the ISO, run `sync`, safely unmount the medium,
+physically reinsert it, mount the data partition read-only, run the validator,
+and safely unmount it again before booting. This prevents the page cache or an
+unclean exFAT removal from being mistaken for persisted media evidence. A PASS
+does not replace a hardware boot.
+Whole-device writers such as `dd` or Etcher need a separate device-range
+readback workflow; this mounted-file validator does not claim to validate
+those paths.
 
 ## Plymouth
 

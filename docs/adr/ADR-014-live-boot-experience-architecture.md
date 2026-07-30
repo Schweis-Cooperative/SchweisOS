@@ -1,6 +1,6 @@
 # ADR-014 Live Boot Experience Architecture
 
-Version: 1.7
+Version: 1.8
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-29
+2026-07-30
 
 ## Related ADRs and DDRs
 
@@ -52,8 +52,9 @@ The profile will:
 - keep systemd-boot as a minimal text menu with a short timeout, a polished
   `SchweisOS Live` default entry, and a visible `SchweisOS Live (Debug)` entry;
 - carry the upstream Archiso-supported `/boot/grub/loopback.cfg` compatibility
-  path for Ventoy-style outer GRUB launchers without enabling GRUB as the
-  native live ISO bootloader;
+  path for outer GRUB launchers that consume it, without enabling GRUB as the
+  native live ISO bootloader or assuming that a multiboot mode label selects
+  that path;
 - preserve the firmware-selected console mode, disable loader editing, and
   suppress automatic firmware and operating-system entries so the live-medium
   menu contains only the two reviewed SchweisOS paths;
@@ -192,12 +193,13 @@ Positive consequences:
   Plymouth daemon exits automatically reveal diagnostics.
 - The live system no longer stops at `systemd-firstboot`; successful graphical
   boot proceeds through SDDM autologin directly to Plasma.
-- Ventoy-style outer GRUB launchers receive an explicit loopback handoff to the
-  same Archiso kernel and initramfs paths as the native systemd-boot entries,
-  and the live initramfs contains the upstream `archiso_loop_mnt` hook required
-  to consume that handoff after the kernel starts.
-- Ventoy-style normal UEFI launches that enter the native systemd-boot entry
-  without `img_dev/img_loop` can still find the ISO file on removable media via
+- Outer GRUB launchers that consume Archiso's loopback contract receive an
+  explicit handoff to the same kernel and initramfs paths as the native
+  systemd-boot entries, and the live initramfs contains the upstream
+  `archiso_loop_mnt` hook required to consume that handoff after the kernel
+  starts.
+- Multiboot command lines that use native Archiso search without
+  `img_dev/img_loop` can still find the ISO file on removable media via
   SchweisOS' marker-based initramfs fallback before delegating back to Archiso.
 - Source/package version drift and missing canonical branding payloads stop the
   build before Archiso can compose a stale splash.

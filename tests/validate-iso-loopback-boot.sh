@@ -1,15 +1,16 @@
 #!/usr/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Validate the ISO-visible GRUB loopback contract used by multiboot tools such
-# as Ventoy GRUB2 mode. This intentionally avoids extracting SquashFS: it only
-# proves that the bootloader-visible ISO root contains the kernel, initramfs,
-# systemd-boot entries, and upstream-Archiso-style loopback.cfg that can hand
-# img_dev/img_loop to the Archiso initramfs. It also proves that the generated
-# ISO volume metadata, Archiso UUID marker, native systemd-boot cmdlines, and
-# initramfs hook list agree with one another, including SchweisOS' narrow
-# removable ISO-file fallback for Ventoy paths that boot native systemd-boot
-# without an img_dev/img_loop handoff.
+# Validate the ISO-visible GRUB loopback contract available to an outer GRUB
+# that consumes Archiso's loopback.cfg. A multiboot tool's mode label does not
+# prove that it selected this contract. This intentionally avoids extracting
+# SquashFS: it only proves that the bootloader-visible ISO root contains the
+# kernel, initramfs, systemd-boot entries, and upstream-Archiso-style
+# loopback.cfg that can hand img_dev/img_loop to the Archiso initramfs. It also
+# proves that the generated ISO volume metadata, Archiso UUID marker, native
+# systemd-boot cmdlines, and initramfs hook list agree with one another,
+# including SchweisOS' narrow removable ISO-file fallback for multiboot paths
+# that use native Archiso search without an img_dev/img_loop handoff.
 set -euo pipefail
 
 export LC_ALL=C

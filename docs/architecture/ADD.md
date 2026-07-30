@@ -1,8 +1,8 @@
 # SchweisOS Architecture Design Document
 
-Version: 1.1
+Version: 1.2
 Status: Active pre-alpha architecture
-Date: 2026-07-29
+Date: 2026-07-30
 
 ## Scope
 
@@ -250,6 +250,7 @@ The current profile lives under `iso/profiles/kde/` and separates these concerns
 | Build-time package resolution | Profile-local `pacman.conf` |
 | Exceptional live-only filesystem content | Minimal `airootfs/` overlay |
 | Live-medium UEFI boot configuration | `efiboot/` following supported archiso interfaces |
+| Outer-GRUB ISO-file compatibility | Profile `grub/loopback.cfg`; actual handoff proven by kernel command line |
 | Reusable system behavior and persistent configuration | SchweisOS packages under `packages/` |
 | Source artwork and brand policy | `branding/` and `schweisos-branding` |
 | Reusable installed-system GRUB presentation | `schweisos-grub-theme`; activation remains installer-owned |
@@ -273,7 +274,10 @@ networking, a compact troubleshooting/user utility set, and package-list
 composition for Calamares plus the SchweisOS installer configuration package.
 Neutral `C.UTF-8`/UTC defaults are scoped only to the intended ephemeral live
 system; installed locale and timezone choices are owned by the Calamares
-workflow. The ISO must still gain:
+workflow. The installer live-session decision combines a profile-owned marker,
+the `live` account, the persistent Archiso `airootfs` mountpoint, and the
+SchweisOS kernel token; it does not depend on transient `bootmnt`, which
+Archiso removes after successful copy-to-RAM boot. The ISO must still gain:
 
 - A signed repository generation containing the Calamares binary and
   `schweisos-calamares-config` package.
@@ -330,17 +334,21 @@ separate debug entry keeps verbose kernel and systemd status visible.
 Automatic loader entries are disabled so the live-medium menu is limited to
 those two audited choices; the firmware-selected console mode is retained to
 avoid an extra visual mode transition. The profile also carries only the
-upstream-supported `grub/loopback.cfg` compatibility file for Ventoy-style
-outer GRUB launchers. That loopback file mirrors the same normal/debug kernel
+upstream-supported `grub/loopback.cfg` compatibility file for outer GRUB
+launchers that consume Archiso's loopback contract. That loopback file mirrors
+the same normal/debug kernel
 and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; the
 initramfs source includes the matching upstream `archiso_loop_mnt` hook so that
 handoff works after the kernel starts. A separate SchweisOS
-`schweisos_iso_file_fallback` initramfs hook covers Ventoy normal UEFI launches
-that enter the native systemd-boot entry without `img_dev/img_loop`: it scans
-only removable media for an ISO carrying the requested Archiso UUID marker,
-creates a read-only loop device, clears the native search variables, and
-delegates back to upstream Archiso. This does not make GRUB the native live
-bootloader and does not add a full `grub.cfg`. The initramfs source also uses
+`schweisos_iso_file_fallback` initramfs hook covers file-based multiboot
+command lines that use native Archiso search without `img_dev/img_loop`: it
+scans only removable media for an ISO carrying the requested Archiso UUID
+marker, creates a read-only loop device, clears the native search variables,
+and delegates back to upstream Archiso. Ventoy mode labels are not
+architectural evidence for either path; `img_dev`/`img_loop` versus
+`archisosearchuuid` on the resulting kernel command line is the runtime
+distinction. This does not make GRUB the native live bootloader and does not
+add a full `grub.cfg`. The initramfs source also uses
 upstream mkinitcpio `kms` and `plymouth` hooks so the SchweisOS Plymouth theme
 can appear before the Plasma session. The theme source
 currently defines a temporary reference-matched near-black-stage animation with

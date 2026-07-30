@@ -1,6 +1,6 @@
 # ADR-015 GRUB Theme Architecture
 
-Version: 1.1
+Version: 1.2
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-28
+2026-07-30
 
 ## Related ADRs and DDRs
 
@@ -74,8 +74,9 @@ repository source or change `branding/assets/logo/schweisos.png` as the
 canonical artwork.
 
 The current live medium remains `uefi.systemd-boot`. ADR-017 permits only a
-minimal profile-owned `grub/loopback.cfg` for Ventoy-style loopback boot
-compatibility. No full `grub.cfg`, GRUB Archiso boot mode, BIOS path, graphical
+minimal profile-owned `grub/loopback.cfg` for an outer GRUB that consumes
+Archiso's loopback contract. It does not imply that a Ventoy mode label selects
+that file. No full `grub.cfg`, GRUB Archiso boot mode, BIOS path, graphical
 GRUB theme, or GRUB package is added to the live image by this decision.
 
 ## Ownership

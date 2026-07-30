@@ -1,8 +1,8 @@
 # DDR-001 Boot Experience
 
-Version: 1.8
+Version: 1.9
 Status: Accepted
-Date: 2026-07-29
+Date: 2026-07-30
 
 Related architecture:
 [ADR-014 Live Boot Experience Architecture](../adr/ADR-014-live-boot-experience-architecture.md)
@@ -92,16 +92,16 @@ without claiming an installed boot workflow that does not exist.
 
 ### GRUB Loopback Compatibility
 
-Some multiboot tools, including Ventoy GRUB2 mode, launch an ISO through an
-outer GRUB loopback chain instead of executing the ISO's native systemd-boot
-path directly. SchweisOS supports that bootloader-visible handoff with a
-minimal `loopback.cfg` that mirrors the normal and debug live entries and gives
-the Archiso initramfs the ISO-file location through `img_dev` and `img_loop`.
+Some multiboot tools can launch an ISO through an outer GRUB loopback chain
+instead of using native Archiso search. SchweisOS supports that
+bootloader-visible handoff with a minimal `loopback.cfg` that
+mirrors the normal and debug live entries and gives the Archiso initramfs the
+ISO-file location through `img_dev` and `img_loop`.
 The live initramfs includes Archiso's `archiso_loop_mnt` hook so those
 parameters are consumed after the kernel starts instead of falling back to
-native UUID-marker device discovery. For Ventoy paths that start the native
-systemd-boot entry and therefore provide no `img_dev/img_loop`, the initramfs
-also includes SchweisOS' `schweisos_iso_file_fallback` hook. It searches only
+native UUID-marker device discovery. For multiboot command lines that instead
+carry `archisosearchuuid` without `img_dev/img_loop`, the initramfs also
+includes SchweisOS' `schweisos_iso_file_fallback` hook. It searches only
 removable media for an ISO carrying the requested Archiso UUID marker and then
 hands the discovered loop device back to upstream Archiso.
 
@@ -109,6 +109,14 @@ This is not a visual GRUB boot experience and it is not the future installed
 GRUB alternative. It exists only to make the same live kernel and initramfs
 reachable from common USB multiboot launchers without adding clutter or a
 second native bootloader personality.
+
+Ventoy's “Normal Mode” and “GRUB2 Mode” labels do not by themselves prove
+which contract reached the kernel. `/proc/cmdline` is canonical runtime
+evidence: `img_dev` plus `img_loop` identifies the outer-GRUB ISO-file
+handoff, while `archisosearchuuid` without them identifies the native search
+and fallback path. Before either path is tested, the copied ISO must be the
+only SchweisOS ISO on the medium and must match the validated source by
+basename, size, SHA256, and byte comparison.
 
 ### Branded Plymouth Splash
 
@@ -249,11 +257,11 @@ UEFI firmware
   -> visible kernel and systemd status
 ```
 
-The multiboot loopback path is:
+The generic outer-GRUB loopback path is:
 
 ```text
 UEFI firmware
-  -> Ventoy or another outer GRUB launcher
+  -> an outer GRUB launcher that consumes Archiso loopback.cfg
   -> /boot/grub/loopback.cfg inside the SchweisOS ISO
   -> SchweisOS Live or SchweisOS Live (Debug)
   -> /schweis/boot/x86_64/vmlinuz-linux
@@ -263,12 +271,12 @@ UEFI firmware
   -> the same Plymouth, SDDM, and Plasma path as native live boot
 ```
 
-The Ventoy normal-mode native-systemd-boot fallback path is:
+The native Archiso search fallback path is:
 
 ```text
 UEFI firmware
-  -> Ventoy normal UEFI launch
-  -> SchweisOS native systemd-boot entry
+  -> a file-based multiboot launcher
+  -> kernel command line with archisosearchuuid and no img_dev/img_loop
   -> /schweis/boot/x86_64/vmlinuz-linux
   -> /schweis/boot/x86_64/initramfs-linux.img
   -> archiso_loop_mnt runs but remains passive because img_dev/img_loop are absent

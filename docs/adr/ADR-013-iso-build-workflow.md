@@ -1,6 +1,6 @@
 # ADR-013 ISO Build Workflow
 
-Version: 1.6
+Version: 1.7
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## Date
 
-2026-07-28
+2026-07-30
 
 ## Related ADRs
 
@@ -55,6 +55,9 @@ The build host must:
 - Use official Arch packages for the ISO build toolchain.
 - Have enough disk space for the work directory, package cache, and output images.
 - Build from a clean git working tree for official release artifacts.
+- Inspect all tracked and untracked paths explicitly; local
+  `status.showUntrackedFiles` configuration must not make a dirty source tree
+  appear clean.
 - Use explicit local directories for generated state.
 - Avoid machine-specific absolute paths in version-controlled configuration.
 - Keep signing secrets outside the ISO profile and outside generic build logs.

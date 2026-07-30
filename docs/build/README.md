@@ -1,8 +1,8 @@
 # SchweisOS Build Documentation
 
-Version: 0.9
+Version: 1.0
 Status: Active
-Date: 2026-07-28
+Date: 2026-07-30
 
 This directory documents the canonical SchweisOS ISO build workflow. The
 orchestration wrapper is `scripts/build-iso.sh`; upstream `mkarchiso` remains
@@ -20,6 +20,10 @@ The host must provide:
 - Trusted access to the required Arch and SchweisOS repositories.
 - `sudo` or existing root privilege for `mkarchiso` only.
 - A clean Git worktree for an official release artifact.
+
+Clean-source inspection explicitly includes all untracked paths and overrides
+local `status.showUntrackedFiles` preferences. A user Git configuration cannot
+turn an untracked repository input into false clean-build evidence.
 
 The environment validator rejects updates known to the host's current pacman
 synchronization databases. It does not refresh those databases because

@@ -164,7 +164,8 @@ git_dirty_json=null
 git_dirty_after_json=null
 if git_commit="$(git -C "$repo_root" rev-parse --verify HEAD 2>/dev/null)"; then
     [[ "$git_commit" =~ ^[0-9a-f]{40,64}$ ]] || git_commit=''
-    if git_status="$(git -C "$repo_root" status --porcelain 2>/dev/null)"; then
+    if git_status="$(git -c status.showUntrackedFiles=all -C "$repo_root" \
+        status --porcelain --untracked-files=all 2>/dev/null)"; then
         if [[ -n "$git_status" ]]; then
             git_dirty_json=true
         else
@@ -292,7 +293,8 @@ finish() {
     trap - EXIT INT TERM HUP
     cleanup_temporaries
 
-    if git_status_after="$(git -C "$repo_root" status --porcelain 2>/dev/null)"; then
+    if git_status_after="$(git -c status.showUntrackedFiles=all -C "$repo_root" \
+        status --porcelain --untracked-files=all 2>/dev/null)"; then
         if [[ -n "$git_status_after" ]]; then
             git_dirty_after_json=true
         else

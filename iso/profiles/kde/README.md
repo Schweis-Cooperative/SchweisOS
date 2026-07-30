@@ -12,14 +12,14 @@ The following files are temporary live-media exceptions:
   plus upstream `kms`, `plymouth`, and `archiso_loop_mnt` hooks and the narrow
   SchweisOS `schweisos_iso_file_fallback` hook so the initramfs can locate and
   mount the live root filesystem in native Archiso, outer-GRUB loopback, and
-  Ventoy normal-mode systemd-boot paths while showing the SchweisOS splash.
+  file-based multiboot native-search paths while showing the SchweisOS splash.
 - `/usr/lib/initcpio/hooks/schweisos_iso_file_fallback` and
   `/usr/lib/initcpio/install/schweisos_iso_file_fallback` are live-only
   initramfs inputs. They do nothing when upstream `archiso_loop_mnt` receives a
-  proper `img_dev/img_loop` handoff. When Ventoy starts the native systemd-boot
-  entry and only `archisosearchuuid` is available, they search removable media
-  for the ISO file containing the requested UUID marker, create a read-only
-  loop device, and delegate back to upstream Archiso.
+  proper `img_dev/img_loop` handoff. When a multiboot command line supplies
+  only `archisosearchuuid`, they search removable media for the ISO file
+  containing the requested UUID marker, create a read-only loop device, and
+  delegate back to upstream Archiso.
 - `/etc/mkinitcpio.d/linux.preset` generates the initramfs path referenced by
   the UEFI loader entry.
 - `/etc/plymouth/plymouthd.conf` selects the SchweisOS live Plymouth theme.
@@ -40,6 +40,11 @@ The following files are temporary live-media exceptions:
   active `live` session authorize administrative GUI actions without asking for
   a root password. This mirrors common live-media behavior and must not be
   installed to target systems.
+- `/usr/lib/schweisos-live/session` is the inert exact marker consumed by the
+  package-owned installer live-session predicate. The predicate also requires
+  the `live` account, `/run/archiso/airootfs` mountpoint, and
+  `archisobasedir=schweis`; the marker cannot authorize an installed system by
+  itself.
 - `/etc/tmpfiles.d/schweisos-live.conf` creates `/home/live` after the account
   exists.
 - `/etc/sddm.conf.d/10-schweisos-live.conf` selects the packaged Plasma session
@@ -74,18 +79,23 @@ The UEFI loader retains the firmware-selected console mode and shows exactly
 interactive kernel-command-line editing are disabled for the live medium.
 
 `grub/loopback.cfg` is the only approved GRUB file in the profile. It exists so
-Ventoy-style multiboot launchers that boot the ISO through an outer GRUB
-loopback chain can load `/schweis/boot/x86_64/vmlinuz-linux` and
+an outer GRUB that consumes Archiso's loopback contract can load
+`/schweis/boot/x86_64/vmlinuz-linux` and
 `/schweis/boot/x86_64/initramfs-linux.img` with Archiso's required
 `archisobasedir`, `img_dev`, and `img_loop` parameters. The matching
 `archiso_loop_mnt` initramfs hook is mandatory: without it, the kernel and
 initramfs can start but Archiso cannot mount the ISO file from Ventoy's USB
 filesystem and falls back to searching native UUID marker devices. The
-SchweisOS ISO-file fallback covers the separate Ventoy normal-mode path where
-the native systemd-boot entry starts without `img_dev/img_loop`. The
-loopback file mirrors the systemd-boot normal and debug entries, but it does
+SchweisOS ISO-file fallback covers the separate native Archiso search path
+without `img_dev/img_loop`. The loopback file mirrors the systemd-boot normal
+and debug entries, but it does
 not enable Archiso's GRUB boot mode, add a full `grub.cfg`, add a BIOS path, or
 activate the packaged installed-system GRUB theme.
+
+Ventoy's visible “Normal Mode” and “GRUB2 Mode” choices do not prove which
+handoff it selected. Runtime classification uses `/proc/cmdline`: the presence
+of both `img_dev` and `img_loop` identifies the outer-loopback contract;
+`archisosearchuuid` without them identifies the native search/fallback path.
 
 These files must not be installed on a normal SchweisOS system because they
 either define live-initramfs construction, create the passwordless automatic
@@ -114,7 +124,8 @@ target manifest, and installed-system helpers.
 
 No installer configuration, Calamares module payload, target package manifest,
 or SchweisOS-owned installer launcher is allowed in `airootfs/`. The profile
-may carry only the live-session administration policy. The Calamares binary
+may carry only the live-session administration policy and inert session marker.
+The Calamares binary
 package omits its generic launcher; `schweisos-calamares-config` owns the
 visible branded launcher, hidden once-per-live-boot autostart, exact-path
 privilege bridge, and visible failure handling. The target system is installed

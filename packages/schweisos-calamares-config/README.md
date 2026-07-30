@@ -2,9 +2,9 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.3
+Version: 0.4
 Status: Installer MVP configuration and runtime launch integration
-Date: 2026-07-29
+Date: 2026-07-30
 
 `schweisos-calamares-config` provides the SchweisOS-owned configuration and
 launcher for the graphical installer selected by ADR-016.
@@ -75,6 +75,15 @@ The hidden XDG autostart entry runs only for the `live` Archiso session and
 attempts one launch about three seconds after Plasma starts. State in the
 ephemeral live home prevents automatic reopening after the installer is
 closed. Manual use of `Install SchweisOS` remains available.
+
+Autostart and the public launcher share
+`/usr/lib/schweisos-calamares/is-live-session`. It requires the `live` user,
+the exact `/usr/lib/schweisos-live/session` profile marker, a mounted
+`/run/archiso/airootfs`, and `archisobasedir=schweis` on the kernel command
+line. It intentionally ignores `/run/archiso/bootmnt`: upstream Archiso removes
+that transient mount after a healthy `copytoram=auto` transition. The
+multi-signal check prevents the live-only marker from authorizing an installed
+system by itself.
 
 Calamares 3.4 requires a privileged UI. The exact-path Polkit helper accepts no
 arguments, sanitizes loader and Qt plugin environment variables, and selects

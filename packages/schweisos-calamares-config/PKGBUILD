@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=3
+pkgrel=4
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -52,6 +52,7 @@ source=(
   'schweisos-installer'
   'schweisos-installer-root'
   'schweisos-installer-autostart'
+  'schweisos-installer-live-session'
   'schweisos-installer-autostart.desktop'
   'org.schweisos.installer.policy'
   'schweisos-calamares-preflight'
@@ -61,7 +62,7 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('73752884168b56ee6e26bc77ff1862724749df3b8956bdfcdaa3ac395392f502'
+sha256sums=('b934be380d5fac07b54981a022173c47945555e1d07a67be5c4d4b543a594081'
             '3d4f07d689e866e5163f237f2a8e859604236c9a3cafa0929786d2f8e3c743bb'
             'fa267d05f0876e7178e730501d56c82b60418267f469316b566ee385473b5796'
             '181bb186f4ee14d628c269c83b5cd779862d229748423acb94cd5f85eee398a1'
@@ -78,9 +79,10 @@ sha256sums=('73752884168b56ee6e26bc77ff1862724749df3b8956bdfcdaa3ac395392f502'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
             '7b160c53fb08be6fd6c1190c791a15fb4d2d543fa1905d1998039d2513759e80'
             '0ae0782d572f9d9d0faa490e739bfe0de8ce375562ba8ef56e0cd2ee9e19f285'
-            '9158a69e1b15ce87021df4575b11980e8626c23f87a4aa7f972eba7e222e5b6f'
+            '97d950aa85bd4725911ba0ef7cafc0a2a2dc33a253fae81ab16bb2974c4f6405'
             '737a0100892d98c4664011d83e439975109c7fe97a46911bff3a25f465ebdf34'
-            'f137e7f6ba0b36efb8d9b92335bc0c345fa9fe0d7dd5c863b9116d47c8e4b21f'
+            '52a5f15f1f8b52df30b901a8a03f148a85fc2bf763a00f5e7d1ebd6119202c05'
+            'eda905fcc184d57c44b85578345ec2baaaeb9d821afd51d3ec914d1d315c4a80'
             '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
             '70ac04a6f72ad5cbbce3f9c864873e8ea0b89dfe41566e1a9e7229b08aac3deb'
@@ -135,6 +137,8 @@ package() {
     "${pkgdir}/usr/lib/schweisos-calamares/launch-root"
   install -Dm755 "${srcdir}/schweisos-installer-autostart" \
     "${pkgdir}/usr/lib/schweisos-calamares/autostart"
+  install -Dm755 "${srcdir}/schweisos-installer-live-session" \
+    "${pkgdir}/usr/lib/schweisos-calamares/is-live-session"
   install -Dm755 "${srcdir}/schweisos-calamares-preflight" \
     "${pkgdir}/usr/lib/schweisos-calamares/preflight"
   install -Dm755 "${srcdir}/schweisos-calamares-pacstrap" \

@@ -34,14 +34,18 @@ show_already_running() {
   fi
 }
 
+is_live_session() {
+  /usr/lib/schweisos-calamares/is-live-session
+}
+
 preflight() {
+  local live_session_error
   local missing=()
   local required
 
-  if [[ $(/usr/bin/id -un) != live \
-      || ! -d /run/archiso/bootmnt \
-      || ! -f /etc/sddm.conf.d/10-schweisos-live.conf ]]; then
-    printf 'This installer may run only in the SchweisOS live session.'
+  if ! live_session_error="$(is_live_session 2>&1)"; then
+    printf 'This installer may run only in the SchweisOS live session. %s' \
+      "$live_session_error"
     return 1
   fi
   if [[ ! -d /sys/firmware/efi ]]; then

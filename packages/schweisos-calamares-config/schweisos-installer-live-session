@@ -1,0 +1,75 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -uo pipefail
+
+current_user() {
+  /usr/bin/id -un
+}
+
+live_marker_path() {
+  printf '/usr/lib/schweisos-live/session\n'
+}
+
+kernel_cmdline_path() {
+  printf '/proc/cmdline\n'
+}
+
+mountpoint_is_mounted() {
+  /usr/bin/mountpoint -q "$1"
+}
+
+archiso_root_is_mounted() {
+  mountpoint_is_mounted /run/archiso/airootfs
+}
+
+fail_check() {
+  printf 'live-session check failed: %s\n' "$1" >&2
+  return 1
+}
+
+is_schweisos_live_session() {
+  local cmdline
+  local cmdline_path
+  local marker_size
+  local marker_path
+  local marker_value
+
+  [[ "$(current_user)" == live ]] \
+    || { fail_check 'current user is not live'; return 1; }
+
+  marker_path="$(live_marker_path)" || return 1
+  [[ -f "$marker_path" && ! -L "$marker_path" ]] \
+    || { fail_check 'live profile marker is missing or unsafe'; return 1; }
+  marker_size="$(/usr/bin/stat -c %s -- "$marker_path")" \
+    || { fail_check 'live profile marker size is unavailable'; return 1; }
+  marker_value="$(<"$marker_path")"
+  [[ "$marker_size" == 25 && "$marker_value" == SCHWEISOS_LIVE_SESSION=1 ]] \
+    || { fail_check 'live profile marker is invalid'; return 1; }
+
+  archiso_root_is_mounted \
+    || { fail_check 'Archiso airootfs is not mounted'; return 1; }
+
+  cmdline_path="$(kernel_cmdline_path)" || return 1
+  [[ -f "$cmdline_path" && -r "$cmdline_path" ]] \
+    || { fail_check 'kernel command line is unavailable'; return 1; }
+  cmdline="$(<"$cmdline_path")"
+  [[ " $cmdline " == *' archisobasedir=schweis '* ]] \
+    || {
+      fail_check 'kernel command line is not the SchweisOS live contract'
+      return 1
+    }
+}
+
+main() {
+  if (( $# != 0 )); then
+    printf 'usage: %s\n' "${0##*/}" >&2
+    return 2
+  fi
+
+  is_schweisos_live_session
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi

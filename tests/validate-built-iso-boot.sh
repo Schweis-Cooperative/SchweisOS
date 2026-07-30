@@ -193,6 +193,7 @@ rootfs_payloads=(
     usr/lib/initcpio/install/schweisos_iso_file_fallback
     usr/lib/schweisos-live/plymouth-is-stopped
     usr/lib/schweisos-live/plymouth-quit-guarded
+    usr/lib/schweisos-live/session
     usr/lib/schweisos-live/plymouth-watchdog
     usr/share/plymouth/themes/schweisos/schweisos.plymouth
     usr/share/plymouth/themes/schweisos/schweisos.script
@@ -220,6 +221,19 @@ done
     fail 'built Plymouth fallback helpers are not executable'
 [[ "$(<"${rootfs}/etc/locale.conf")" == LANG=C.UTF-8 ]] || \
     fail 'built live root does not use the Archiso C.UTF-8 locale baseline'
+[[ "$(<"${rootfs}/usr/lib/schweisos-live/session")" == SCHWEISOS_LIVE_SESSION=1 ]] || \
+    fail 'built live root does not contain the canonical live-session marker'
+mapfile -t live_marker_package_owners < <(
+    for package_files in "${rootfs}"/var/lib/pacman/local/*/files; do
+        [[ -f "$package_files" ]] || continue
+        if grep -Fxq 'usr/lib/schweisos-live/session' "$package_files"; then
+            package_record="${package_files%/files}"
+            printf '%s\n' "${package_record##*/}"
+        fi
+    done | sort
+)
+(( ${#live_marker_package_owners[@]} == 0 )) || \
+    fail "built live profile marker must be overlay-owned, not package-owned: ${live_marker_package_owners[*]}"
 [[ -L "${rootfs}/etc/localtime" \
     && "$(readlink -- "${rootfs}/etc/localtime")" == /usr/share/zoneinfo/UTC ]] || \
     fail 'built live root does not use the neutral UTC timezone baseline'
@@ -247,6 +261,7 @@ installer_desktop="${rootfs}/usr/share/applications/schweisos-installer.desktop"
 installer_autostart="${rootfs}/etc/xdg/autostart/schweisos-installer-autostart.desktop"
 installer_wrapper="${rootfs}/usr/bin/schweisos-installer"
 installer_autostart_helper="${rootfs}/usr/lib/schweisos-calamares/autostart"
+installer_live_session_helper="${rootfs}/usr/lib/schweisos-calamares/is-live-session"
 installer_root_helper="${rootfs}/usr/lib/schweisos-calamares/launch-root"
 installer_policy="${rootfs}/usr/share/polkit-1/actions/org.schweisos.installer.policy"
 installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
@@ -256,6 +271,7 @@ for installer_payload in \
     "$installer_autostart" \
     "$installer_wrapper" \
     "$installer_autostart_helper" \
+    "$installer_live_session_helper" \
     "$installer_root_helper" \
     "$installer_policy" \
     "$installer_branding" \
@@ -265,6 +281,7 @@ for installer_payload in \
 done
 [[ "$(stat -c %a -- "$installer_wrapper")" == 755 \
     && "$(stat -c %a -- "$installer_autostart_helper")" == 755 \
+    && "$(stat -c %a -- "$installer_live_session_helper")" == 755 \
     && "$(stat -c %a -- "$installer_root_helper")" == 755 ]] || \
     fail 'built installer launch helpers are not executable'
 grep -Fxq 'Name=Install SchweisOS' "$installer_desktop" || \
@@ -279,10 +296,25 @@ grep -Fq '/usr/bin/sleep 3' "$installer_autostart_helper" || \
     fail 'built installer autostart does not preserve the desktop-settle delay'
 grep -Fq 'autostart-attempted' "$installer_autostart_helper" || \
     fail 'built installer autostart is not once-only'
+grep -Fq '/usr/lib/schweisos-calamares/is-live-session' "$installer_autostart_helper" || \
+    fail 'built installer autostart bypasses the shared live-session predicate'
 grep -Fq '/usr/bin/flock -n' "$installer_wrapper" || \
     fail 'built installer launcher lacks its single-instance guard'
 grep -Fq '/usr/bin/kdialog' "$installer_wrapper" || \
     fail 'built installer launcher lacks visible failure handling'
+grep -Fq '/usr/lib/schweisos-calamares/is-live-session' "$installer_wrapper" || \
+    fail 'built installer launcher bypasses the shared live-session predicate'
+grep -Fq 'mountpoint_is_mounted /run/archiso/airootfs' \
+    "$installer_live_session_helper" || \
+    fail 'built installer live-session predicate omits the persistent Archiso root'
+grep -Fq '/usr/bin/stat -c %s' "$installer_live_session_helper" || \
+    fail 'built installer live-session predicate does not require an exact marker'
+grep -Fq 'Automatic installer start was blocked.' "$installer_autostart_helper" || \
+    fail 'built installer autostart hides live-session contract failures'
+if grep -Fq '/run/archiso/bootmnt' \
+    "$installer_wrapper" "$installer_autostart_helper" "$installer_live_session_helper"; then
+    fail 'built installer launch policy depends on transient Archiso bootmnt'
+fi
 grep -Fxq 'export QT_QPA_PLATFORM=xcb' "$installer_root_helper" || \
     fail 'built installer root helper does not use the XWayland bridge'
 grep -Fq '/usr/lib/schweisos-calamares/launch-root</annotate>' "$installer_policy" || \
@@ -390,6 +422,6 @@ printf 'Built ISO boot validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"
 printf '  branding: schweisos-branding %s\n' "$installed_branding_version"
 printf '  logo SHA256: %s\n' "$(sha256sum -- "$runtime_logo" | awk '{ print $1 }')"
-printf '  loopback: GRUB loopback kernel/initramfs handoff and Ventoy native fallback verified\n'
+printf '  loopback: GRUB ISO-file handoff and native-search fallback verified\n'
 printf '  live defaults: LANG=C.UTF-8, UTC, systemd-firstboot disabled\n'
 printf '  initramfs: Plymouth theme, script plugin, and canonical logo verified\n'

@@ -61,13 +61,21 @@ set +a
 [[ "$BUG_REPORT_URL" == https://github.com/Schweis-Cooperative/SchweisOS/issues/new/choose ]] || \
   fail 'BUG_REPORT_URL must remain the exact GitHub issue action'
 
-for package_dir in "${project_root}"/packages/*; do
+for package_dir in "${project_root}"/packages/schweisos-*; do
   [[ -f "${package_dir}/PKGBUILD" ]] || continue
   package_srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
   package_url="$(awk -F ' = ' '$1 == "\turl" { print $2; exit }' <<<"$package_srcinfo")"
   [[ "$package_url" == https://schweisos.org ]] || \
     fail "package URL is not canonical: ${package_dir##*/}"
 done
+
+calamares_srcinfo="$(
+  cd -- "${project_root}/packages/calamares"
+  makepkg --printsrcinfo
+)"
+calamares_url="$(awk -F ' = ' '$1 == "\turl" { print $2; exit }' <<<"$calamares_srcinfo")"
+[[ "$calamares_url" == https://codeberg.org/Calamares/calamares ]] || \
+  fail 'Calamares package URL must identify its canonical upstream project'
 
 jq -e --arg release_version "$source_pkgver" '
   .schema == "org.schweisos.release.v1" and

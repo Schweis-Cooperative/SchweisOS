@@ -25,6 +25,7 @@ calamares_package_dir="${project_root}/packages/calamares"
 release_package_dir="${project_root}/packages/schweisos-release"
 profile_packages="${project_root}/iso/profiles/kde/packages.x86_64"
 profile_airootfs="${project_root}/iso/profiles/kde/airootfs"
+live_profile_marker="${profile_airootfs}/usr/lib/schweisos-live/session"
 adr="${project_root}/docs/adr/ADR-016-installer-architecture.md"
 ddr="${project_root}/docs/ddr/DDR-002-installer-experience.md"
 add_doc="${project_root}/docs/architecture/ADD.md"
@@ -57,6 +58,7 @@ required_files=(
   "${package_dir}/schweisos-installer.desktop"
   "${package_dir}/schweisos-installer-autostart.desktop"
   "${package_dir}/org.schweisos.installer.policy"
+  "$live_profile_marker"
   "${calamares_package_dir}/PKGBUILD"
   "$adr"
   "$ddr"
@@ -69,6 +71,7 @@ helper_sources=(
   "${package_dir}/schweisos-installer"
   "${package_dir}/schweisos-installer-root"
   "${package_dir}/schweisos-installer-autostart"
+  "${package_dir}/schweisos-installer-live-session"
   "${package_dir}/schweisos-calamares-preflight"
   "${package_dir}/schweisos-calamares-pacstrap"
   "${package_dir}/schweisos-calamares-configure-pacman"
@@ -92,6 +95,9 @@ bash -n "${helper_sources[@]}" "${package_dir}/PKGBUILD" "${BASH_SOURCE[0]}"
 desktop-file-validate "${package_dir}/schweisos-installer.desktop"
 desktop-file-validate "${package_dir}/schweisos-installer-autostart.desktop"
 
+if ! (cd -- "$package_dir" && makepkg --verifysource >/dev/null); then
+  fail 'installer config package source checksums do not verify'
+fi
 srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
 calamares_srcinfo="$(cd -- "$calamares_package_dir" && makepkg --printsrcinfo)"
 release_srcinfo="$(cd -- "$release_package_dir" && makepkg --printsrcinfo)"
@@ -130,6 +136,10 @@ grep -Fq '"${pkgdir}/usr/lib/schweisos-calamares/launch-root"' "${package_dir}/P
   fail 'privileged installer helper must use its policy-bound runtime path'
 grep -Fq 'install -Dm755 "${srcdir}/schweisos-installer-autostart"' "${package_dir}/PKGBUILD" || \
   fail 'installer autostart helper must be installed executable'
+grep -Fq 'install -Dm755 "${srcdir}/schweisos-installer-live-session"' \
+  "${package_dir}/PKGBUILD" || fail 'installer live-session helper must be installed executable'
+grep -Fq '"${pkgdir}/usr/lib/schweisos-calamares/is-live-session"' \
+  "${package_dir}/PKGBUILD" || fail 'installer live-session helper path is not packaged'
 grep -Fq '"${pkgdir}/etc/xdg/autostart/schweisos-installer-autostart.desktop"' \
   "${package_dir}/PKGBUILD" || fail 'installer XDG autostart entry is not packaged'
 grep -Fq '"${pkgdir}/usr/share/polkit-1/actions/org.schweisos.installer.policy"' \
@@ -241,8 +251,7 @@ for autostart_fragment in \
     fail "installer autostart entry is missing: ${autostart_fragment}"
 done
 for autostart_source_fragment in \
-  '$(/usr/bin/id -un) == live' \
-  '-d /run/archiso/bootmnt' \
+  '/usr/lib/schweisos-calamares/is-live-session' \
   '/usr/bin/sleep 3' \
   'autostart-attempted' \
   'report_autostart_failure' \
@@ -253,6 +262,7 @@ for autostart_source_fragment in \
     fail "installer once-only autostart contract is missing: ${autostart_source_fragment}"
 done
 for launcher_fragment in \
+  '/usr/lib/schweisos-calamares/is-live-session' \
   '/sys/firmware/efi' \
   'XAUTHORITY' \
   '/usr/bin/flock -n' \
@@ -262,6 +272,35 @@ for launcher_fragment in \
   '/usr/bin/pkexec /usr/lib/schweisos-calamares/launch-root'; do
   grep -Fq "$launcher_fragment" "${package_dir}/schweisos-installer" || \
     fail "installer guarded launcher contract is missing: ${launcher_fragment}"
+done
+live_session_helper="${package_dir}/schweisos-installer-live-session"
+for live_session_fragment in \
+  '/usr/bin/id -un' \
+  '/usr/lib/schweisos-live/session' \
+  'SCHWEISOS_LIVE_SESSION=1' \
+  '/usr/bin/stat -c %s' \
+  '/usr/bin/mountpoint -q "$1"' \
+  'mountpoint_is_mounted /run/archiso/airootfs' \
+  '/proc/cmdline' \
+  'archisobasedir=schweis'; do
+  grep -Fq "$live_session_fragment" "$live_session_helper" || \
+    fail "installer live-session predicate is missing: ${live_session_fragment}"
+done
+if grep -Fq '/run/archiso/bootmnt' \
+    "${package_dir}/schweisos-installer" \
+    "${package_dir}/schweisos-installer-autostart" \
+    "$live_session_helper"; then
+  fail 'installer launch policy must not depend on transient Archiso bootmnt'
+fi
+grep -Fxq 'SCHWEISOS_LIVE_SESSION=1' "$live_profile_marker" || \
+  fail 'live profile marker does not match the installer predicate'
+for autostart_failure_fragment in \
+  'current_user 2>/dev/null' \
+  'Automatic installer start was blocked.' \
+  'report_autostart_failure'; do
+  grep -Fq "$autostart_failure_fragment" \
+    "${package_dir}/schweisos-installer-autostart" || \
+    fail "installer autostart hides a live-session failure: ${autostart_failure_fragment}"
 done
 for privileged_fragment in \
   'if (( $# != 0 ))' \

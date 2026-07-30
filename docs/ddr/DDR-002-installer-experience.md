@@ -1,8 +1,8 @@
 # DDR-002 Installer Experience
 
-Version: 1.0
+Version: 1.1
 Status: Accepted for Faz 1 source implementation
-Date: 2026-07-29
+Date: 2026-07-30
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
@@ -54,8 +54,18 @@ profile does not carry a second desktop-entry mask.
 ### First-Session Autostart
 
 `schweisos-calamares-config` installs a hidden XDG autostart entry and a small
-helper. The helper verifies that it is running as the `live` user in an
-Archiso-backed SchweisOS session, creates an atomic per-live-home attempt
+helper. The helper and public launcher call one shared live-session predicate.
+It requires the `live` user, the exact profile-owned
+`/usr/lib/schweisos-live/session` marker, the persistent
+`/run/archiso/airootfs` mountpoint, and the exact
+`archisobasedir=schweis` kernel-command-line token.
+
+The predicate deliberately does not require `/run/archiso/bootmnt`. Archiso
+removes that transient mount after a successful automatic copy-to-RAM boot, so
+its absence is valid by the time Plasma and the installer start. The combined
+predicate still fails closed on installed systems: a marker alone is
+insufficient without the live user, Archiso root mount, and kernel contract.
+After the predicate passes, autostart creates an atomic per-live-home attempt
 marker, waits three seconds, and invokes the same public launcher used by the
 application menu.
 
@@ -150,9 +160,9 @@ session and uses upstream Calamares' own privilege requirement. When Calamares
 provides a supported unprivileged frontend with a privileged backend, SchweisOS
 should reevaluate this bridge in an ADR update.
 
-The implementation adds two small Bash helpers, one Polkit policy, two desktop
-entries, and behavioral tests. It does not add a daemon, custom GUI framework,
-or installed-system service.
+The implementation adds small audited Bash launch helpers, one Polkit policy,
+two desktop entries, and behavioral tests. It does not add a daemon, custom GUI
+framework, or installed-system service.
 
 ## Validation
 
@@ -162,6 +172,9 @@ Static validation must reject:
 - more than one visible SchweisOS installer entry;
 - a visible autostart entry;
 - missing live-session, once-only, delay, or manual-reopen behavior;
+- a live-session predicate that depends on transient
+  `/run/archiso/bootmnt`, or omits the profile marker, persistent
+  `/run/archiso/airootfs` mountpoint, live user, or SchweisOS kernel token;
 - an unrestricted or argument-accepting privileged helper;
 - a Polkit action without an exact executable path and `allow_gui` annotation;
 - missing XWayland or visible-error dependencies;

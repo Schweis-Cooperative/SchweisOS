@@ -74,6 +74,7 @@ required_files=(
   "${airootfs_dir}/etc/tmpfiles.d/schweisos-live.conf"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-is-stopped"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-quit-guarded"
+  "${airootfs_dir}/usr/lib/schweisos-live/session"
   "${airootfs_dir}/usr/lib/schweisos-live/plymouth-watchdog"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.plymouth"
   "${airootfs_dir}/usr/share/plymouth/themes/schweisos/schweisos.script"
@@ -417,7 +418,7 @@ mapfile -t grub_profile_files < <(
   find "${profile_dir}/grub" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort
 )
 [[ "${grub_profile_files[*]}" == 'loopback.cfg' ]] || \
-  fail 'GRUB profile area may contain only loopback.cfg for Ventoy/loopback compatibility'
+  fail 'GRUB profile area may contain only the Archiso-compatible loopback.cfg'
 [[ ! -e "${profile_dir}/grub/grub.cfg" ]] || \
   fail 'full GRUB boot configuration is not allowed by the selected systemd-boot live contract'
 
@@ -591,6 +592,7 @@ expected_overlay_paths=(
   usr/lib/schweisos-live
   usr/lib/schweisos-live/plymouth-is-stopped
   usr/lib/schweisos-live/plymouth-quit-guarded
+  usr/lib/schweisos-live/session
   usr/lib/schweisos-live/plymouth-watchdog
   usr/share
   usr/share/plymouth
@@ -625,8 +627,11 @@ sudoers_file="${airootfs_dir}/etc/sudoers.d/10-schweisos-live"
 polkit_rule="${airootfs_dir}/etc/polkit-1/rules.d/49-schweisos-live-admin.rules"
 live_hostname="$(<"${airootfs_dir}/etc/hostname")"
 live_locale="$(<"${airootfs_dir}/etc/locale.conf")"
+live_session_marker="$(<"${airootfs_dir}/usr/lib/schweisos-live/session")"
 [[ "$live_hostname" == schweisos ]] || fail 'unexpected live hostname'
 [[ "$live_locale" == 'LANG=C.UTF-8' ]] || fail 'live locale must match the Archiso C.UTF-8 baseline'
+[[ "$live_session_marker" == 'SCHWEISOS_LIVE_SESSION=1' ]] || \
+  fail 'live profile marker does not match the installer runtime contract'
 [[ "$sysusers_line" == $'u live 1000 "SchweisOS Live User" /home/live /usr/bin/bash\nm live wheel' ]] || \
   fail 'unexpected live sysusers declaration'
 [[ "$tmpfiles_line" == 'd /home/live 0750 live live -' ]] || fail 'unexpected live home declaration'

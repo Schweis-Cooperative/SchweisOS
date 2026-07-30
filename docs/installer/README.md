@@ -1,8 +1,8 @@
 # SchweisOS Installer
 
-Version: 0.2
+Version: 0.3
 Status: Faz 1 source implementation; runtime qualification pending
-Date: 2026-07-29
+Date: 2026-07-30
 
 SchweisOS Faz 1 introduces the source architecture for the first installable
 MVP. The accepted graphical installer is Calamares, configured by the
@@ -23,6 +23,10 @@ Implemented in source:
   Calamares binary package omits upstream's generic `Install System` entry.
 - Hidden XDG autostart approximately three seconds after the first live Plasma
   session, with a persistent-per-boot attempt marker and manual reopen support.
+- Shared fail-closed live-session detection based on the live account, a
+  profile-owned marker, the persistent Archiso `airootfs` mount, and the
+  SchweisOS kernel contract. It does not depend on the transient Archiso
+  `bootmnt`, which is absent after a successful copy-to-RAM boot.
 - Exact-path Polkit and XWayland bridge for the privileged Calamares 3.4 UI.
 - Single-instance locking, UEFI/display/component preflight, a private local
   launch log, and a visible KDE error dialog on startup failure.
@@ -86,6 +90,12 @@ automatic launch. The application-menu entry remains usable for a manual retry.
 When preflight, Polkit, XWayland, or Calamares startup fails, a KDE dialog
 identifies `launch.log`. The summary is also written to the journal when
 available. No diagnostic data leaves the machine.
+
+The launcher and autostart both call
+`/usr/lib/schweisos-calamares/is-live-session`. A copied-to-RAM live session is
+valid even when `/run/archiso/bootmnt` has been removed by Archiso; the
+persistent `/run/archiso/airootfs` mountpoint remains required. This avoids
+bootloader-specific heuristics while still rejecting installed systems.
 
 ## Validation
 

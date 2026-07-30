@@ -1,6 +1,6 @@
 # ADR-016 Installer Architecture
 
-Version: 0.2
+Version: 0.3
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted for Faz 1 source implementation
 
 ## Date
 
-2026-07-29
+2026-07-30
 
 ## Related ADRs and DDRs
 
@@ -112,6 +112,23 @@ reopen during the same medium boot. Closing the installer is respected; the
 same branded menu entry remains available for manual reopening. The complete
 interaction contract is owned by DDR-002.
 
+The public launcher and autostart helper use one package-owned live-session
+predicate. A valid session requires all of the following:
+
+- the current account is the profile-owned `live` user;
+- `/usr/lib/schweisos-live/session` is a regular, non-symlink file containing
+  exactly `SCHWEISOS_LIVE_SESSION=1`;
+- `/run/archiso/airootfs` is a mountpoint;
+- `/proc/cmdline` contains the exact `archisobasedir=schweis` token.
+
+The predicate must not depend on `/run/archiso/bootmnt`. Upstream Archiso's
+`copytoram=auto` path deliberately unmounts and removes that transient path
+after it has established the live root. Treating its absence as failure rejects
+a healthy copied-to-RAM live session, including the observed Ventoy GRUB2
+case. The marker is profile-owned because it is live-only; the reusable
+predicate remains package-owned and combines the marker with runtime evidence
+so copying the marker alone cannot authorize an installed system.
+
 The installer must not clone the live root filesystem into the target system.
 Live-root cloning would copy Archiso-only mkinitcpio configuration, live
 autologin, Plymouth live fallback units, installer payload, and other
@@ -206,8 +223,9 @@ mirrors, or temporary keys.
   of its generic launcher; it does not own SchweisOS desktop presentation.
 - `iso/profiles/kde/packages.x86_64` owns inclusion of Calamares and
   `schweisos-calamares-config` in the live image.
-- `iso/profiles/kde/airootfs/` owns only live account authorization and must not
-  contain installer payloads or launcher masks.
+- `iso/profiles/kde/airootfs/` owns only live account authorization and the
+  inert live-session marker; it must not contain installer payloads or launcher
+  masks.
 - `schweisos-grub-theme` remains inert and future installer-owned for GRUB
   activation.
 - `tools/release/` and `tools/signing/` continue to own repository and signing
@@ -283,6 +301,10 @@ The installer configuration validator must fail closed if:
 - the branded launcher, once-only autostart, exact-path Polkit action,
   XWayland bridge, single-instance lock, local log, or visible error path is
   missing;
+- the launcher and autostart do not share the same live-session predicate;
+- the live predicate omits the live user, exact profile marker, persistent
+  Archiso `airootfs` mountpoint, or SchweisOS `archisobasedir` evidence;
+- any installer launch path depends on transient `/run/archiso/bootmnt`;
 - Calamares branding omits the required slideshow contract, uses invalid
   schema keys, or uses a non-canonical logo path;
 - package source checksums are skipped;

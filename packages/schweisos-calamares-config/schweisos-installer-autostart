@@ -21,10 +21,12 @@ report_autostart_failure() {
   fi
 }
 
+current_user() {
+  /usr/bin/id -un
+}
+
 is_live_session() {
-  [[ $(/usr/bin/id -un) == live \
-    && -d /run/archiso/bootmnt \
-    && -f /etc/sddm.conf.d/10-schweisos-live.conf ]]
+  /usr/lib/schweisos-calamares/is-live-session
 }
 
 wait_for_desktop() {
@@ -38,8 +40,16 @@ launch_installer() {
 main() {
   local installer_state
   local autostart_marker
+  local live_session_error
 
-  is_live_session || return 0
+  if ! live_session_error="$(is_live_session 2>&1)"; then
+    if [[ "$(current_user 2>/dev/null)" == live ]]; then
+      report_autostart_failure \
+        "Automatic installer start was blocked. ${live_session_error}"
+      return 1
+    fi
+    return 0
+  fi
 
   umask 077
   installer_state=$(state_directory)

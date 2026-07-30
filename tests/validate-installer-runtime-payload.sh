@@ -86,8 +86,10 @@ installer_launcher="$(relative_file usr/share/applications/schweisos-installer.d
 installer_autostart="$(relative_file etc/xdg/autostart/schweisos-installer-autostart.desktop)"
 installer_wrapper="$(relative_file usr/bin/schweisos-installer)"
 installer_autostart_helper="$(relative_file usr/lib/schweisos-calamares/autostart)"
+installer_live_session_helper="$(relative_file usr/lib/schweisos-calamares/is-live-session)"
 installer_root_helper="$(relative_file usr/lib/schweisos-calamares/launch-root)"
 installer_policy="$(relative_file usr/share/polkit-1/actions/org.schweisos.installer.policy)"
+live_profile_marker="$(relative_file usr/lib/schweisos-live/session)"
 calamares_settings="$(relative_file etc/calamares/settings.conf)"
 calamares_branding="$(relative_file etc/calamares/branding/schweisos/branding.desc)"
 calamares_slideshow="$(relative_file etc/calamares/branding/schweisos/show.qml)"
@@ -98,8 +100,10 @@ require_mode "$installer_launcher" 644
 require_mode "$installer_autostart" 644
 require_mode "$installer_wrapper" 755
 require_mode "$installer_autostart_helper" 755
+require_mode "$installer_live_session_helper" 755
 require_mode "$installer_root_helper" 755
 require_mode "$installer_policy" 644
+require_mode "$live_profile_marker" 644
 require_mode "$calamares_settings" 644
 require_mode "$calamares_branding" 644
 require_mode "$calamares_slideshow" 644
@@ -143,14 +147,39 @@ for autostart_fragment in \
         fail "installer autostart is missing: ${autostart_fragment}"
 done
 
-require_contains "$installer_autostart_helper" '$(/usr/bin/id -un) == live'
-require_contains "$installer_autostart_helper" '-d /run/archiso/bootmnt'
+require_contains "$installer_autostart_helper" '/usr/lib/schweisos-calamares/is-live-session'
 require_contains "$installer_autostart_helper" '/usr/bin/sleep 3'
 require_contains "$installer_autostart_helper" 'autostart-attempted'
 require_contains "$installer_autostart_helper" '/usr/bin/schweisos-installer'
 require_contains "$installer_wrapper" '/usr/bin/flock -n'
 require_contains "$installer_wrapper" '/usr/bin/kdialog'
+require_contains "$installer_wrapper" '/usr/lib/schweisos-calamares/is-live-session'
 require_contains "$installer_wrapper" '/usr/bin/pkexec /usr/lib/schweisos-calamares/launch-root'
+require_contains "$installer_live_session_helper" '/usr/bin/id -un'
+require_contains "$installer_live_session_helper" '/usr/lib/schweisos-live/session'
+require_contains "$installer_live_session_helper" '/usr/bin/stat -c %s'
+require_contains "$installer_live_session_helper" '/usr/bin/mountpoint -q "$1"'
+require_contains "$installer_live_session_helper" 'mountpoint_is_mounted /run/archiso/airootfs'
+require_contains "$installer_live_session_helper" '/proc/cmdline'
+require_contains "$installer_live_session_helper" 'archisobasedir=schweis'
+if grep -Fq '/run/archiso/bootmnt' \
+    "$installer_wrapper" "$installer_autostart_helper" "$installer_live_session_helper"; then
+    fail 'runtime installer launch policy depends on transient Archiso bootmnt'
+fi
+grep -Fxq 'SCHWEISOS_LIVE_SESSION=1' "$live_profile_marker" || \
+    fail 'runtime live profile marker is invalid'
+mapfile -t live_marker_package_owners < <(
+    for package_files in "${rootfs}"/var/lib/pacman/local/*/files; do
+        [[ -f "$package_files" ]] || continue
+        if grep -Fxq 'usr/lib/schweisos-live/session' "$package_files"; then
+            package_record="${package_files%/files}"
+            printf '%s\n' "${package_record##*/}"
+        fi
+    done | sort
+)
+(( ${#live_marker_package_owners[@]} == 0 )) || \
+    fail "live profile marker must be overlay-owned, not package-owned: ${live_marker_package_owners[*]}"
+require_contains "$installer_autostart_helper" 'Automatic installer start was blocked.'
 require_contains "$installer_root_helper" 'exec /usr/bin/calamares -D6'
 require_contains "$installer_root_helper" 'export QT_QPA_PLATFORM=xcb'
 require_contains "$installer_policy" '/usr/lib/schweisos-calamares/launch-root</annotate>'
@@ -186,6 +215,7 @@ for owned_path in \
     etc/xdg/autostart/schweisos-installer-autostart.desktop \
     usr/bin/schweisos-installer \
     usr/lib/schweisos-calamares/autostart \
+    usr/lib/schweisos-calamares/is-live-session \
     usr/lib/schweisos-calamares/launch-root \
     usr/share/applications/schweisos-installer.desktop \
     usr/share/polkit-1/actions/org.schweisos.installer.policy; do

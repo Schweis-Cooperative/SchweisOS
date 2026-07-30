@@ -162,6 +162,12 @@ The SchweisOS fallback hook is intentionally narrow:
 - when a matching ISO is found, it creates a read-only loop device, clears the
   native search variables, and delegates back to upstream
   `archiso_mount_handler`;
+- it does not perform an unconditional `modprobe loop` before `losetup`.
+  Hardware testing showed repeated `Invalid ELF header magic` diagnostics
+  immediately after this hook started; keeping module loading out of the normal
+  successful path avoids that noisy and non-authoritative module-loader
+  interaction while still letting the hook fail closed if a loop device cannot
+  be created;
 - it does not scan non-removable internal disks before falling back to the
   upstream Archiso handler.
 
@@ -334,6 +340,8 @@ Pre-build validation must fail closed if:
 - the fallback hook stops clearing `archisosearchuuid` and
   `archisosearchfilename` before delegating a discovered ISO loop device to
   upstream Archiso;
+- the fallback hook reintroduces unconditional loop-module loading or adds an
+  unused `modprobe` runtime dependency;
 - the quiet and debug entries drift from the existing live boot policy.
 
 Completed ISO validation must fail closed if:
@@ -351,6 +359,7 @@ Completed ISO validation must fail closed if:
   `schweisos_iso_file_fallback`;
 - the live initramfs omits the binaries required by the fallback scan and loop
   setup;
+- the live initramfs fallback hook performs unconditional loop-module loading;
 - a full `boot/grub/grub.cfg` or syslinux configuration enters the image under
   the current UEFI-only live contract.
 

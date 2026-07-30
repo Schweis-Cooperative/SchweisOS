@@ -54,6 +54,10 @@ fi
 if [[ "${1-}" == --no-block && "${2-}" == start \
     && "${3-}" == schweisos-boot-debug-fallback.service ]]; then
     printf 'fallback\n' >>"${state_dir}/fallback.log"
+    if [[ -r "${state_dir}/fallback-exit" ]]; then
+        IFS= read -r status <"${state_dir}/fallback-exit"
+        exit "$status"
+    fi
     exit 0
 fi
 exit 64
@@ -194,6 +198,11 @@ expect_fallback marker-inactive-failed-result
 prepare_case stopped-daemon
 expect_status 'absent or stopped daemon reveals diagnostics' 0
 expect_fallback stopped-daemon
+
+prepare_case fallback-start-error
+printf '19\n' >"${case_root}/fallback-exit"
+expect_status 'diagnostic fallback request never marks watchdog failed' 0
+expect_fallback fallback-start-error
 
 prepare_case live-then-stopped
 printf 'live-then-stopped\n' >"${case_root}/health-mode"

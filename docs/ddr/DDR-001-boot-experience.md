@@ -103,7 +103,10 @@ native UUID-marker device discovery. For multiboot command lines that instead
 carry `archisosearchuuid` without `img_dev/img_loop`, the initramfs also
 includes SchweisOS' `schweisos_iso_file_fallback` hook. It searches only
 removable media for an ISO carrying the requested Archiso UUID marker and then
-hands the discovered loop device back to upstream Archiso.
+hands the discovered loop device back to upstream Archiso. It does not perform
+unconditional loop-module loading before `losetup`, because hardware testing
+exposed repeated `Invalid ELF header magic` diagnostics immediately after the
+fallback hook started.
 
 This is not a visual GRUB boot experience and it is not the future installed
 GRUB alternative. It exists only to make the same live kernel and initramfs
@@ -190,14 +193,18 @@ The watchdog exits only when the marker exists and `plymouth-quit.service` has
 completed with `Result=success` and `ExecMainStatus=0`; a merely inactive
 oneshot service is not treated as success unless systemd also reports a
 successful result. An in-progress or failed quit cannot retire it early. It
-does not poll during the live desktop session.
+does not poll during the live desktop session. Expected diagnostic-fallback
+requests exit cleanly after the request so the console does not show a
+misleading watchdog unit failure; unexpected health-helper or systemd
+state-query errors still propagate to systemd.
 
 `tests/test-plymouth-watchdog.sh` exercises that state machine with disposable
 command stubs while retaining the real helper's control flow. It covers a
 completed handoff, an activating handoff that later succeeds, a failed
-handoff, an absent daemon, a live daemon that later stops, a health-helper
-error, and a systemd state-query error. The last two errors propagate to
-systemd instead of becoming false success.
+handoff, an absent daemon, a fallback-start error that must not mark the
+watchdog failed, a live daemon that later stops, a health-helper error, and a
+systemd state-query error. The last two errors propagate to systemd instead of
+becoming false success.
 
 Once composed into an image and runtime-qualified, the configured contract is
 intended to mean:

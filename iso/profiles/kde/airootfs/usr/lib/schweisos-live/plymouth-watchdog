@@ -6,6 +6,11 @@ set -u
 marker=/run/schweisos-plymouth-normal-quit
 health=/usr/lib/schweisos-live/plymouth-is-stopped
 
+start_diagnostic_fallback() {
+    /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service >/dev/null 2>&1 || true
+    exit 0
+}
+
 while true; do
     if [[ -e "$marker" ]]; then
         quit_output="$(
@@ -40,10 +45,10 @@ while true; do
                 if [[ "$quit_result" == success && "$quit_exit_status" == 0 ]]; then
                     exit 0
                 fi
-                exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+                start_diagnostic_fallback
                 ;;
             failed|deactivating)
-                exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+                start_diagnostic_fallback
                 ;;
             *)
                 exit 2
@@ -57,7 +62,7 @@ while true; do
     health_status=$?
     case "$health_status" in
         0)
-            exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service
+            start_diagnostic_fallback
             ;;
         1)
             ;;

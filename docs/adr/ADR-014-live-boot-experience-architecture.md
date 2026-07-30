@@ -96,7 +96,12 @@ The profile will:
 - run a bounded-lifetime one-second liveness watchdog until the guarded normal
   handoff service reports the explicit successful result, closing both the
   stale-PID hard-crash gap that a path event alone cannot detect and the
-  early-marker handoff race.
+  early-marker handoff race;
+- have the watchdog exit successfully after it intentionally requests the
+  diagnostic fallback for an expected Plymouth loss or failed handoff, so the
+  visible console log is not polluted by a misleading watchdog unit failure.
+  Unexpected helper or systemd state-query errors still propagate as service
+  failures.
 
 The theme and fallback units are live-medium profile exceptions. They are not
 installed-system policy and do not imply that SchweisOS has proven an
@@ -201,6 +206,9 @@ Positive consequences:
 - Multiboot command lines that use native Archiso search without
   `img_dev/img_loop` can still find the ISO file on removable media via
   SchweisOS' marker-based initramfs fallback before delegating back to Archiso.
+- The fallback avoids unconditional loop-module loading in the normal path,
+  reducing misleading initramfs diagnostics during file-based multiboot
+  recovery.
 - Source/package version drift and missing canonical branding payloads stop the
   build before Archiso can compose a stale splash.
 - Post-build validation proves that the built root and initramfs contain the

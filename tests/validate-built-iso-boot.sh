@@ -408,7 +408,6 @@ for fallback_runtime in \
     usr/bin/grep \
     usr/bin/losetup \
     usr/bin/lsblk \
-    usr/bin/modprobe \
     usr/bin/mount \
     usr/bin/umount; do
     [[ -x "${initramfs_root}/${fallback_runtime}" ]] || \
@@ -417,6 +416,9 @@ done
 grep -Fq "mount_handler='schweisos_iso_file_mount_handler'" \
     "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
     fail 'initramfs ISO-file fallback hook does not install the SchweisOS mount handler'
+if grep -Fq 'modprobe loop' "${initramfs_root}/hooks/schweisos_iso_file_fallback"; then
+    fail 'initramfs ISO-file fallback hook performs unconditional loop-module loading'
+fi
 
 printf 'Built ISO boot validation passed.\n'
 printf '  ISO: %s\n' "$(basename -- "$iso_path")"

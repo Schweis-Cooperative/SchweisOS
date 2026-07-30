@@ -97,7 +97,6 @@ schweisos_iso_file_mount_handler() {
 
     if _schweisos_scan_iso_file_on_removable; then
         msg ":: Found SchweisOS ISO '${schweisos_iso_file}' on '${schweisos_iso_source_device}'"
-        modprobe loop 2>/dev/null || true
 
         if loopdev="$(losetup --find --show --read-only "${schweisos_iso_file}")"; then
             export archisodevice="${loopdev}"
@@ -113,7 +112,7 @@ schweisos_iso_file_mount_handler() {
             return
         fi
 
-        echo "ERROR: Setting loopback device for ISO file '${schweisos_iso_file}'"
+        echo "ERROR: Setting read-only loopback device for ISO file '${schweisos_iso_file}'"
         launch_interactive_shell
     fi
 

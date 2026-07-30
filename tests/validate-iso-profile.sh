@@ -515,6 +515,9 @@ done
 if grep -Fq 'RM == 0' "$iso_file_fallback_hook"; then
   fail 'ISO-file fallback must not scan non-removable disks before preserving upstream Archiso fallback'
 fi
+if grep -Fq 'modprobe loop' "$iso_file_fallback_hook"; then
+  fail 'ISO-file fallback must not perform unconditional loop-module loading'
+fi
 for required_install_fragment in \
   'add_runscript' \
   'add_module loop' \
@@ -522,12 +525,14 @@ for required_install_fragment in \
   'add_binary grep' \
   'add_binary losetup' \
   'add_binary lsblk' \
-  'add_binary modprobe' \
   'add_binary mount' \
   'add_binary umount'; do
   grep -Fq "$required_install_fragment" "$iso_file_fallback_install" || \
     fail "ISO-file fallback install hook is missing: ${required_install_fragment}"
 done
+if grep -Fq 'add_binary modprobe' "$iso_file_fallback_install"; then
+  fail 'ISO-file fallback install hook must not add an unused modprobe binary'
+fi
 
 bash -c '
   set -euo pipefail
@@ -799,8 +804,15 @@ grep -Fq 'health_status=$?' "$plymouth_watchdog" || \
   fail 'Plymouth watchdog must preserve health-helper error status'
 grep -Fxq '            exit "$health_status"' "$plymouth_watchdog" || \
   fail 'Plymouth watchdog must propagate unexpected health-helper errors'
-[[ "$(grep -Fc 'exec /usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service' \
-  "$plymouth_watchdog")" -eq 3 ]] || \
+grep -Fq 'start_diagnostic_fallback() {' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must centralize diagnostic fallback requests'
+grep -Fq '/usr/bin/systemctl --no-block start schweisos-boot-debug-fallback.service >/dev/null 2>&1 || true' \
+  "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog must not mark expected diagnostic fallback requests as service failures'
+grep -Fq '    exit 0' "$plymouth_watchdog" || \
+  fail 'Plymouth watchdog diagnostic fallback path must exit cleanly'
+[[ "$(grep -Fc 'start_diagnostic_fallback' \
+  "$plymouth_watchdog")" -eq 4 ]] || \
   fail 'Plymouth watchdog must reveal diagnostics after failed handoff states and a stopped daemon'
 
 copied_brand_asset="$(find "$airootfs_dir" -type f \

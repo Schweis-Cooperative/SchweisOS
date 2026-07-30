@@ -35,7 +35,11 @@ one-second watchdog runs only until successful Plymouth handoff and detects
 hard crashes that leave a stale PID file without a path event. A normal handoff
 is accepted only when `plymouth-quit.service` reports `Result=success` and
 `ExecMainStatus=0`, so an inactive failed oneshot cannot masquerade as a
-healthy boot.
+healthy boot. When the watchdog intentionally requests the diagnostic fallback
+for an expected Plymouth loss or failed handoff, it exits cleanly after that
+request so systemd does not show a misleading red watchdog failure above the
+diagnostic log. Unexpected helper or state-query failures still propagate to
+systemd.
 
 The systemd-boot menu is intentionally text-oriented. Its polish comes from
 two concise entries, a short timeout, stable console mode, and removal of
@@ -77,7 +81,11 @@ directly on removable partitions. If the marker is not there, it searches only
 removable media for ISO files whose raw contents contain the requested
 `<uuid>.uuid` marker, mounts the matching ISO read-only through a loop device,
 clears the native search variables, and delegates back to upstream
-`archiso_mount_handler`.
+`archiso_mount_handler`. The fallback does not perform unconditional
+loop-module loading; the normal successful path is `losetup` plus upstream
+Archiso delegation. This keeps the initramfs output free of misleading
+module-loader diagnostics such as the observed repeated `Invalid ELF header
+magic` lines.
 
 This is intentionally narrower than enabling a native GRUB live bootloader:
 there is still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and

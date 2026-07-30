@@ -337,11 +337,21 @@ noncanonical_qml_source="$(
   fail 'Calamares slideshow must not reference non-canonical image sources'
 ! grep -Eq '^[[:space:]]+(sidebarBackground|sidebarText|sidebarTextSelect):' \
   "${package_dir}/branding.desc" || fail 'Calamares branding uses invalid case-sensitive style keys'
-for required_welcome_condition in storage ram internet root; do
+for required_welcome_condition in storage ram root; do
   grep -A5 '^[[:space:]]*required:' "${package_dir}/welcome.conf" \
     | grep -Fxq "    - ${required_welcome_condition}" || \
     fail "installer welcome gate is not required: ${required_welcome_condition}"
 done
+if grep -A8 '^[[:space:]]*required:' "${package_dir}/welcome.conf" \
+    | grep -Fxq '    - internet'; then
+  fail 'installer welcome gate must not require internet access'
+fi
+if grep -A10 '^[[:space:]]*check:' "${package_dir}/welcome.conf" \
+    | grep -Fxq '    - internet'; then
+  fail 'installer welcome gate must not block on Calamares internet probing'
+fi
+! grep -Fq 'internetCheckUrl:' "${package_dir}/welcome.conf" || \
+  fail 'installer welcome gate must not configure a Calamares internet probe'
 
 sed 's/[[:space:]]*#.*$//' "${package_dir}/target-packages.x86_64" \
   | awk 'NF { print }' >"${tmp_dir}/target-packages.normalized"

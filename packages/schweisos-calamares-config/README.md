@@ -96,6 +96,19 @@ The branding component includes both the required `slideshow` key in
 loaded by Calamares during execution pages and references only the canonical
 runtime SchweisOS logo at `/usr/share/schweisos/branding/schweisos.png`.
 
+The welcome page deliberately does not require Calamares' internet probe.
+That probe can false-negative independently of the user's actual network
+state and would block a usable live session before any installer-owned package
+operation starts. Package retrieval remains owned by the audited `pacstrap`
+step and its signed pacman configuration, so repository availability failures
+must surface where package installation actually occurs.
+
+Full offline installation is not claimed by this package while the MVP uses
+`pacstrap` against configured repositories. A true offline contract requires a
+separate accepted architecture, such as an ISO-contained signed installation
+repository or a reviewed live-root deployment path with exhaustive live-state
+cleanup.
+
 ## Calamares Binary Package
 
 Arch official repositories do not provide Calamares in the current evaluated

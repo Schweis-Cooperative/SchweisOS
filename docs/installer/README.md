@@ -37,11 +37,17 @@ Implemented in source:
 - Target pacman include configuration for the SchweisOS signed repository.
 - Static installer configuration validator.
 - Behavioral launcher and autostart regression tests.
+- The welcome screen no longer blocks on Calamares' generic internet probe;
+  package availability errors are owned by the signed package installation
+  step.
 
 Not yet fully qualified:
 
 - Graphical installation in the complete VM and hardware matrix.
 - First boot of an installed system across the documented storage scenarios.
+- Complete offline installation. The current MVP uses `pacstrap` from signed
+  repositories; without an ISO-contained signed installation repository, a
+  disconnected install cannot be honestly claimed.
 
 ## Runbooks
 
@@ -77,6 +83,9 @@ Live ISO
 - The installer does not activate GRUB in the MVP.
 - Automated storage does not expose LUKS or LVM until their boot and recovery
   contracts are implemented.
+- Calamares' welcome module must not be the network gate. If package retrieval
+  is unavailable, the audited package installation step must report that real
+  failure.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future
   decisions.
 

@@ -137,6 +137,15 @@ instead uses upstream Arch installation primitives through `pacstrap` with a
 SchweisOS-owned target package manifest. This keeps the installed system
 package-owned from the start and avoids live-only state migration.
 
+The Calamares welcome page must not make internet access a required minimum
+condition. That check is not the owner of SchweisOS package availability and
+has produced false-negative runtime blockers while the live desktop itself had
+network access. Repository availability remains enforced by the signed
+`pacstrap` step. The MVP therefore does not claim a complete offline install
+until SchweisOS accepts and implements a dedicated offline package source
+strategy, such as an ISO-contained signed installation repository or a
+separately reviewed live-root deployment model with strict live-state cleanup.
+
 ## Installed-System Policy
 
 ### Firmware and Bootloader
@@ -288,6 +297,10 @@ Negative:
   rollback, or GRUB activation.
 - `pacstrap` from the live environment requires the live system to have a
   complete trusted SchweisOS repository configuration and package availability.
+- Full offline installation is not provided by the current `pacstrap`
+  architecture unless the ISO also carries a complete signed installation
+  repository; otherwise package retrieval still requires reachable configured
+  repositories.
 - The live ISO has broad local administrative authority by design. This is
   acceptable only because it is ephemeral, local/active-session scoped, and not
   installed to target systems.
@@ -314,6 +327,7 @@ The installer configuration validator must fail closed if:
   SchweisOS identity/trust packages;
 - target packages include live-only installer, Archiso, or Plymouth payloads;
 - the installer does not use `pacstrap` with the packaged pacman configuration;
+- the Calamares welcome page blocks installation on a generic internet probe;
 - the target pacman include is not installed by an installer helper;
 - the default filesystem is not ext4 or the ESP policy changes without an ADR;
 - systemd-boot installation, UUID-bound loader entry, or initramfs regeneration

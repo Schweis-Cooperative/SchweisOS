@@ -58,6 +58,7 @@ jq -n \
       iso_profile: "pass",
       built_iso_identity: "pass",
       built_iso_boot: "pass",
+      built_iso_forensics: "pass",
       artifact: "pass"
     },
     mkarchiso_exit_code: 0,

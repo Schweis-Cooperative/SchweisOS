@@ -25,7 +25,11 @@ The normal `SchweisOS Live` entry is quiet and splash-enabled. The visible
 Both entries disable interactive `systemd-firstboot`; the live root provides
 the upstream Archiso `C.UTF-8` and UTC defaults. A healthy boot therefore
 continues through SDDM autologin directly to Plasma without a timezone,
-keymap, or root-password wizard.
+keymap, or root-password wizard. Both entries also pass `checksum=y`, so
+Archiso verifies the embedded `airootfs.sfs` SHA512 before mounting the live
+root. This is deliberate: corrupted USB copies, stale media, or unreliable
+file-based multiboot reads should fail as integrity evidence rather than as a
+late SquashFS mount symptom.
 
 Emergency mode, SDDM failure, a propagated Plymouth service failure, a bounded
 quit-wait timeout, or a detected unexpected Plymouth daemon exit triggers the
@@ -64,8 +68,9 @@ systemd-boot entries:
 ```
 
 They also pass `archisobasedir=schweis`, `img_dev`, and `img_loop` so the
-Archiso initramfs can mount the ISO file on the outer filesystem. The live
-initramfs therefore includes Archiso's
+Archiso initramfs can mount the ISO file on the outer filesystem. They also
+pass `checksum=y` for the same rootfs integrity check used by the native
+entries. The live initramfs therefore includes Archiso's
 `archiso_loop_mnt` hook in addition to the native `archiso` hook; the loopback
 kernel parameters are not useful unless the initramfs contains the hook that
 turns `img_dev/img_loop` into the loop device Archiso mounts.
@@ -109,10 +114,10 @@ tests/validate-boot-media-copy.sh \
 This gate is independent of Ventoy or the file-copy tool. A PASS proves that
 the source is the successful clean build artifact from the current clean
 repository commit, the current built-ISO identity and boot-composition
-contracts pass, the destination is a different block-device-backed filesystem
-from the host root, exactly one SchweisOS ISO is present, and the basename,
-size, SHA256, and bytes match. The destination must be read-only during the
-check.
+and forensic contracts pass, the destination is a different
+block-device-backed filesystem from the host root, exactly one SchweisOS ISO is
+present, and the basename, size, SHA256, and bytes match. The destination must
+be read-only during the check.
 
 The evidence sequence is: copy the ISO, run `sync`, safely unmount the medium,
 physically reinsert it, mount the data partition read-only, run the validator,
@@ -121,7 +126,21 @@ unclean exFAT removal from being mistaken for persisted media evidence. A PASS
 does not replace a hardware boot.
 Whole-device writers such as `dd` or Etcher need a separate device-range
 readback workflow; this mounted-file validator does not claim to validate
-those paths.
+those paths. Use `scripts/test-dd.sh` for the read-only raw-device prefix hash
+check after the whole ISO has been written to a block device and all of that
+device's partitions are unmounted.
+
+For completed ISO forensics, run:
+
+```bash
+scripts/test-iso.sh /path/to/schweisos-2026.07.27-x86_64.iso
+```
+
+That wrapper runs the built-image identity, boot-composition, loopback, and
+`schweisos-doctor` inspections. `schweisos-doctor` proves the ISO root layout,
+native and loopback command lines, embedded SquashFS SHA512, SquashFS xattr
+metadata, package inventory, and Calamares welcome policy. It is static
+evidence; it does not replace a firmware, Ventoy, VM, or hardware boot.
 
 ## Plymouth
 

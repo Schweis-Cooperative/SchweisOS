@@ -138,16 +138,18 @@ For each signed repository generation:
    local source with `activate-build-repository.sh`;
 11. run the existing build validators and `SCHWEISOS_ISO_BUILD_MODE=release`
    build entry point;
-12. require both `validate-built-iso-identity.sh` and
-    `validate-built-iso-boot.sh` before any boot test or release. The build
-    wrapper runs them before checksum publication. They extract the ISO into
-    their own disposable directories under the ignored repository `work/` tree
-    by default; set `TMPDIR` only when the build host requires another
-    disk-backed extraction location. The identity gate extracts without
-    restoring SquashFS xattrs; add a separate explicit validator before making
-    xattrs a release criterion. The boot gate verifies the selected branding
-    package and logo, live defaults, merged systemd units, Plasma handoff
-    inputs, and actual Plymouth initramfs payload.
+12. require `validate-built-iso-identity.sh`, `validate-built-iso-boot.sh`, and
+    `scripts/schweisos-doctor` before any boot test or release. The build
+    wrapper runs them before checksum publication. The identity and boot gates
+    extract the ISO into their own disposable directories under the ignored
+    repository `work/` tree by default; set `TMPDIR` only when the build host
+    requires another disk-backed extraction location. The identity gate extracts
+    without restoring SquashFS xattrs because it checks identity ownership, not
+    Linux capability policy. The doctor separately verifies the embedded
+    SquashFS SHA512 and parses SquashFS xattr metadata. The boot gate verifies
+    the selected branding and installer configuration packages, live defaults,
+    merged systemd units, Plasma handoff inputs, and actual Plymouth/initramfs
+    payload.
 
 Failures stop at their current trust boundary. No failed candidate is published
 and no validator has a permissive production mode.

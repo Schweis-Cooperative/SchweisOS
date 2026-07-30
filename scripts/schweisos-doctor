@@ -1,0 +1,389 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Forensic, read-only inspection for completed SchweisOS ISO artifacts. This
+# tool does not build, mount, write to removable media, boot a VM, or repair
+# anything. It proves what is in the bytes handed to it.
+set -euo pipefail
+
+export LC_ALL=C
+export PATH=/usr/bin:/bin
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/schweisos-doctor --iso ISO_PATH
+
+Read-only ISO diagnostics:
+  - ISO root layout, kernel, initramfs, EFI, GRUB loopback, and UUID marker
+  - Archiso native and loopback kernel command line contracts
+  - airootfs.sfs SHA512 and SquashFS superblock/xattr metadata
+  - installed Calamares package versions and offline welcome policy
+
+This is static forensic evidence. It does not replace QEMU, Ventoy, dd, or
+real-hardware boot validation.
+EOF
+}
+
+iso_path=''
+
+while (( $# > 0 )); do
+    case "$1" in
+        --iso)
+            shift
+            (( $# > 0 )) || {
+                printf 'ERROR: --iso requires a path\n' >&2
+                exit 2
+            }
+            iso_path=$1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'ERROR: unknown argument: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+[[ -n "$iso_path" ]] || {
+    usage >&2
+    exit 2
+}
+
+pass_count=0
+warn_count=0
+fail_count=0
+
+pass() {
+    ((pass_count += 1))
+    printf '[PASS] %s\n' "$*"
+}
+
+warn() {
+    ((warn_count += 1))
+    printf '[WARN] %s\n' "$*" >&2
+}
+
+fail() {
+    ((fail_count += 1))
+    printf '[FAIL] %s\n' "$*" >&2
+}
+
+require_tool() {
+    local tool=$1
+    if type -P "$tool" >/dev/null 2>&1; then
+        pass "tool available: ${tool}"
+    else
+        fail "required tool not found: ${tool}"
+    fi
+}
+
+for tool in awk basename bash bsdtar cmp cp grep mkdir mktemp python3 readlink rm sed \
+    sha256sum sha512sum sort stat; do
+    require_tool "$tool"
+done
+(( fail_count == 0 )) || exit 1
+
+[[ -f "$iso_path" && ! -L "$iso_path" && -s "$iso_path" ]] || \
+    fail 'ISO path is missing, empty, or unsafe'
+if (( fail_count == 0 )); then
+    iso_path="$(readlink -f -- "$iso_path")"
+    pass "ISO path resolved: ${iso_path}"
+fi
+
+tmp_dir="$(mktemp -d)"
+cleanup() {
+    [[ -n "${tmp_dir:-}" && -d "$tmp_dir" ]] || return 0
+    rm -rf -- "$tmp_dir"
+}
+trap cleanup EXIT
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd -- "${script_dir}/.." && pwd -P)"
+expected_installer_config_version=''
+if [[ -d "${repo_root}/packages/schweisos-calamares-config" ]] \
+    && type -P makepkg >/dev/null 2>&1; then
+    installer_config_srcinfo="$(
+        cd -- "${repo_root}/packages/schweisos-calamares-config" && makepkg --printsrcinfo
+    )" || installer_config_srcinfo=''
+    if [[ -n "$installer_config_srcinfo" ]]; then
+        installer_config_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' \
+            <<<"$installer_config_srcinfo")"
+        installer_config_pkgrel="$(awk -F ' = ' '$1 == "\tpkgrel" { print $2; exit }' \
+            <<<"$installer_config_srcinfo")"
+        installer_config_epoch="$(awk -F ' = ' '$1 == "\tepoch" { print $2; exit }' \
+            <<<"$installer_config_srcinfo")"
+        if [[ -n "$installer_config_pkgver" && -n "$installer_config_pkgrel" ]]; then
+            expected_installer_config_version="${installer_config_pkgver}-${installer_config_pkgrel}"
+            if [[ -n "$installer_config_epoch" && "$installer_config_epoch" != 0 ]]; then
+                expected_installer_config_version="${installer_config_epoch}:${expected_installer_config_version}"
+            fi
+            pass "source schweisos-calamares-config version: ${expected_installer_config_version}"
+        fi
+    fi
+fi
+
+iso_sha256="$(sha256sum -- "$iso_path")"
+iso_sha256="${iso_sha256%% *}"
+pass "ISO SHA256: ${iso_sha256}"
+
+iso_listing="$(bsdtar -tf "$iso_path")" || {
+    fail 'ISO archive listing is unreadable'
+    iso_listing=''
+}
+[[ -n "$iso_listing" ]] && pass 'ISO archive listing is readable'
+
+member_count() {
+    local member=$1
+    awk -v expected="$member" '$0 == expected { count++ } END { print count + 0 }' \
+        <<<"$iso_listing"
+}
+
+mapfile -t squashfs_members < <(
+    awk '$0 ~ /^[^/]+\/x86_64\/airootfs\.sfs$/ { print }' <<<"$iso_listing" | sort
+)
+if (( ${#squashfs_members[@]} == 1 )); then
+    squashfs_member="${squashfs_members[0]}"
+    install_dir="${squashfs_member%%/*}"
+    arch=x86_64
+    pass "airootfs.sfs found: ${squashfs_member}"
+else
+    fail "expected exactly one x86_64 airootfs.sfs; found ${#squashfs_members[@]}"
+    squashfs_member=''
+    install_dir=''
+    arch=x86_64
+fi
+
+if [[ -n "$install_dir" ]]; then
+    for member in \
+        "${install_dir}/boot/${arch}/vmlinuz-linux" \
+        "${install_dir}/boot/${arch}/initramfs-linux.img" \
+        "${install_dir}/${arch}/airootfs.sha512" \
+        boot/grub/loopback.cfg \
+        loader/loader.conf \
+        loader/entries/01-schweisos-linux.conf \
+        loader/entries/02-schweisos-linux-debug.conf \
+        EFI/boot.cat \
+        EFI/BOOT/BOOTx64.EFI; do
+        if [[ "$(member_count "$member")" -eq 1 ]]; then
+            pass "ISO member present once: ${member}"
+        else
+            fail "ISO member missing or duplicated: ${member}"
+        fi
+    done
+fi
+
+mapfile -t uuid_members < <(
+    awk '$0 ~ /^boot\/[0-9-]+\.uuid$/ { print }' <<<"$iso_listing" | sort
+)
+if (( ${#uuid_members[@]} == 1 )); then
+    iso_uuid="${uuid_members[0]#boot/}"
+    iso_uuid="${iso_uuid%.uuid}"
+    pass "Archiso UUID marker: ${iso_uuid}"
+    if grep -a -m 1 -F "${iso_uuid}.uuid" "$iso_path" >/dev/null 2>&1; then
+        pass 'Archiso UUID marker is raw-discoverable in ISO bytes'
+    else
+        fail 'Archiso UUID marker is not raw-discoverable in ISO bytes'
+    fi
+else
+    fail "expected exactly one Archiso UUID marker; found ${#uuid_members[@]}"
+    iso_uuid=''
+fi
+
+if type -P xorriso >/dev/null 2>&1; then
+    volume_id="$(
+        xorriso -indev "$iso_path" -pvd_info 2>/dev/null |
+            awk -F ':' '$1 ~ /^[[:space:]]*Volume Id[[:space:]]*$/ {
+                value = $2
+                sub(/^[[:space:]]+/, "", value)
+                sub(/[[:space:]]+$/, "", value)
+                print value
+                exit
+            }'
+    )"
+    [[ -n "$volume_id" ]] && pass "ISO volume ID: ${volume_id}" || fail 'ISO volume ID is unreadable'
+else
+    warn 'xorriso is unavailable; ISO volume ID check skipped'
+fi
+
+if [[ -n "$install_dir" && -n "$iso_uuid" ]]; then
+    for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
+        entry_file="${tmp_dir}/${entry_name}"
+        bsdtar -xOf "$iso_path" "loader/entries/${entry_name}" >"$entry_file" || {
+            fail "unable to extract loader entry: ${entry_name}"
+            continue
+        }
+        options="$(awk '$1 == "options" { $1 = ""; sub(/^[[:space:]]+/, ""); print; exit }' "$entry_file")"
+        [[ " $options " == *" archisobasedir=${install_dir} "* ]] \
+            && pass "${entry_name}: archisobasedir matches ${install_dir}" \
+            || fail "${entry_name}: archisobasedir mismatch"
+        [[ " $options " == *" archisosearchuuid=${iso_uuid} "* ]] \
+            && pass "${entry_name}: archisosearchuuid matches marker" \
+            || fail "${entry_name}: archisosearchuuid mismatch"
+        [[ " $options " == *' checksum=y '* ]] \
+            && pass "${entry_name}: Archiso checksum self-test enabled" \
+            || fail "${entry_name}: checksum=y missing"
+    done
+
+    loopback_file="${tmp_dir}/loopback.cfg"
+    bsdtar -xOf "$iso_path" boot/grub/loopback.cfg >"$loopback_file" || \
+        fail 'unable to extract GRUB loopback.cfg'
+    if [[ -f "$loopback_file" ]]; then
+        for token in \
+            "archisobasedir=${install_dir}" \
+            'img_dev=UUID=${archiso_img_dev_uuid}' \
+            'img_loop="${iso_path}"' \
+            'checksum=y'; do
+            grep -Fq "$token" "$loopback_file" \
+                && pass "loopback.cfg contains ${token}" \
+                || fail "loopback.cfg is missing ${token}"
+        done
+    fi
+fi
+
+pkglist_file="${tmp_dir}/pkglist.x86_64.txt"
+if bsdtar -xOf "$iso_path" "${install_dir}/pkglist.x86_64.txt" >"$pkglist_file" 2>/dev/null; then
+    pass 'package inventory extracted'
+    for package_name in calamares schweisos-calamares-config mkinitcpio-archiso linux; do
+        package_record="$(awk -v name="$package_name" '$1 == name { print; exit }' "$pkglist_file")"
+        [[ -n "$package_record" ]] \
+            && pass "package inventory: ${package_record}" \
+            || fail "package inventory is missing ${package_name}"
+    done
+    if [[ -n "$expected_installer_config_version" ]]; then
+        installed_installer_config_version="$(
+            awk '$1 == "schweisos-calamares-config" { print $2; exit }' "$pkglist_file"
+        )"
+        [[ "$installed_installer_config_version" == "$expected_installer_config_version" ]] \
+            && pass 'installer config package version matches source' \
+            || fail "installer config package version drift: ISO has ${installed_installer_config_version:-missing}, source requires ${expected_installer_config_version}"
+    fi
+else
+    fail 'package inventory is missing or unreadable'
+fi
+
+if [[ -n "$squashfs_member" ]]; then
+    bsdtar -xOf "$iso_path" "$squashfs_member" >"${tmp_dir}/airootfs.sfs" || \
+        fail 'unable to extract airootfs.sfs'
+    bsdtar -xOf "$iso_path" "${install_dir}/${arch}/airootfs.sha512" \
+        >"${tmp_dir}/airootfs.sha512" || fail 'unable to extract airootfs.sha512'
+    if [[ -s "${tmp_dir}/airootfs.sfs" && -s "${tmp_dir}/airootfs.sha512" ]]; then
+        if (cd -- "$tmp_dir" && sha512sum -c airootfs.sha512 >/dev/null); then
+            pass 'airootfs.sfs matches embedded SHA512'
+        else
+            fail 'airootfs.sfs does not match embedded SHA512'
+        fi
+        python3 - "${tmp_dir}/airootfs.sfs" <<'PY' >"${tmp_dir}/squashfs-superblock.txt"
+import os
+import struct
+import sys
+
+path = sys.argv[1]
+fmt = '<IIIIIHHHHHHQQQQQQQQ'
+with open(path, 'rb') as handle:
+    data = handle.read(struct.calcsize(fmt))
+values = struct.unpack(fmt, data)
+keys = [
+    's_magic', 'inodes', 'mkfs_time', 'block_size', 'fragments',
+    'compression', 'block_log', 'flags', 'no_ids', 's_major', 's_minor',
+    'root_inode', 'bytes_used', 'id_table_start', 'xattr_id_table_start',
+    'inode_table_start', 'directory_table_start', 'fragment_table_start',
+    'lookup_table_start',
+]
+record = dict(zip(keys, values))
+if record['s_magic'] != 0x73717368:
+    raise SystemExit('not a SquashFS v4 image')
+xattrs = record['xattr_id_table_start'] != 0xffffffffffffffff
+tail_len = os.path.getsize(path) - record['xattr_id_table_start'] if xattrs else 0
+print(f"compression={record['compression']}")
+print(f"block_size={record['block_size']}")
+print(f"flags=0x{record['flags']:04x}")
+print(f"bytes_used={record['bytes_used']}")
+print(f"file_size={os.path.getsize(path)}")
+print(f"xattrs={'yes' if xattrs else 'no'}")
+print(f"xattr_id_table_start={record['xattr_id_table_start']}")
+print(f"xattr_tail_bytes={tail_len}")
+if xattrs:
+    with open(path, 'rb') as handle:
+        handle.seek(record['xattr_id_table_start'])
+        tail = handle.read(16)
+    _, xattr_count, _ = struct.unpack('<QII', tail)
+    print(f"xattr_count={xattr_count}")
+PY
+        if [[ -s "${tmp_dir}/squashfs-superblock.txt" ]]; then
+            while IFS= read -r line; do
+                pass "SquashFS ${line}"
+            done <"${tmp_dir}/squashfs-superblock.txt"
+        else
+            fail 'SquashFS superblock could not be parsed'
+        fi
+        if type -P 7z >/dev/null 2>&1; then
+            7z t "${tmp_dir}/airootfs.sfs" >/dev/null \
+                && pass '7z SquashFS data stream test passed' \
+                || fail '7z SquashFS data stream test failed'
+        elif type -P unsquashfs >/dev/null 2>&1; then
+            unsquashfs -s "${tmp_dir}/airootfs.sfs" >/dev/null \
+                && pass 'unsquashfs superblock inspection passed' \
+                || fail 'unsquashfs superblock inspection failed'
+        else
+            warn 'neither 7z nor unsquashfs is available; SquashFS data-stream test skipped'
+        fi
+    fi
+fi
+
+welcome_file="${tmp_dir}/welcome.conf"
+if [[ -s "${tmp_dir}/airootfs.sfs" ]]; then
+    if type -P 7z >/dev/null 2>&1; then
+        rm -rf -- "${tmp_dir}/sfs-select"
+        mkdir -p -- "${tmp_dir}/sfs-select"
+        if 7z x -y -o"${tmp_dir}/sfs-select" "${tmp_dir}/airootfs.sfs" \
+            etc/calamares/modules/welcome.conf >/dev/null; then
+            cp -- "${tmp_dir}/sfs-select/etc/calamares/modules/welcome.conf" "$welcome_file"
+        fi
+    elif type -P unsquashfs >/dev/null 2>&1; then
+        unsquashfs -cat "${tmp_dir}/airootfs.sfs" etc/calamares/modules/welcome.conf \
+            >"$welcome_file" 2>/dev/null || true
+    fi
+fi
+if [[ -s "$welcome_file" ]]; then
+    pass 'Calamares welcome.conf extracted from SquashFS'
+    if grep -Eq '^[[:space:]]*internetCheckUrl:|^[[:space:]]*-[[:space:]]*internet[[:space:]]*$' \
+        "$welcome_file"; then
+        fail 'Calamares welcome.conf still blocks offline installation through internet probing'
+    else
+        pass 'Calamares welcome.conf does not require internet access'
+    fi
+else
+    warn 'Calamares welcome.conf could not be extracted; run completed built-ISO validator on build host'
+fi
+
+if type -P lsinitcpio >/dev/null 2>&1 && [[ -n "$install_dir" ]]; then
+    initramfs_file="${tmp_dir}/initramfs-linux.img"
+    bsdtar -xOf "$iso_path" "${install_dir}/boot/${arch}/initramfs-linux.img" \
+        >"$initramfs_file" || fail 'unable to extract live initramfs'
+    if [[ -s "$initramfs_file" ]]; then
+        initramfs_config="$(lsinitcpio --config "$initramfs_file")" || {
+            fail 'live initramfs configuration is unreadable'
+            initramfs_config=''
+        }
+        grep -Fxq 'HOOKS=(base udev modconf kms plymouth archiso archiso_loop_mnt schweisos_iso_file_fallback block filesystems)' \
+            <<<"$initramfs_config" \
+            && pass 'initramfs hook order matches SchweisOS live contract' \
+            || fail 'initramfs hook order does not match SchweisOS live contract'
+    fi
+else
+    warn 'lsinitcpio is unavailable; initramfs hook inspection skipped'
+fi
+
+if (( fail_count == 0 )); then
+    printf 'SchweisOS doctor: PASS (%d checks, %d warnings)\n' "$pass_count" "$warn_count"
+    exit 0
+fi
+
+printf 'SchweisOS doctor: FAIL (%d checks, %d warnings, %d failures)\n' \
+    "$pass_count" "$warn_count" "$fail_count" >&2
+exit 1

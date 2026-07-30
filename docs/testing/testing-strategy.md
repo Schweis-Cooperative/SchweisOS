@@ -116,7 +116,19 @@ boot-composition validators, rejects a source/destination alias, requires a
 read-only block-device-backed destination different from the host root
 filesystem, and permits exactly one SchweisOS ISO on that filesystem. Safely
 unmount it again before booting. It is not a raw-device readback validator for
-`dd`, Etcher, or similar whole-image writers.
+`dd`, Etcher, or similar whole-image writers; use `scripts/test-dd.sh` for the
+read-only prefix-hash evidence after a whole-image write.
+
+Before attributing a boot failure to current source, run:
+
+```bash
+scripts/test-iso.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
+```
+
+This wrapper includes `schweisos-doctor`, which checks embedded
+`airootfs.sfs` SHA512, SquashFS xattr metadata, checksum-enabled command
+lines, installed package versions, and Calamares welcome policy. A stale ISO
+or a stale media copy is not current-source evidence.
 
 The subsequent hardware record must capture the exact ISO SHA256 and
 `/proc/cmdline` (or equivalent debug evidence). A Ventoy menu label is not

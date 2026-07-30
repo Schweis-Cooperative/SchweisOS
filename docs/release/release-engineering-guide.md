@@ -66,7 +66,8 @@ well-formed but unequal dates are rejected.
 
 Before any public ISO:
 
-- The built-ISO identity and boot/root/initramfs gates pass on the exact image.
+- The built-ISO identity, boot/root/initramfs, and forensic doctor gates pass
+  on the exact image.
 - The canonical build and release manifest schemas pass without missing, extra,
   duplicate, ambiguous, or incorrectly typed fields.
 - Release identifier, profile, ISO name, byte size, SHA256, build timestamp,

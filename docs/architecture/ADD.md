@@ -337,9 +337,11 @@ avoid an extra visual mode transition. The profile also carries only the
 upstream-supported `grub/loopback.cfg` compatibility file for outer GRUB
 launchers that consume Archiso's loopback contract. That loopback file mirrors
 the same normal/debug kernel
-and initramfs paths and passes Archiso's `img_dev`/`img_loop` handoff; the
-initramfs source includes the matching upstream `archiso_loop_mnt` hook so that
-handoff works after the kernel starts. A separate SchweisOS
+and initramfs paths, passes Archiso's `img_dev`/`img_loop` handoff, and enables
+Archiso `checksum=y` rootfs verification; the native systemd-boot entries use
+the same checksum contract. The initramfs source includes the matching upstream
+`archiso_loop_mnt` hook so that handoff works after the kernel starts. A
+separate SchweisOS
 `schweisos_iso_file_fallback` initramfs hook covers file-based multiboot
 command lines that use native Archiso search without `img_dev/img_loop`: it
 scans only removable media for an ISO carrying the requested Archiso UUID

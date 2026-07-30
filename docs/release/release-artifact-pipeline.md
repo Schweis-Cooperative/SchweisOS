@@ -13,7 +13,7 @@ releases.
 
 ```text
 successful validated mkarchiso build
-    -> built identity and boot-payload validation
+    -> built identity, boot-payload, and forensic validation
     -> build manifest, checksums, and ISO output
     -> release artifact preparation
     -> checksum generation and verification
@@ -29,9 +29,10 @@ prepares an immutable local release directory, validates it, and exits nonzero
 on any failure.
 
 The successful v2 build manifest is produced only after the wrapper's built-ISO
-identity and boot validators pass. Staging binds the supplied ISO's basename,
-byte size, and SHA256 to that manifest. A manually copied ISO, an earlier image,
-or an ISO from a failed post-build gate is not acceptable release input.
+identity validator, boot validator, and ISO doctor pass. Staging binds the
+supplied ISO's basename, byte size, and SHA256 to that manifest. A manually
+copied ISO, an earlier image, or an ISO from a failed post-build gate is not
+acceptable release input.
 
 The canonical SchweisOS release identifier is `YYYY.MM.DD`. The
 `schweisos-release` package version, Archiso `iso_version`, ISO filename,
@@ -126,8 +127,9 @@ artifact_candidate_count, artifact, build_log, failure_code
 Its exact nested objects are `git` with `commit`, `dirty_at_start`, and
 `dirty_at_finish`; `host` with `id` and `architecture`; `validation` with
 `build_environment`, `installer_config`, `iso_profile`, `built_iso_identity`,
-`built_iso_boot`, and `artifact`; and the artifact object with `name`,
-`size_bytes`, `sha256`, `blake2b_512`, and `sha256_file`.
+`built_iso_boot`, `built_iso_forensics`, and `artifact`; and the artifact
+object with `name`, `size_bytes`, `sha256`, `blake2b_512`, and
+`sha256_file`.
 
 Release staging accepts only the completed-success release form: clean Git
 state, `build_mode=release`, `epoch_origin=environment`, canonical Arch x86_64
@@ -159,8 +161,8 @@ It records:
 - SHA256 and BLAKE2b-512 checksum values.
 - Profile, architecture, Archiso version, and `SOURCE_DATE_EPOCH`.
 - The release-artifact validator version and explicit results for the
-  build-environment, ISO-profile, built-identity, built-boot, aggregate
-  artifact, and release-artifact gates.
+  build-environment, installer-config, ISO-profile, built-identity,
+  built-boot, built-forensics, aggregate artifact, and release-artifact gates.
 
 The fixed schema values are `schema_version` as numeric `2`,
 `release_format_version` as string `"2"`, `git_tree_state` as `clean`, and
@@ -170,7 +172,7 @@ timestamp fields have fixed string formats.
 
 `validator_versions` contains exactly
 `release_artifact_validator: "2"`. `validator_results` contains exactly the
-seven documented gates, all set to `pass`. The release validator revalidates the
+eight documented gates, all set to `pass`. The release validator revalidates the
 copied build manifest against the staged ISO, then cross-checks release
 identifier and filename, profile, build timestamp, Git commit, Archiso version,
 `SOURCE_DATE_EPOCH`, ISO size, SHA256, BLAKE2b-512, and validator results.

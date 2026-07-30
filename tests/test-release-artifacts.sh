@@ -82,6 +82,7 @@ write_fixture() {
     "iso_profile": "pass",
     "built_iso_identity": "pass",
     "built_iso_boot": "pass",
+    "built_iso_forensics": "pass",
     "artifact": "pass"
   },
   "mkarchiso_exit_code": 0,
@@ -263,6 +264,16 @@ expect_failure 'creator rejects failed built ISO boot validation' "$creator" \
     --build-manifest "${case_dir}/logs/build-manifest.json" \
     --output-root "${case_dir}/release"
 
+case_dir="${tmp_root}/failed-built-forensics"
+write_fixture "$case_dir"
+sed -i 's/"built_iso_forensics": "pass"/"built_iso_forensics": "fail"/' \
+    "${case_dir}/logs/build-manifest.json"
+expect_failure 'creator rejects failed built ISO forensic diagnostics' "$creator" \
+    --release-id "$release_id" \
+    --iso "${case_dir}/out/${iso_name}" \
+    --build-manifest "${case_dir}/logs/build-manifest.json" \
+    --output-root "${case_dir}/release"
+
 case_dir="${tmp_root}/build-size-mismatch"
 write_fixture "$case_dir"
 sed -i 's/"size_bytes": [0-9]*/"size_bytes": 1/' \
@@ -320,7 +331,7 @@ expect_failure 'creator rejects profile provenance mismatch' "$creator" \
     --output-root "${case_dir}/release"
 
 release_dir="$(prepare_release copied-build-manifest-tamper)"
-sed -i 's/"built_iso_boot": "pass"/"built_iso_boot": "fail"/' \
+sed -i 's/"built_iso_forensics": "pass"/"built_iso_forensics": "fail"/' \
     "${release_dir}/manifests/build-manifest.json"
 expect_failure 'validator rejects copied build manifest tamper' "$validator" "$release_dir"
 

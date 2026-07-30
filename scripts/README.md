@@ -20,18 +20,20 @@ validate-build-environment.sh
   -> mkarchiso
   -> validate-built-iso-identity.sh
   -> validate-built-iso-boot.sh
+  -> schweisos-doctor
   -> artifact checksum validation
   -> final schweisos.iso-build-manifest.v2
 ```
 
 Every gate is mandatory and a failure prevents later steps. A successful run
 requires exactly one expected, non-empty ISO in a previously empty
-`out/iso/`, requires both completed-image validators to pass before checksum
-publication, creates and verifies its SHA256 sidecar, and records optional
-BLAKE2b-512 in the manifest when `b2sum` is available. A manifest is eligible
-for release staging only when it was produced in release mode from a clean Arch
-x86_64 host with an explicit environment `SOURCE_DATE_EPOCH` and a non-null
-BLAKE2b-512 value.
+`out/iso/`, requires the completed-image identity validator, completed-image
+boot validator, and read-only ISO doctor to pass before checksum publication,
+creates and verifies its SHA256 sidecar, and records optional BLAKE2b-512 in
+the manifest when `b2sum` is available. A manifest is eligible for release
+staging only when it was produced in release mode from a clean Arch x86_64 host
+with an explicit environment `SOURCE_DATE_EPOCH` and a non-null BLAKE2b-512
+value.
 
 A nonblocking repository lock prevents concurrent builds from sharing work,
 output, cache, or manifest state. Existing work is accepted only with
@@ -58,6 +60,33 @@ The script does not build packages, weaken pacman signature policy, sign or
 publish artifacts, or modify host pacman configuration. See
 [`docs/build/README.md`](../docs/build/README.md) and ADR-013 for the required
 host and repository prerequisites.
+
+## ISO and Boot Media Diagnostics
+
+`schweisos-doctor` is a read-only forensic inspector for completed ISO bytes:
+
+```sh
+./scripts/schweisos-doctor --iso out/iso/schweisos-2026.07.27-x86_64.iso
+```
+
+It checks ISO boot layout, native and loopback command lines, embedded
+`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, installed
+Calamares configuration version, and offline welcome policy. `test-iso.sh`
+runs the completed-ISO bootloader, identity, boot-composition, and doctor
+checks as one static gate.
+
+`test-ventoy.sh` is the file-based multiboot evidence wrapper. It first runs
+the ISO doctor on the source artifact, then binds the synchronized,
+safely-reinserted, read-only mounted destination ISO to the clean build
+manifest with `tests/validate-boot-media-copy.sh`.
+
+`test-dd.sh` is the whole-device write evidence wrapper. It reads only the
+first ISO-size bytes from an unmounted block device and compares their SHA256
+with the source ISO. It refuses mounted devices and mounted child partitions.
+
+`test-qemu.sh` is a bounded direct-kernel QEMU smoke harness with serial logs
+under ignored `logs/qemu/`. It is engineering evidence, not a replacement for
+firmware, Ventoy, or physical hardware qualification.
 
 ## Release Artifacts
 

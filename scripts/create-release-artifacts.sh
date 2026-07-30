@@ -170,6 +170,7 @@ installer_validation="$(json_value '.validation.installer_config' "$build_manife
 profile_validation="$(json_value '.validation.iso_profile' "$build_manifest_path")"
 built_identity_validation="$(json_value '.validation.built_iso_identity' "$build_manifest_path")"
 built_boot_validation="$(json_value '.validation.built_iso_boot' "$build_manifest_path")"
+built_forensics_validation="$(json_value '.validation.built_iso_forensics' "$build_manifest_path")"
 artifact_validation="$(json_value '.validation.artifact' "$build_manifest_path")"
 
 if [[ -n "$profile" && "$profile" != "$build_profile" ]]; then
@@ -260,6 +261,7 @@ release_manifest="${tmp_dir}/manifests/release-manifest.json"
     printf '    "iso_profile": %s,\n' "$(json_string "$profile_validation")"
     printf '    "built_iso_identity": %s,\n' "$(json_string "$built_identity_validation")"
     printf '    "built_iso_boot": %s,\n' "$(json_string "$built_boot_validation")"
+    printf '    "built_iso_forensics": %s,\n' "$(json_string "$built_forensics_validation")"
     printf '    "artifact": %s,\n' "$(json_string "$artifact_validation")"
     printf '    "release_artifacts": "pass"\n'
     printf '  }\n'
@@ -280,6 +282,7 @@ notes_path="${tmp_dir}/RELEASE_NOTES.md"
     printf '%s\n' "- ISO profile: \`${profile_validation}\`"
     printf '%s\n' "- Built ISO identity: \`${built_identity_validation}\`"
     printf '%s\n' "- Built ISO boot: \`${built_boot_validation}\`"
+    printf '%s\n' "- Built ISO forensics: \`${built_forensics_validation}\`"
     printf '%s\n' "- Build artifact: \`${artifact_validation}\`"
     printf '%s\n\n' '- Release artifacts: `pass`'
     printf 'Checksum summary:\n\n'

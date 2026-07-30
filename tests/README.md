@@ -78,10 +78,11 @@ passwordless local live-session administration policy, package-owned installer
 launcher boundary, permissions, symlinks, and absence of signing material. It
 also proves that the branding package source resolves to
 `branding/assets/logo/schweisos.png` and that the theme has no second image
-dependency. Pacman parsing uses a disposable sysroot populated from the real
-bootstrap configuration files; it does not modify `/etc`, contact repositories,
-or invent endpoints. Repository availability remains a separate build-host
-preflight.
+dependency. Native systemd-boot entries and GRUB loopback entries must request
+Archiso `checksum=y` rootfs verification. Pacman parsing uses a disposable
+sysroot populated from the real bootstrap configuration files; it does not
+modify `/etc`, contact repositories, or invent endpoints. Repository
+availability remains a separate build-host preflight.
 
 `validate-installer-config.sh` performs static validation of the Faz 1
 Calamares installer configuration:
@@ -175,7 +176,8 @@ marker, compares the built loopback file to the reviewed profile source after
 Archiso token substitution, rejects unresolved template tokens, validates the
 `archisobasedir`, `img_dev`, and `img_loop` handoff, and confirms that the live
 initramfs contains `archiso_loop_mnt` so the handoff can be consumed after the
-kernel starts. It also confirms that the ISO marker is raw-discoverable by the
+kernel starts. It also confirms that every native and loopback live entry
+requests `checksum=y`, and that the ISO marker is raw-discoverable by the
 SchweisOS initramfs fallback used when a multiboot command line supplies native
 Archiso search without `img_dev/img_loop`.
 
@@ -193,13 +195,43 @@ tests/validate-boot-media-copy.sh BUILD_MANIFEST SOURCE_ISO COPIED_ISO
 
 It first binds the source bytes and clean build commit to a successful
 completed build manifest, requires that commit to be the current clean
-checkout, and reruns the current built-ISO identity and boot-composition
-validators. It rejects the same path or filesystem object, a destination
+checkout, and reruns the current built-ISO identity, boot-composition, and
+forensic validators. It rejects the same path or filesystem object, a destination
 without a distinct block-device-backed filesystem, a destination that is not
 mounted read-only, a renamed artifact, zero or multiple SchweisOS ISOs, size
 or SHA256 drift, and any byte difference. Copy, synchronize, safely unmount,
 physically reinsert, and mount read-only before invoking it. It deliberately
 does not claim to validate raw whole-device writes.
+
+`scripts/schweisos-doctor` performs read-only forensic inspection of a
+completed ISO:
+
+```bash
+scripts/schweisos-doctor --iso out/iso/schweisos-2026.07.27-x86_64.iso
+```
+
+It checks ISO boot layout, native and loopback command lines, embedded
+`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, the
+installed Calamares configuration version, and whether `welcome.conf` still
+contains an internet gate. `scripts/test-iso.sh` runs the completed-ISO
+bootloader, identity, boot-composition, and doctor checks together. It is
+static evidence and does not boot the image.
+
+`scripts/test-ventoy.sh` combines doctor evidence with the mounted-file media
+copy validator:
+
+```bash
+scripts/test-ventoy.sh \
+  logs/iso/build-manifest.json \
+  out/iso/schweisos-2026.07.27-x86_64.iso \
+  /path/to/read-only-ventoy/schweisos-2026.07.27-x86_64.iso
+```
+
+`scripts/test-dd.sh` performs the complementary read-only raw-device prefix
+hash check for a whole-image write. It refuses a mounted block device or a
+block device with mounted child partitions. `scripts/test-qemu.sh` provides a
+bounded direct-kernel QEMU smoke harness; it is useful engineering evidence but
+not a replacement for Ventoy or physical hardware qualification.
 
 `test-boot-media-copy.sh` covers manifest binding and representative success
 and rejection paths without requiring removable media. Build-environment
@@ -309,11 +341,12 @@ systemd-boot entries, disabled interactive firstboot, the exact installed
 `schweisos-branding` version and canonical logo hash, C.UTF-8/UTC live
 defaults, SDDM/Plasma handoff inputs, live fallback unit payloads including the
 boot-bounded watchdog, live sudo/polkit administration policy, hidden upstream
-Calamares launcher override, merged systemd unit validity, and the Plymouth
-configuration, script plugin, theme, canonical logo, and SchweisOS ISO-file
-fallback runtime hook inside the actual initramfs. A stale signed
-branding package therefore fails before the wrapper publishes checksums even
-if source-only profile validation passes.
+Calamares launcher override, exact installed
+`schweisos-calamares-config` version and welcome payload, merged systemd unit
+validity, and the Plymouth configuration, script plugin, theme, canonical logo,
+and SchweisOS ISO-file fallback runtime hook inside the actual initramfs. A
+stale signed branding or installer configuration package therefore fails before
+the wrapper publishes checksums even if source-only profile validation passes.
 
 The validator uses `work/validators/built-iso-boot/` by default and, like the
 identity validator, can require several GiB of disk-backed temporary space.

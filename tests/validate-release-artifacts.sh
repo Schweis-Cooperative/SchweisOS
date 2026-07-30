@@ -162,7 +162,7 @@ if ! jq -e '
     and .validator_versions.release_artifact_validator == "2"
     and (.validator_results | exact_keys([
         "build_environment", "installer_config", "iso_profile",
-        "built_iso_identity", "built_iso_boot", "artifact",
+        "built_iso_identity", "built_iso_boot", "built_iso_forensics", "artifact",
         "release_artifacts"
     ]))
     and ([.validator_results[]] | all(. == "pass"))
@@ -188,7 +188,7 @@ done
 
 "$build_manifest_validator" --release "$build_manifest" "$iso_path" >/dev/null || \
     fail 'copied build manifest or ISO binding validation failed'
-for validation_key in build_environment installer_config iso_profile built_iso_identity built_iso_boot artifact; do
+for validation_key in build_environment installer_config iso_profile built_iso_identity built_iso_boot built_iso_forensics artifact; do
     [[ "$(json_value ".validation.${validation_key}" "$build_manifest")" == pass ]] || \
         fail "copied build manifest validator did not pass: ${validation_key}"
     [[ "$(json_value ".validator_results.${validation_key}" "$release_manifest")" == pass ]] || \
@@ -222,6 +222,7 @@ installer_validation="$(json_value '.validator_results.installer_config' "$relea
 profile_validation="$(json_value '.validator_results.iso_profile' "$release_manifest")"
 built_identity_validation="$(json_value '.validator_results.built_iso_identity' "$release_manifest")"
 built_boot_validation="$(json_value '.validator_results.built_iso_boot' "$release_manifest")"
+built_forensics_validation="$(json_value '.validator_results.built_iso_forensics' "$release_manifest")"
 artifact_validation="$(json_value '.validator_results.artifact' "$release_manifest")"
 
 {
@@ -236,6 +237,7 @@ artifact_validation="$(json_value '.validator_results.artifact' "$release_manife
     printf '%s\n' "- ISO profile: \`${profile_validation}\`"
     printf '%s\n' "- Built ISO identity: \`${built_identity_validation}\`"
     printf '%s\n' "- Built ISO boot: \`${built_boot_validation}\`"
+    printf '%s\n' "- Built ISO forensics: \`${built_forensics_validation}\`"
     printf '%s\n' "- Build artifact: \`${artifact_validation}\`"
     printf '%s\n\n' '- Release artifacts: `pass`'
     printf 'Checksum summary:\n\n'

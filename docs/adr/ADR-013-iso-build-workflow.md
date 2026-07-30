@@ -276,8 +276,9 @@ It:
   state.
 - Validates generated artifact identity, the bootloader-visible loopback
   handoff, Ventoy/native ISO-file fallback payload, live root, initramfs boot
-  payload, and checksums, then atomically records a privacy-minimized build
-  manifest.
+  payload, embedded SquashFS integrity/xattr metadata, Calamares installer
+  payload freshness, and checksums, then atomically records a
+  privacy-minimized build manifest.
 
 It must not:
 
@@ -355,6 +356,7 @@ For this architecture change:
 - `docs/adr/README.md` must include ADR-013.
 - `docs/architecture/ADD.md` must reference the ISO build workflow.
 - `docs/build/README.md` must describe build host requirements and the workflow.
-- Built-ISO identity and boot validators must fail before checksum publication
-  when the composed image differs from reviewed package/profile sources.
+- Built-ISO identity, boot, and forensic doctor validators must fail before
+  checksum publication when the composed image differs from reviewed
+  package/profile sources or cannot prove embedded rootfs integrity.
 - `git diff --check` must pass.

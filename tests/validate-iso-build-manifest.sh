@@ -73,13 +73,15 @@ if ! jq -e '
         and test("^schweisos-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-x86_64\\.iso$"))
     and (.validation | exact_keys([
         "build_environment", "installer_config", "iso_profile",
-        "built_iso_identity", "built_iso_boot", "artifact"
+        "built_iso_identity", "built_iso_boot", "built_iso_forensics",
+        "artifact"
     ]))
     and .validation.build_environment == "pass"
     and .validation.installer_config == "pass"
     and .validation.iso_profile == "pass"
     and .validation.built_iso_identity == "pass"
     and .validation.built_iso_boot == "pass"
+    and .validation.built_iso_forensics == "pass"
     and .validation.artifact == "pass"
     and .mkarchiso_exit_code == 0
     and .artifact_candidate_count == 1

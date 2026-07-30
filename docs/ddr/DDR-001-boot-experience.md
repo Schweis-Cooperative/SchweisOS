@@ -119,7 +119,9 @@ evidence: `img_dev` plus `img_loop` identifies the outer-GRUB ISO-file
 handoff, while `archisosearchuuid` without them identifies the native search
 and fallback path. Before either path is tested, the copied ISO must be the
 only SchweisOS ISO on the medium and must match the validated source by
-basename, size, SHA256, and byte comparison.
+basename, size, SHA256, and byte comparison. All live entries request
+Archiso `checksum=y` verification so a bad media read is reported as rootfs
+integrity evidence before the kernel attempts to mount the SquashFS live root.
 
 ### Branded Plymouth Splash
 
@@ -162,7 +164,10 @@ Both entries use `systemd.firstboot=no`. The live root supplies the same neutral
 `LANG=C.UTF-8` and UTC defaults as upstream Archiso. This prevents the generic
 systemd locale, keymap, timezone, and root-password questionnaire from blocking
 the graphical live session; those choices belong to the Calamares installer
-flow.
+flow. Both entries also use `checksum=y`, which keeps the polished boot
+experience honest: if the USB copy or multiboot read path corrupts
+`airootfs.sfs`, Archiso stops with integrity evidence instead of presenting a
+later ambiguous SquashFS mount failure.
 
 ### Automatic Failure Reveal
 
@@ -246,6 +251,7 @@ UEFI firmware
   -> SchweisOS Live entry
   -> Linux kernel and Archiso initramfs
   -> mkinitcpio kms + plymouth + archiso_loop_mnt + ISO-file fallback contract
+  -> Archiso verifies airootfs.sfs checksum
   -> SchweisOS Plymouth theme
   -> Archiso mounts live root
   -> neutral C.UTF-8/UTC live defaults; interactive systemd-firstboot disabled
@@ -274,6 +280,7 @@ UEFI firmware
   -> /schweis/boot/x86_64/vmlinuz-linux
   -> /schweis/boot/x86_64/initramfs-linux.img
   -> archiso_loop_mnt turns img_dev/img_loop into the ISO loop device
+  -> Archiso verifies airootfs.sfs checksum
   -> Archiso mounts the ISO through img_dev/img_loop
   -> the same Plymouth, SDDM, and Plasma path as native live boot
 ```

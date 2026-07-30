@@ -38,6 +38,7 @@ iso_path="$(readlink -f -- "$iso_path")"
 profile_dir="${project_root}/iso/profiles/kde"
 profiledef="${profile_dir}/profiledef.sh"
 branding_dir="${project_root}/packages/schweisos-branding"
+installer_config_dir="${project_root}/packages/schweisos-calamares-config"
 canonical_logo="${project_root}/branding/assets/logo/schweisos.png"
 [[ -f "$profiledef" && -f "$canonical_logo" ]] || fail 'canonical boot sources are missing'
 
@@ -50,6 +51,16 @@ branding_epoch="$(awk -F ' = ' '$1 == "\tepoch" { print $2; exit }' <<<"$brandin
 expected_branding_version="${branding_pkgver}-${branding_pkgrel}"
 if [[ -n "$branding_epoch" && "$branding_epoch" != 0 ]]; then
     expected_branding_version="${branding_epoch}:${expected_branding_version}"
+fi
+installer_config_srcinfo="$(cd -- "$installer_config_dir" && makepkg --printsrcinfo)"
+installer_config_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' <<<"$installer_config_srcinfo")"
+installer_config_pkgrel="$(awk -F ' = ' '$1 == "\tpkgrel" { print $2; exit }' <<<"$installer_config_srcinfo")"
+installer_config_epoch="$(awk -F ' = ' '$1 == "\tepoch" { print $2; exit }' <<<"$installer_config_srcinfo")"
+[[ -n "$installer_config_pkgver" && -n "$installer_config_pkgrel" ]] || \
+    fail 'source schweisos-calamares-config version is unreadable'
+expected_installer_config_version="${installer_config_pkgver}-${installer_config_pkgrel}"
+if [[ -n "$installer_config_epoch" && "$installer_config_epoch" != 0 ]]; then
+    expected_installer_config_version="${installer_config_epoch}:${expected_installer_config_version}"
 fi
 
 install_dir="$(
@@ -123,6 +134,8 @@ for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
     firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
     [[ "$firstboot_options" == systemd.firstboot=no ]] || \
         fail "${entry_name} does not disable interactive systemd-firstboot exactly once"
+    [[ " $options " == *' checksum=y '* ]] || \
+        fail "${entry_name} must request Archiso rootfs checksum verification"
     case "$entry_name" in
         01-schweisos-linux.conf)
             [[ " $options " == *' quiet '* && " $options " == *' splash '* \
@@ -169,6 +182,30 @@ cmp -s "$canonical_logo" "$runtime_logo" || \
 [[ ! -e "${rootfs}/usr/share/schweisos/branding/schweisos-logo.png" \
     && ! -L "${rootfs}/usr/share/schweisos/branding/schweisos-logo.png" ]] || \
     fail 'stale runtime logo path is present in the built ISO'
+
+mapfile -t installer_config_records < <(
+    find "${rootfs}/var/lib/pacman/local" -mindepth 1 -maxdepth 1 -type d \
+        -name 'schweisos-calamares-config-*' -print | sort
+)
+(( ${#installer_config_records[@]} == 1 )) || \
+    fail "expected one installed schweisos-calamares-config record; found ${#installer_config_records[@]}"
+installer_config_desc="${installer_config_records[0]}/desc"
+installed_installer_config_name="$(awk '$0 == "%NAME%" { getline; print; exit }' "$installer_config_desc")"
+installed_installer_config_version="$(awk '$0 == "%VERSION%" { getline; print; exit }' "$installer_config_desc")"
+[[ "$installed_installer_config_name" == schweisos-calamares-config ]] || \
+    fail 'installed schweisos-calamares-config metadata is invalid'
+[[ "$installed_installer_config_version" == "$expected_installer_config_version" ]] || \
+    fail "ISO contains schweisos-calamares-config ${installed_installer_config_version}; source requires ${expected_installer_config_version}"
+
+installer_welcome="${rootfs}/etc/calamares/modules/welcome.conf"
+[[ -f "$installer_welcome" && ! -L "$installer_welcome" ]] || \
+    fail 'built live root is missing Calamares welcome.conf'
+cmp -s "${installer_config_dir}/welcome.conf" "$installer_welcome" || \
+    fail 'built Calamares welcome.conf differs from the package source'
+if grep -Eq '^[[:space:]]*internetCheckUrl:|^[[:space:]]*-[[:space:]]*internet[[:space:]]*$' \
+    "$installer_welcome"; then
+    fail 'built Calamares welcome requirements still block offline installation'
+fi
 
 rootfs_payloads=(
     etc/hostname

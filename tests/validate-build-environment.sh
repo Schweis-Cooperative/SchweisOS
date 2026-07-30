@@ -374,6 +374,11 @@ required_executables=(
     iso/profiles/kde/airootfs/usr/lib/schweisos-live/plymouth-watchdog
     scripts/build-iso.sh
     scripts/create-release-artifacts.sh
+    scripts/schweisos-doctor
+    scripts/test-dd.sh
+    scripts/test-iso.sh
+    scripts/test-qemu.sh
+    scripts/test-ventoy.sh
     tests/install-local-bootstrap-packages.sh
     tests/test-boot-media-copy.sh
     tests/test-installer-experience.sh

@@ -1,6 +1,6 @@
 # ADR-017 Live ISO Loopback Boot Compatibility
 
-Version: 1.3
+Version: 1.4
 
 ## Status
 
@@ -103,6 +103,26 @@ Ventoy is therefore not sufficient evidence that the intended ISO was booted.
 The exact media copy must be bound to the validated source artifact before a
 hardware result can be attributed to current code.
 
+Later hardware evidence reached a different layer: the ISO file was found, the
+Archiso hooks ran, the root filesystem image was copied to RAM, but the kernel
+failed to mount the copied SquashFS image with an xattr metadata error:
+
+```text
+fsconfig() failed: unable to read xattr id index table
+ERROR: Failed to mount /dev/loop0
+```
+
+Static inspection of the tested local ISO proved that `airootfs.sfs` itself
+matched its embedded `airootfs.sha512`, passed a SquashFS stream test, and
+contained a real SquashFS xattr table at the end of the image. Local kernel
+loop-mounting of the same extracted file succeeded. The same hardware logs also
+showed a dirty exFAT Ventoy partition warning before the Archiso search. This
+changes the safety contract: SchweisOS must request Archiso's built-in
+`checksum=y` rootfs verification on every native and loopback live entry so a
+bad media read or stale/corrupt copy fails before the kernel tries to mount a
+partially read SquashFS image. This does not hide media failure or strip xattrs;
+it makes the failure earlier, attributable, and tied to the source ISO hash.
+
 `loopback.cfg` is the upstream Archiso-compatible contract for an outer GRUB
 that elects to consume it. It is not a guarantee about Ventoy's internal mode
 selection. Ventoy's documented GRUB2 mode searches supported `grub.cfg`
@@ -139,6 +159,8 @@ The profile-owned loopback file will:
   the ISO file;
 - pass `img_loop="${iso_path}"` so the Archiso initramfs can mount the ISO
   file provided by the multiboot tool;
+- pass `checksum=y` so Archiso verifies `airootfs.sfs` against the embedded
+  SHA512 before mounting the live root;
 - preserve `systemd.firstboot=no` on both entries;
 - preserve the quiet Plymouth default and the visible debug fallback entry;
 - provide only small utility entries that are safe in GRUB loopback context.
@@ -147,7 +169,7 @@ The live initramfs hook list will include `archiso_loop_mnt` immediately after
 `archiso` and SchweisOS' ISO-file fallback hook immediately after
 `archiso_loop_mnt`. The native systemd-boot entries continue to use
 `archisosearchuuid=%ARCHISO_UUID%`, matching upstream Archiso's native
-search-marker behavior.
+search-marker behavior, and also request `checksum=y`.
 
 The SchweisOS fallback hook is intentionally narrow:
 
@@ -186,20 +208,24 @@ build manifest, the completed source ISO named by that manifest, and the
 destination copy. The manifest commit must equal the clean validator checkout's
 current commit. The source must also pass the current built-ISO identity and
 boot-composition validators, including SquashFS and installer payload
-inspection. After copying, the medium must be synchronized, safely unmounted,
-physically reinserted, and mounted read-only for validation. The destination
-must be on an available block-device filesystem distinct from the host root
-filesystem, contain exactly one `schweisos-*.iso`, retain the canonical
-basename, and match source size, SHA256, and bytes. This gate is writing-tool
-agnostic within that file-copy scope: it verifies the result on Ventoy or
-another file-based multiboot medium instead of changing the ISO for a
-particular copy utility.
+inspection. `scripts/schweisos-doctor` is the read-only forensic layer for this
+contract: it verifies ISO boot layout, native and loopback command lines,
+embedded `airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, and
+the Calamares offline welcome policy. After copying, the medium must be
+synchronized, safely unmounted, physically reinserted, and mounted read-only
+for validation. The destination must be on an available block-device filesystem
+distinct from the host root filesystem, contain exactly one `schweisos-*.iso`,
+retain the canonical basename, and match source size, SHA256, and bytes. This
+gate is writing-tool agnostic within that file-copy scope: it verifies the
+result on Ventoy or another file-based multiboot medium instead of changing
+the ISO for a particular copy utility.
 
 Raw-device imaging with `dd`, Etcher, or a comparable whole-image writer is a
 different evidence shape because there is no mounted destination ISO file to
 compare. This file-copy validator must not be advertised as proof for that
 path; raw-device qualification requires a separately documented device-range
-readback procedure.
+readback procedure. `scripts/test-dd.sh` owns that read-only prefix-hash
+procedure for whole-image USB writes.
 
 This decision does not enable Archiso's `uefi.grub` boot mode, add the `grub`
 package to the live ISO, create a full `/boot/grub/grub.cfg`, add BIOS support,
@@ -304,6 +330,9 @@ Positive consequences:
 - Completed ISO validation now checks the bootloader-visible ISO root, ISO
   volume label, UUID marker, native command lines, loopback command lines, and
   initramfs hook list before expensive SquashFS inspection.
+- Native and loopback live entries now ask Archiso to verify the root
+  filesystem image before mounting it, so stale or corrupt media is reported as
+  an integrity failure instead of a later SquashFS mount symptom.
 
 Negative consequences:
 
@@ -320,6 +349,8 @@ Negative consequences:
 - Exact source-to-media verification reads the completed ISO twice and scans
   the destination filesystem for stale SchweisOS ISO copies before every
   attributed hardware test.
+- Boot-time checksum verification adds startup I/O and may fail on media that
+  previously reached a later, less clear kernel mount error.
 
 ## Validation
 
@@ -331,7 +362,7 @@ Pre-build validation must fail closed if:
   contract;
 - the loopback normal/debug entries stop using the reviewed kernel or initramfs
   paths;
-- either entry omits `archisobasedir`, `img_dev`, `img_loop`, or
+- either entry omits `archisobasedir`, `img_dev`, `img_loop`, `checksum=y`, or
   `systemd.firstboot=no`;
 - the live mkinitcpio hook list omits `archiso_loop_mnt` after `archiso` or
   `schweisos_iso_file_fallback` after `archiso_loop_mnt`;
@@ -354,6 +385,7 @@ Completed ISO validation must fail closed if:
   catalog, or exactly one Archiso UUID marker;
 - the ISO volume label, `grubenv` label, native `archisosearchuuid`, and UUID
   marker metadata no longer agree;
+- any native or loopback live entry omits `checksum=y`;
 - the ISO UUID marker is not raw-discoverable by the initramfs fallback scan;
 - the live initramfs omits `archiso_loop_mnt` or
   `schweisos_iso_file_fallback`;
@@ -377,6 +409,15 @@ File-based multiboot media validation must fail closed if:
 - the source or destination has a non-canonical or different basename;
 - the destination medium contains zero or multiple SchweisOS ISOs;
 - source and destination size, SHA256, or byte comparison differs.
+
+Forensic ISO diagnostics must fail closed if:
+
+- `airootfs.sfs` does not match the embedded `airootfs.sha512`;
+- the SquashFS superblock or xattr metadata cannot be parsed;
+- the Calamares configuration package in the ISO is older than the repository
+  source or the built `welcome.conf` still contains an internet gate;
+- a static ISO carries boot command lines that do not request checksum
+  verification.
 
 Manual Ventoy hardware boot remains required release evidence. The evidence
 must record the preceding synchronize, safe-unmount, physical-reinsert, and

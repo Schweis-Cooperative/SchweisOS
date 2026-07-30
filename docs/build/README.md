@@ -111,6 +111,7 @@ safe path and log initialization
   -> mkarchiso
   -> built-ISO identity validation
   -> built-ISO boot/root/initramfs validation
+  -> built-ISO forensic doctor validation
   -> artifact checksum validation
   -> final build manifest
 ```
@@ -123,8 +124,8 @@ A failed gate prevents every later gate from running. In particular:
   and never invokes `mkarchiso`.
 - A failed profile gate never invokes `mkarchiso`.
 - A nonzero `mkarchiso` result never becomes an artifact-validation success.
-- A built identity or boot-payload failure prevents checksum publication and
-  leaves the build attempt failed.
+- A built identity, boot-payload, or forensic doctor failure prevents checksum
+  publication and leaves the build attempt failed.
 - A checksum failure makes the complete build fail.
 
 Run the canonical workflow from the repository root:
@@ -328,10 +329,13 @@ measured.
 
 Before checksums are published, `validate-built-iso-identity.sh` verifies the
 installed release identity and `validate-built-iso-boot.sh` verifies the
-resolved branding version and logo, live defaults, systemd units, Plasma
-session, and the Plymouth theme/script/plugin/logo inside the initramfs. Both
-validators use ignored, per-run work directories and remove only their own
-temporary extraction state.
+resolved branding and installer configuration versions, live defaults, systemd
+units, Plasma session, and the Plymouth theme/script/plugin/logo inside the
+initramfs. `scripts/schweisos-doctor` then performs read-only completed-ISO
+forensics: ISO boot layout, native and loopback command lines, embedded
+`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, and
+Calamares offline welcome policy. These gates use ignored work or temporary
+directories and remove only their own extraction state.
 
 SHA256 generation and verification are mandatory for ISO build output. The
 atomic `.sha256` sidecar contains only the ISO basename and is verified both
@@ -353,8 +357,8 @@ view. Earlier per-run evidence is not overwritten. The schema identifier is
 - Archiso version, `SOURCE_DATE_EPOCH`, its origin, build mode, and the
   profile.
 - Expected artifact name and candidate count.
-- Environment, profile, built-ISO identity, built-ISO boot, and aggregate
-  artifact validation states.
+- Environment, installer, profile, built-ISO identity, built-ISO boot,
+  built-ISO forensics, and aggregate artifact validation states.
 - `mkarchiso` exit status when invoked.
 - Artifact basename, size, SHA256, and BLAKE2b-512 when available during the
   build.
@@ -378,9 +382,9 @@ artifact_candidate_count, artifact, build_log, failure_code
 The nested objects are also exact: `git` contains only `commit`,
 `dirty_at_start`, and `dirty_at_finish`; `host` contains only `id` and
 `architecture`; `validation` contains only `build_environment`,
-`installer_config`, `iso_profile`, `built_iso_identity`, `built_iso_boot`, and
-`artifact`; and the artifact object contains only `name`, `size_bytes`,
-`sha256`, `blake2b_512`, and `sha256_file`.
+`installer_config`, `iso_profile`, `built_iso_identity`, `built_iso_boot`,
+`built_iso_forensics`, and `artifact`; and the artifact object contains only
+`name`, `size_bytes`, `sha256`, `blake2b_512`, and `sha256_file`.
 
 `tests/validate-iso-build-manifest.sh` owns the completed-success contract. It
 requires the file to byte-match its `jq --indent 2` normalization and rejects

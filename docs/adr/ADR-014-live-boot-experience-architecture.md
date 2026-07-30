@@ -62,9 +62,9 @@ The profile will:
   boot entry;
 - keep a separate debug entry without `quiet` or `splash`, with verbose kernel
   logging and visible systemd status;
-- set `systemd.firstboot=no` on both entries, provide the upstream Archiso
-  `LANG=C.UTF-8` and UTC live defaults, and reserve locale, timezone, keymap,
-  account, and storage choices for the installer;
+- set `checksum=y` and `systemd.firstboot=no` on both entries, provide the
+  upstream Archiso `LANG=C.UTF-8` and UTC live defaults, and reserve locale,
+  timezone, keymap, account, and storage choices for the installer;
 - include the upstream Arch `plymouth` package in the live package set;
 - add upstream mkinitcpio `kms`, `plymouth`, and `archiso_loop_mnt` hooks plus
   the narrow SchweisOS `schweisos_iso_file_fallback` hook to the live
@@ -209,6 +209,9 @@ Positive consequences:
 - The fallback avoids unconditional loop-module loading in the normal path,
   reducing misleading initramfs diagnostics during file-based multiboot
   recovery.
+- Native and loopback entries ask Archiso to verify `airootfs.sfs` before
+  mounting it, making stale or corrupt USB/media reads visible as integrity
+  failures instead of late SquashFS mount errors.
 - Source/package version drift and missing canonical branding payloads stop the
   build before Archiso can compose a stale splash.
 - Post-build validation proves that the built root and initramfs contain the

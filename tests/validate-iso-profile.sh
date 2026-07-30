@@ -379,6 +379,8 @@ for entry_name in "${efi_entries[@]}"; do
     fail "${entry_name} is missing archisobasedir"
   [[ " $options " == *' archisosearchuuid=%ARCHISO_UUID% '* ]] || \
     fail "${entry_name} is missing archisosearchuuid"
+  [[ " $options " == *' checksum=y '* ]] || \
+    fail "${entry_name} must request Archiso rootfs checksum verification"
   firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
   [[ "$firstboot_options" == 'systemd.firstboot=no' ]] || \
     fail "${entry_name} must disable interactive systemd-firstboot exactly once"
@@ -469,6 +471,8 @@ for loopback_line in "$normal_loopback_linux" "$debug_loopback_linux"; do
     fail 'loopback entry is missing img_dev UUID handoff'
   [[ " $loopback_line " == *' img_loop="${iso_path}" '* ]] || \
     fail 'loopback entry is missing img_loop handoff'
+  [[ " $loopback_line " == *' checksum=y '* ]] || \
+    fail 'loopback entry must request Archiso rootfs checksum verification'
   [[ " $loopback_line " == *' systemd.firstboot=no '* ]] || \
     fail 'loopback entry must disable interactive systemd-firstboot'
 done

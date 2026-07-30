@@ -146,6 +146,7 @@ installer_validation=not_run
 profile_validation=not_run
 built_identity_validation=not_run
 built_boot_validation=not_run
+built_forensics_validation=not_run
 artifact_validation=not_run
 mkarchiso_exit_code=''
 source_date_epoch=''
@@ -233,6 +234,7 @@ write_manifest_target() {
         printf '    "iso_profile": %s,\n' "$(json_string "$profile_validation")"
         printf '    "built_iso_identity": %s,\n' "$(json_string "$built_identity_validation")"
         printf '    "built_iso_boot": %s,\n' "$(json_string "$built_boot_validation")"
+        printf '    "built_iso_forensics": %s,\n' "$(json_string "$built_forensics_validation")"
         printf '    "artifact": %s\n' "$(json_string "$artifact_validation")"
         printf '  },\n'
         printf '  "mkarchiso_exit_code": %s,\n' "$(json_number_or_null "$mkarchiso_exit_code")"
@@ -379,6 +381,7 @@ installer_validator="${repo_root}/tests/validate-installer-config.sh"
 profile_validator="${repo_root}/tests/validate-iso-profile.sh"
 built_identity_validator="${repo_root}/tests/validate-built-iso-identity.sh"
 built_boot_validator="${repo_root}/tests/validate-built-iso-boot.sh"
+iso_doctor="${repo_root}/scripts/schweisos-doctor"
 
 current_stage=build_environment_validation
 checkpoint_manifest
@@ -694,6 +697,19 @@ if ! "$built_boot_validator" "$artifact_path"; then
     exit 1
 fi
 built_boot_validation=pass
+checkpoint_manifest
+
+current_stage=built_iso_forensic_diagnostics
+checkpoint_manifest
+if ! "$iso_doctor" --iso "$artifact_path"; then
+    built_forensics_validation=fail
+    artifact_validation=fail
+    failure_code=built_iso_forensic_diagnostics_failed
+    checkpoint_manifest
+    error 'Built ISO forensic diagnostics failed; checksums were not published.'
+    exit 1
+fi
+built_forensics_validation=pass
 checkpoint_manifest
 
 current_stage=artifact_checksum_validation

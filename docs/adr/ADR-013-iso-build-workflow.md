@@ -276,8 +276,8 @@ It:
   state.
 - Validates generated artifact identity, the bootloader-visible loopback
   handoff, Ventoy/native ISO-file fallback payload, live root, initramfs boot
-  payload, embedded SquashFS integrity/xattr metadata, Calamares installer
-  payload freshness, and checksums, then atomically records a
+  payload, embedded SquashFS integrity and no-xattrs metadata, Calamares
+  installer payload freshness, and checksums, then atomically records a
   privacy-minimized build manifest.
 
 It must not:

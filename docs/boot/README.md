@@ -138,8 +138,9 @@ scripts/test-iso.sh /path/to/schweisos-2026.07.27-x86_64.iso
 
 That wrapper runs the built-image identity, boot-composition, loopback, and
 `schweisos-doctor` inspections. `schweisos-doctor` proves the ISO root layout,
-native and loopback command lines, embedded SquashFS SHA512, SquashFS xattr
-metadata, package inventory, and Calamares welcome policy. It is static
+native and loopback command lines, embedded SquashFS SHA512, SquashFS
+superblock metadata with xattrs disabled, package inventory, and Calamares
+welcome policy. It is static
 evidence; it does not replace a firmware, Ventoy, VM, or hardware boot.
 
 ## Plymouth

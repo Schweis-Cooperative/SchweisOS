@@ -120,8 +120,16 @@ showed a dirty exFAT Ventoy partition warning before the Archiso search. This
 changes the safety contract: SchweisOS must request Archiso's built-in
 `checksum=y` rootfs verification on every native and loopback live entry so a
 bad media read or stale/corrupt copy fails before the kernel tries to mount a
-partially read SquashFS image. This does not hide media failure or strip xattrs;
-it makes the failure earlier, attributable, and tied to the source ISO hash.
+partially read SquashFS image.
+
+The same evidence also changes the live-SquashFS metadata contract. The Faz 1
+installed system is not cloned from the live root; it is produced by `pacstrap`
+from signed repositories. Live-root package xattrs therefore are not migration
+state for the installed system. To remove the observed kernel mount failure
+class from file-based USB boot paths, the live `airootfs.sfs` is generated with
+`-no-xattrs`. Built-ISO validation and `schweisos-doctor` must fail closed if a
+future image contains a SquashFS xattr table again. This is a live-media
+compatibility policy, not a weakening of installed-system package semantics.
 
 `loopback.cfg` is the upstream Archiso-compatible contract for an outer GRUB
 that elects to consume it. It is not a guarantee about Ventoy's internal mode
@@ -210,8 +218,9 @@ current commit. The source must also pass the current built-ISO identity and
 boot-composition validators, including SquashFS and installer payload
 inspection. `scripts/schweisos-doctor` is the read-only forensic layer for this
 contract: it verifies ISO boot layout, native and loopback command lines,
-embedded `airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, and
-the Calamares offline welcome policy. After copying, the medium must be
+embedded `airootfs.sfs` SHA512, SquashFS superblock metadata with xattrs
+disabled, package inventory, and the Calamares offline welcome policy. After
+copying, the medium must be
 synchronized, safely unmounted, physically reinserted, and mounted read-only
 for validation. The destination must be on an available block-device filesystem
 distinct from the host root filesystem, contain exactly one `schweisos-*.iso`,
@@ -413,7 +422,8 @@ File-based multiboot media validation must fail closed if:
 Forensic ISO diagnostics must fail closed if:
 
 - `airootfs.sfs` does not match the embedded `airootfs.sha512`;
-- the SquashFS superblock or xattr metadata cannot be parsed;
+- the SquashFS superblock cannot be parsed or the image contains an xattr
+  table;
 - the Calamares configuration package in the ISO is older than the repository
   source or the built `welcome.conf` still contains an internet gate;
 - a static ISO carries boot command lines that do not request checksum

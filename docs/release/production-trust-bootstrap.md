@@ -146,8 +146,9 @@ For each signed repository generation:
     requires another disk-backed extraction location. The identity gate extracts
     without restoring SquashFS xattrs because it checks identity ownership, not
     Linux capability policy. The doctor separately verifies the embedded
-    SquashFS SHA512 and parses SquashFS xattr metadata. The boot gate verifies
-    the selected branding and installer configuration packages, live defaults,
+    SquashFS SHA512 and enforces the live-media no-xattrs SquashFS contract.
+    The boot gate verifies the selected branding and installer configuration
+    packages, live defaults,
     merged systemd units, Plasma handoff inputs, and actual Plymouth/initramfs
     payload.
 

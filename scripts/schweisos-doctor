@@ -16,7 +16,7 @@ Usage: scripts/schweisos-doctor --iso ISO_PATH
 Read-only ISO diagnostics:
   - ISO root layout, kernel, initramfs, EFI, GRUB loopback, and UUID marker
   - Archiso native and loopback kernel command line contracts
-  - airootfs.sfs SHA512 and SquashFS superblock/xattr metadata
+  - airootfs.sfs SHA512 and SquashFS superblock/no-xattrs policy
   - installed Calamares package versions and offline welcome policy
 
 This is static forensic evidence. It does not replace QEMU, Ventoy, dd, or
@@ -318,6 +318,15 @@ PY
             while IFS= read -r line; do
                 pass "SquashFS ${line}"
             done <"${tmp_dir}/squashfs-superblock.txt"
+            squashfs_xattrs="$(
+                awk -F '=' '$1 == "xattrs" { print $2; exit }' \
+                    "${tmp_dir}/squashfs-superblock.txt"
+            )"
+            if [[ "$squashfs_xattrs" == no ]]; then
+                pass 'SquashFS xattrs are disabled for live-media kernel mount compatibility'
+            else
+                fail 'SquashFS xattrs must be disabled; kernel mount path can fail on the xattr id table'
+            fi
         else
             fail 'SquashFS superblock could not be parsed'
         fi

@@ -333,9 +333,10 @@ resolved branding and installer configuration versions, live defaults, systemd
 units, Plasma session, and the Plymouth theme/script/plugin/logo inside the
 initramfs. `scripts/schweisos-doctor` then performs read-only completed-ISO
 forensics: ISO boot layout, native and loopback command lines, embedded
-`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, and
-Calamares offline welcome policy. These gates use ignored work or temporary
-directories and remove only their own extraction state.
+`airootfs.sfs` SHA512, SquashFS superblock metadata with live-media xattrs
+disabled, package inventory, and Calamares offline welcome policy. These gates
+use ignored work or temporary directories and remove only their own extraction
+state.
 
 SHA256 generation and verification are mandatory for ISO build output. The
 atomic `.sha256` sidecar contains only the ISO basename and is verified both

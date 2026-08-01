@@ -70,10 +70,10 @@ host and repository prerequisites.
 ```
 
 It checks ISO boot layout, native and loopback command lines, embedded
-`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, installed
-Calamares configuration version, and offline welcome policy. `test-iso.sh`
-runs the completed-ISO bootloader, identity, boot-composition, and doctor
-checks as one static gate.
+`airootfs.sfs` SHA512, SquashFS superblock metadata with live-media xattrs
+disabled, package inventory, installed Calamares configuration version, and
+offline welcome policy. `test-iso.sh` runs the completed-ISO bootloader,
+identity, boot-composition, and doctor checks as one static gate.
 
 `test-ventoy.sh` is the file-based multiboot evidence wrapper. It first runs
 the ISO doctor on the source artifact, then binds the synchronized,

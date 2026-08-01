@@ -211,11 +211,11 @@ scripts/schweisos-doctor --iso out/iso/schweisos-2026.07.27-x86_64.iso
 ```
 
 It checks ISO boot layout, native and loopback command lines, embedded
-`airootfs.sfs` SHA512, SquashFS xattr metadata, package inventory, the
-installed Calamares configuration version, and whether `welcome.conf` still
-contains an internet gate. `scripts/test-iso.sh` runs the completed-ISO
-bootloader, identity, boot-composition, and doctor checks together. It is
-static evidence and does not boot the image.
+`airootfs.sfs` SHA512, SquashFS superblock metadata with live-media xattrs
+disabled, package inventory, the installed Calamares configuration version, and
+whether `welcome.conf` still contains an internet gate. `scripts/test-iso.sh`
+runs the completed-ISO bootloader, identity, boot-composition, and doctor
+checks together. It is static evidence and does not boot the image.
 
 `scripts/test-ventoy.sh` combines doctor evidence with the mounted-file media
 copy validator:

@@ -18,7 +18,7 @@ fail() {
 iso_path=$1
 
 for tool in awk bash bsdtar chmod cmp find git grep lsinitcpio makepkg mkdir \
-    mktemp readlink rm sha256sum sort stat systemd-analyze unsquashfs; do
+    mktemp python3 readlink rm sha256sum sort stat systemd-analyze unsquashfs; do
     type -P "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
 done
 
@@ -153,6 +153,22 @@ done
 bsdtar -xOf "$iso_path" "$squashfs_member" >"${tmp_dir}/airootfs.sfs" || \
     fail 'unable to extract the airootfs SquashFS'
 [[ -s "${tmp_dir}/airootfs.sfs" ]] || fail 'extracted airootfs SquashFS is empty'
+python3 - "${tmp_dir}/airootfs.sfs" <<'PY' >"${tmp_dir}/squashfs-xattrs"
+import struct
+import sys
+
+path = sys.argv[1]
+fmt = '<IIIIIHHHHHHQQQQQQQQ'
+with open(path, 'rb') as handle:
+    data = handle.read(struct.calcsize(fmt))
+values = struct.unpack(fmt, data)
+if values[0] != 0x73717368:
+    raise SystemExit('not a SquashFS v4 image')
+xattr_id_table_start = values[14]
+print('yes' if xattr_id_table_start != 0xffffffffffffffff else 'no')
+PY
+[[ "$(<"${tmp_dir}/squashfs-xattrs")" == no ]] || \
+    fail 'built airootfs SquashFS must be generated with -no-xattrs for live-media kernel mount compatibility'
 unsquashfs -no-progress -no-xattrs -d "${tmp_dir}/rootfs" \
     "${tmp_dir}/airootfs.sfs" >/dev/null
 rootfs="${tmp_dir}/rootfs"

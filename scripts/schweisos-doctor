@@ -336,6 +336,7 @@ PY
 fi
 
 welcome_file="${tmp_dir}/welcome.conf"
+preflight_file="${tmp_dir}/shellprocess-preflight.conf"
 if [[ -s "${tmp_dir}/airootfs.sfs" ]]; then
     if type -P 7z >/dev/null 2>&1; then
         rm -rf -- "${tmp_dir}/sfs-select"
@@ -344,9 +345,15 @@ if [[ -s "${tmp_dir}/airootfs.sfs" ]]; then
             etc/calamares/modules/welcome.conf >/dev/null; then
             cp -- "${tmp_dir}/sfs-select/etc/calamares/modules/welcome.conf" "$welcome_file"
         fi
+        if 7z x -y -o"${tmp_dir}/sfs-select" "${tmp_dir}/airootfs.sfs" \
+            etc/calamares/modules/shellprocess-preflight.conf >/dev/null; then
+            cp -- "${tmp_dir}/sfs-select/etc/calamares/modules/shellprocess-preflight.conf" "$preflight_file"
+        fi
     elif type -P unsquashfs >/dev/null 2>&1; then
         unsquashfs -cat "${tmp_dir}/airootfs.sfs" etc/calamares/modules/welcome.conf \
             >"$welcome_file" 2>/dev/null || true
+        unsquashfs -cat "${tmp_dir}/airootfs.sfs" etc/calamares/modules/shellprocess-preflight.conf \
+            >"$preflight_file" 2>/dev/null || true
     fi
 fi
 if [[ -s "$welcome_file" ]]; then
@@ -359,6 +366,16 @@ if [[ -s "$welcome_file" ]]; then
     fi
 else
     warn 'Calamares welcome.conf could not be extracted; run completed built-ISO validator on build host'
+fi
+if [[ -s "$preflight_file" ]]; then
+    pass 'Calamares preflight shellprocess extracted from SquashFS'
+    if grep -Fq '${ROOT}' "$preflight_file"; then
+        fail 'Calamares preflight runs before mount and must not consume ${ROOT}'
+    else
+        pass 'Calamares preflight does not consume the pre-mount ROOT variable'
+    fi
+else
+    warn 'Calamares preflight shellprocess could not be extracted; run completed built-ISO validator on build host'
 fi
 
 if type -P lsinitcpio >/dev/null 2>&1 && [[ -n "$install_dir" ]]; then

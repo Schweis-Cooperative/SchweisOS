@@ -206,6 +206,14 @@ if grep -Eq '^[[:space:]]*internetCheckUrl:|^[[:space:]]*-[[:space:]]*internet[[
     "$installer_welcome"; then
     fail 'built Calamares welcome requirements still block offline installation'
 fi
+installer_preflight="${rootfs}/etc/calamares/modules/shellprocess-preflight.conf"
+[[ -f "$installer_preflight" && ! -L "$installer_preflight" ]] || \
+    fail 'built live root is missing Calamares preflight shellprocess'
+cmp -s "${installer_config_dir}/shellprocess-preflight.conf" "$installer_preflight" || \
+    fail 'built Calamares preflight shellprocess differs from the package source'
+if grep -Fq '${ROOT}' "$installer_preflight"; then
+    fail 'built Calamares preflight runs before mount and must not consume ${ROOT}'
+fi
 
 rootfs_payloads=(
     etc/hostname

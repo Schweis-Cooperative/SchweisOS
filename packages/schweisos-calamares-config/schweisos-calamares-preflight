@@ -5,10 +5,8 @@ set -euo pipefail
 
 export LC_ALL=C
 
-target_root=${1:?target root argument is required}
-
-if [[ "$target_root" == / || -z "$target_root" ]]; then
-  printf 'schweisos installer preflight: unsafe target root\n' >&2
+if (( $# != 0 )); then
+  printf 'schweisos installer preflight: unexpected argument; target root is not available before Calamares mount\n' >&2
   exit 1
 fi
 

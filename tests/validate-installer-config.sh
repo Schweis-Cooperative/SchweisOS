@@ -209,8 +209,15 @@ grep -Fq '  style: none' "${package_dir}/locale.conf" || \
 
 grep -R --line-number '@@ROOT@@' "$package_dir" && \
   fail 'Calamares configuration must use ${ROOT}, not legacy @@ROOT@@'
-grep -R --line-number '\${ROOT}' "${package_dir}"/shellprocess-*.conf >/dev/null || \
-  fail 'shellprocess modules must pass the Calamares target root'
+! grep -Fq '${ROOT}' "${package_dir}/shellprocess-preflight.conf" || \
+  fail 'pre-mount Calamares preflight must not consume ${ROOT}'
+grep -Fq 'target root is not available before Calamares mount' \
+  "${package_dir}/schweisos-calamares-preflight" || \
+  fail 'preflight helper must reject accidental target-root arguments'
+for mounted_shellprocess in pacstrap pacman systemd-boot services; do
+  grep -Fq '${ROOT}' "${package_dir}/shellprocess-${mounted_shellprocess}.conf" || \
+    fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
+done
 
 grep -Fq 'pacstrap -K -C "$pacman_config" "$target_root"' \
   "${package_dir}/schweisos-calamares-pacstrap" || \

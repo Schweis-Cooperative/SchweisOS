@@ -390,6 +390,10 @@ bridge for Calamares 3.4's privileged UI. Launcher failures create a private
 local diagnostic log and a visible KDE error dialog instead of disappearing.
 The same package owns Calamares' SchweisOS branding descriptor and required
 slideshow resource, both installed under `/etc/calamares/branding/schweisos/`.
+The branding descriptor uses the canonical logo as a compact welcome banner and
+does not use the large centered `productWelcome` image. The package-owned QML
+slideshow supplies the welcome copy and contributors list while continuing to
+reference only canonical runtime branding assets.
 This user-facing contract is defined in
 [DDR-002 Installer Experience](../ddr/DDR-002-installer-experience.md).
 

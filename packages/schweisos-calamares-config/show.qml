@@ -12,6 +12,7 @@ Item {
     readonly property color accent: "#0b8fe8"
     readonly property color foreground: "#f4f8fc"
     readonly property url logoSource: "file:///usr/share/schweisos/branding/schweisos.png"
+    readonly property var contributors: ["Marijua"]
 
     Rectangle {
         anchors.fill: parent
@@ -52,31 +53,10 @@ Item {
         spacing: Math.max(22, parent.height * 0.035)
         width: Math.min(parent.width * 0.68, 620)
 
-        Image {
-            id: logo
-
-            anchors.horizontalCenter: parent.horizontalCenter
-            source: root.logoSource
-            sourceSize.width: 128
-            sourceSize.height: 128
-            width: 128
-            height: 128
-            fillMode: Image.PreserveAspectFit
-            smooth: true
-            mipmap: true
-            opacity: 0.96
-
-            SequentialAnimation on opacity {
-                loops: Animation.Infinite
-                NumberAnimation { to: 1.0; duration: 1800; easing.type: Easing.InOutSine }
-                NumberAnimation { to: 0.86; duration: 1800; easing.type: Easing.InOutSine }
-            }
-        }
-
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             color: root.foreground
-            text: "Installing SchweisOS"
+            text: "Welcome to SchweisOS"
             font.pixelSize: 26
             font.weight: Font.Medium
             horizontalAlignment: Text.AlignHCenter
@@ -87,11 +67,50 @@ Item {
             width: parent.width
             anchors.horizontalCenter: parent.horizontalCenter
             color: "#a9bed2"
-            text: "Preparing a clean, package-owned Arch-based system."
+            text: "A clean, package-owned Arch-based desktop focused on user control, transparency, and maintainable defaults."
             font.pixelSize: 15
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             renderType: Text.NativeRendering
+        }
+
+        Rectangle {
+            width: Math.min(parent.width, 520)
+            height: contributorColumn.height + 28
+            anchors.horizontalCenter: parent.horizontalCenter
+            radius: 14
+            color: "#0b1d36"
+            border.color: "#173d63"
+            border.width: 1
+            opacity: 0.94
+
+            Column {
+                id: contributorColumn
+
+                anchors.centerIn: parent
+                width: parent.width - 40
+                spacing: 8
+
+                Text {
+                    width: parent.width
+                    color: root.foreground
+                    text: "Contributors"
+                    font.pixelSize: 16
+                    font.weight: Font.Medium
+                    horizontalAlignment: Text.AlignHCenter
+                    renderType: Text.NativeRendering
+                }
+
+                Text {
+                    width: parent.width
+                    color: "#a9bed2"
+                    text: root.contributors.join(" · ")
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    renderType: Text.NativeRendering
+                }
+            }
         }
 
         Item {

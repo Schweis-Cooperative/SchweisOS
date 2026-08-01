@@ -191,8 +191,13 @@ grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'
 require_contains "$calamares_branding" 'productLogo: "/usr/share/schweisos/branding/schweisos.png"'
 require_contains "$calamares_branding" 'productIcon: "/usr/share/schweisos/branding/schweisos.png"'
-require_contains "$calamares_branding" 'productWelcome: "/usr/share/schweisos/branding/schweisos.png"'
+require_contains "$calamares_branding" 'productBanner: "/usr/share/schweisos/branding/schweisos.png"'
+if grep -Fq 'productWelcome:' "$calamares_branding"; then
+    fail 'runtime Calamares branding must not display the large centered productWelcome logo'
+fi
 require_contains "$calamares_slideshow" 'file:///usr/share/schweisos/branding/schweisos.png'
+require_contains "$calamares_slideshow" 'readonly property var contributors: ["Marijua"]'
+require_contains "$calamares_slideshow" 'Welcome to SchweisOS'
 noncanonical_qml_source="$(
     grep -E 'source:[[:space:]]*"' "$calamares_slideshow" \
         | grep -Fv 'file:///usr/share/schweisos/branding/schweisos.png' || true

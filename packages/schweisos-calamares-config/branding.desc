@@ -24,9 +24,9 @@ strings:
   releaseNotesUrl: "https://docs.schweisos.org"
 
 images:
+  productBanner: "/usr/share/schweisos/branding/schweisos.png"
   productLogo: "/usr/share/schweisos/branding/schweisos.png"
   productIcon: "/usr/share/schweisos/branding/schweisos.png"
-  productWelcome: "/usr/share/schweisos/branding/schweisos.png"
 
 slideshow: "show.qml"
 

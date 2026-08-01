@@ -325,17 +325,23 @@ for policy_fragment in \
     fail "installer Polkit policy is missing: ${policy_fragment}"
 done
 for branding_fragment in \
+  'productBanner: "/usr/share/schweisos/branding/schweisos.png"' \
   'productLogo: "/usr/share/schweisos/branding/schweisos.png"' \
   'productIcon: "/usr/share/schweisos/branding/schweisos.png"' \
-  'productWelcome: "/usr/share/schweisos/branding/schweisos.png"' \
   'slideshow: "show.qml"' \
   'SidebarBackground: "#051022"' \
   'SidebarTextCurrent: "#ffffff"'; do
   grep -Fq "$branding_fragment" "${package_dir}/branding.desc" || \
     fail "Calamares branding contract is missing: ${branding_fragment}"
 done
+! grep -Fq 'productWelcome:' "${package_dir}/branding.desc" || \
+  fail 'Calamares welcome page must not display the large centered productWelcome logo'
 grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' \
   "${package_dir}/show.qml" || fail 'Calamares slideshow must reference the canonical runtime logo'
+grep -Fq 'readonly property var contributors: ["Marijua"]' "${package_dir}/show.qml" || \
+  fail 'Calamares slideshow must expose the current contributors list'
+grep -Fq 'Welcome to SchweisOS' "${package_dir}/show.qml" || \
+  fail 'Calamares slideshow must include the SchweisOS welcome message'
 noncanonical_qml_source="$(
   grep -E 'source:[[:space:]]*"' "${package_dir}/show.qml" \
     | grep -Fv 'file:///usr/share/schweisos/branding/schweisos.png' || true

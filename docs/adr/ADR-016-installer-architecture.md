@@ -98,6 +98,13 @@ overlay or desktop-menu precedence assumption. `schweisos-calamares-config`
 owns the public launcher, a hidden first-session XDG autostart entry, an
 exact-path Polkit action, and the bounded privilege/display helper.
 
+Installer presentation remains package-owned rather than profile-owned. The
+SchweisOS Calamares branding descriptor uses the canonical runtime logo as a
+compact `productBanner`, keeps product icon/sidebar logo references on the same
+canonical asset, deliberately omits the oversized `productWelcome` image, and
+ships a text-first QML slideshow with the SchweisOS welcome message and current
+contributors list.
+
 Calamares 3.4 still runs its UI as root. The packaged helper accepts no
 arguments, removes unsafe loader/plugin environment variables, and forces the
 Qt `xcb` backend. Polkit's `allow_gui` annotation carries the live session's
@@ -319,7 +326,9 @@ The installer configuration validator must fail closed if:
   Archiso `airootfs` mountpoint, or SchweisOS `archisobasedir` evidence;
 - any installer launch path depends on transient `/run/archiso/bootmnt`;
 - Calamares branding omits the required slideshow contract, uses invalid
-  schema keys, or uses a non-canonical logo path;
+  schema keys, uses a non-canonical logo path, displays the large
+  `productWelcome` welcome image, or omits the package-owned welcome message
+  and contributors list;
 - package source checksums are skipped;
 - Calamares configuration is not package-owned under `/etc/calamares`;
 - the ISO profile omits required installer packages;

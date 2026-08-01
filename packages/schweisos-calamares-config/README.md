@@ -92,9 +92,17 @@ display authorization, prevents concurrent instances, captures a private
 launch log, and displays a KDE error dialog for launch or runtime failures.
 
 The branding component includes both the required `slideshow` key in
-`branding.desc` and a package-owned `show.qml` resource. The QML slideshow is
-loaded by Calamares during execution pages and references only the canonical
-runtime SchweisOS logo at `/usr/share/schweisos/branding/schweisos.png`.
+`branding.desc` and a package-owned `show.qml` resource. The welcome page uses
+Calamares' compact `productBanner` image and deliberately omits the large
+centered `productWelcome` image, so the installer presents SchweisOS as a
+professional product rather than a splash screen inside the wizard. All
+installer artwork still references only the canonical runtime SchweisOS logo at
+`/usr/share/schweisos/branding/schweisos.png`.
+
+The QML slideshow is text-first, loaded by Calamares during execution pages,
+and carries the current contributors list. The initial list contains `Marijua`
+and is intentionally data-local to the package so future contributors can be
+added without duplicating artwork or changing installer launch policy.
 
 The welcome page deliberately does not require Calamares' internet probe.
 That probe can false-negative independently of the user's actual network

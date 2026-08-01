@@ -368,8 +368,17 @@ grep -Fq 'org.freedesktop.policykit.exec.allow_gui">true</annotate>' "$installer
     fail 'built installer Polkit policy cannot carry display authorization'
 grep -Fxq 'slideshow: "show.qml"' "$installer_branding" || \
     fail 'built installer branding omits the Calamares slideshow contract'
+grep -Fq 'productBanner: "/usr/share/schweisos/branding/schweisos.png"' "$installer_branding" || \
+    fail 'built installer branding must use the canonical logo as a small welcome banner'
+if grep -Fq 'productWelcome:' "$installer_branding"; then
+    fail 'built installer branding must not display the large centered productWelcome logo'
+fi
 grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' "$installer_slideshow" || \
     fail 'built installer slideshow does not reference the canonical runtime logo'
+grep -Fq 'readonly property var contributors: ["Marijua"]' "$installer_slideshow" || \
+    fail 'built installer slideshow does not expose the current contributors list'
+grep -Fq 'Welcome to SchweisOS' "$installer_slideshow" || \
+    fail 'built installer slideshow omits the SchweisOS welcome message'
 generic_installer_entry="$(grep -RIl --include='*.desktop' \
     '^Name=Install System$' "${rootfs}/usr/share/applications" \
     "${rootfs}/usr/local/share/applications" 2>/dev/null || true)"

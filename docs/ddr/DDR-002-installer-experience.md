@@ -112,15 +112,21 @@ failure in the journal when `systemd-cat` is available. No log is uploaded.
 
 Calamares uses its native, upstream-maintained widget layout with a centered
 1000x680 window. Its welcome, window, and sidebar colors use Calamares 3.4's
-case-sensitive schema. Product icon, sidebar logo, and welcome image all refer
-to `/usr/share/schweisos/branding/schweisos.png`, which is owned by
+case-sensitive schema. Product icon, sidebar logo, and compact welcome banner
+all refer to `/usr/share/schweisos/branding/schweisos.png`, which is owned by
 `schweisos-branding` and originates from the one canonical repository logo.
+The large centered `productWelcome` image is deliberately omitted because it
+made the first screen feel like an oversized logo placeholder instead of a
+professional installer welcome.
 
 The branding component also includes Calamares' required `slideshow` key and a
 SchweisOS-owned `show.qml` resource. The slideshow is deliberately small:
 Calamares owns the progress-page container, while SchweisOS owns only a branded
-QML presentation that uses the same canonical runtime logo path and avoids
-duplicated artwork.
+QML presentation that uses the same canonical runtime logo path, avoids
+duplicated artwork, introduces the system in plain language, and exposes the
+current contributors list. The first contributors list contains `Marijua` and
+is package-owned so it can grow without altering the launcher or boot
+architecture.
 
 ## User Flow
 
@@ -179,6 +185,10 @@ Static validation must reject:
 - a Polkit action without an exact executable path and `allow_gui` annotation;
 - missing XWayland or visible-error dependencies;
 - invalid Calamares branding keys or non-canonical logo references;
+- a large `productWelcome` image on the welcome page instead of the compact
+  canonical banner;
+- a slideshow without the SchweisOS welcome message or current contributors
+  list;
 - launcher/autostart sources installed with the wrong package modes;
 - installer payload copied into `airootfs/`.
 

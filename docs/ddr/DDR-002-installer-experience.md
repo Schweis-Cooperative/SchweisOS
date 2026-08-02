@@ -144,11 +144,13 @@ boot architecture.
 
 ### Offline Software Selection
 
-The ISO carries the complete supported browser, kernel, and optional-feature
-universe. Required single-choice pages select exactly one browser and one
-kernel. Firefox is the browser default. Linux Zen is the desktop/gaming-focused
-default and is visibly marked recommended; standard, LTS, and hardened Arch
-kernels remain alternatives.
+The ISO carries Firefox as the fixed Faz 1 browser plus the complete supported
+kernel and optional-feature universe. The installer does not show a separate
+browser page until additional browser packages are owned by accepted Arch or
+SchweisOS repository sources. A required single-choice page selects exactly
+one kernel. Linux Zen is the desktop/gaming-focused default and is visibly
+marked recommended; standard, LTS, and hardened Arch kernels remain
+alternatives.
 
 Optional feature groups are bounded, repository-backed, and described in terms
 of purpose and important limitations. They do not expose AUR, Flatpak, or
@@ -185,7 +187,7 @@ Plasma live session
   -> SchweisOS launcher preflight
   -> exact-path Polkit authorization
   -> Calamares over XWayland
-  -> browser, kernel, and optional-feature selection
+  -> kernel and optional-feature selection
   -> unpack verified live payload and reconcile target
   -> close or complete installation
   -> no automatic reopen

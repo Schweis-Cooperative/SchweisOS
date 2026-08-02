@@ -51,13 +51,14 @@ installation.
 
 The reconciliation helper is fail-closed and declarative:
 
-1. It accepts only enumerated browser, kernel, and feature-set identifiers
-   produced by packaged Calamares chooser instances.
+1. It accepts the fixed Firefox browser identifier plus only enumerated kernel
+   and feature-set identifiers produced by packaged Calamares chooser
+   instances.
 2. It removes the exact, reviewed Archiso-only package set and exact
    profile-owned live paths.
-3. It removes unselected top-level browser, kernel, and optional-feature
-   packages from the target with pacman, preserving dependency checks and
-   pacman hooks.
+3. It removes unsupported browser payload, unselected kernels, and unselected
+   optional-feature packages from the target with pacman, preserving dependency
+   checks and pacman hooks.
 4. It removes the ephemeral `live` account and home.
 5. It marks the required target manifest and selected packages explicit.
 6. It records a non-secret installation selection manifest under
@@ -70,11 +71,13 @@ frontend. A choice may be displayed only when all of its packages come from
 the official Arch repositories or the signed SchweisOS repository used by the
 ISO build.
 
-Browser selection is single-choice. Faz 1 offers Firefox, Chromium, and Falkon
-because they are available from the accepted repository trust domains.
-LibreWolf, Floorp, Zen Browser, and Brave are not exposed until SchweisOS has a
-separately accepted, maintainable package source for them. The installer must
-not silently translate those names to AUR helpers or third-party binary
+Browser selection is not exposed as a separate Faz 1 page. Firefox is the fixed
+installed browser because it is available from the accepted repository trust
+domains and has broad compatibility. Chromium, Chrome, Edge, Opera, and
+unowned external binary channels are not presented. LibreWolf, Floorp, Zen
+Browser, Waterfox, Mullvad Browser, and Brave are not exposed until SchweisOS
+has a separately accepted, maintainable package source for them. The installer
+must not silently translate those names to AUR helpers or third-party binary
 downloads.
 
 Kernel selection is single-choice. `linux-zen` is the default and is labelled

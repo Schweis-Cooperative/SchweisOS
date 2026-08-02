@@ -47,7 +47,6 @@ required_files=(
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
-  "${package_dir}/packagechooser-browser.conf"
   "${package_dir}/packagechooser-kernel.conf"
   "${package_dir}/packagechooser-extras.conf"
   "${package_dir}/partition.conf"
@@ -222,11 +221,13 @@ grep -Fq "  versionedName: \"SchweisOS ${release_pkgver}\"" "${package_dir}/bran
 grep -Fq 'shellprocess@preflight' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must include preflight'
 for required_sequence in \
-  welcomeq packagechooser@browser packagechooser@kernel packagechooser@extras \
+  welcomeq packagechooser@kernel packagechooser@extras \
   unpackfs shellprocess@reconcile; do
   grep -Fq -- "- ${required_sequence}" "${package_dir}/settings.conf" || \
     fail "Calamares sequence is missing: ${required_sequence}"
 done
+! grep -Fq 'packagechooser@browser' "${package_dir}/settings.conf" || \
+  fail 'browser selection must not be a separate installer page in Phase 1'
 grep -Fq 'shellprocess@systemd-boot' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must install systemd-boot'
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(displaymanager|networkcfg)[[:space:]]*$' \
@@ -267,14 +268,10 @@ for mounted_shellprocess in reconcile pacman systemd-boot services; do
     fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
 done
 
-for chooser in browser kernel extras; do
+for chooser in kernel extras; do
   grep -Fxq 'method: legacy' "${package_dir}/packagechooser-${chooser}.conf" || \
     fail "package chooser must use the audited legacy GlobalStorage contract: ${chooser}"
 done
-grep -Fxq 'mode: required' "${package_dir}/packagechooser-browser.conf" || \
-  fail 'browser chooser must require exactly one selection'
-grep -Fxq 'default: firefox' "${package_dir}/packagechooser-browser.conf" || \
-  fail 'Firefox must remain the default browser selection'
 grep -Fxq 'mode: required' "${package_dir}/packagechooser-kernel.conf" || \
   fail 'kernel chooser must require exactly one selection'
 grep -Fxq 'default: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
@@ -285,12 +282,17 @@ grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must copy the mounted, validated Archiso root'
 grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must treat the mounted Archiso root as a directory payload'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+! grep -Fq '${gs[packagechooser_browser]}' "${package_dir}/shellprocess-reconcile.conf" || \
+  fail 'reconciliation must not depend on a removed browser GlobalStorage key'
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}' \
+  "${package_dir}/shellprocess-reconcile.conf" || \
+  fail 'reconciliation must pass the fixed Phase 1 Firefox browser contract'
+for selection_key in packagechooser_kernel packagechooser_extras; do
   grep -Fq "\${gs[${selection_key}]}" "${package_dir}/shellprocess-reconcile.conf" || \
     fail "reconciliation shellprocess is missing GlobalStorage selection: ${selection_key}"
 done
 for reconciliation_fragment in \
-  'firefox|chromium|falkon' \
+  'firefox) ;;' \
   'linux|linux-lts|linux-zen|linux-hardened' \
   'arch-install-scripts' \
   'schweisos-calamares-config' \
@@ -503,7 +505,7 @@ for dynamic_target_package in \
   firefox chromium falkon linux linux-lts linux-zen linux-hardened \
   distrobox podman firewalld plasma-firewall xorg-xwayland; do
   ! grep -Fxq "$dynamic_target_package" "${tmp_dir}/target-packages.normalized" || \
-    fail "dynamic target package must be owned by a chooser: ${dynamic_target_package}"
+    fail "dynamic target package must be owned by the fixed selection or a chooser: ${dynamic_target_package}"
 done
 for forbidden_target_package in calamares schweisos-calamares-config mkinitcpio-archiso plymouth; do
   ! grep -Fxq "$forbidden_target_package" "${tmp_dir}/target-packages.normalized" || \
@@ -512,10 +514,14 @@ done
 
 for live_package in \
   arch-install-scripts btrfs-progs calamares dosfstools efibootmgr \
-  schweisos-calamares-config chromium falkon firefox linux linux-lts linux-zen \
+  schweisos-calamares-config firefox linux linux-lts linux-zen \
   linux-hardened firewalld plasma-firewall distrobox podman xorg-xwayland; do
   grep -Fxq "$live_package" "$profile_packages" || \
     fail "installer live package is missing from ISO profile: ${live_package}"
+done
+for forbidden_live_package in chromium falkon; do
+  ! grep -Fxq "$forbidden_live_package" "$profile_packages" || \
+    fail "unsupported browser must not be part of the Phase 1 ISO payload: ${forbidden_live_package}"
 done
 
 grep -Fq 'ADR-016 Installer Architecture' "${project_root}/docs/adr/README.md" || \

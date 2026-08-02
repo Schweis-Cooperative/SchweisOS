@@ -53,7 +53,7 @@ The accepted MVP path is:
 Live ISO
   -> Calamares
   -> UEFI validation
-  -> browser, kernel, and optional-feature selection
+  -> kernel and optional-feature selection
   -> partition and mount target
   -> unpack the verified live root
   -> reconcile packages and remove exact live-only state
@@ -72,11 +72,13 @@ future/alternative installed-system path and is not activated by this package.
 
 ## Software Selection Contract
 
-The browser and kernel pages are mandatory single-choice steps. Firefox is the
-default browser. Linux Zen is the SchweisOS default kernel and is visibly
+Firefox is the fixed Faz 1 installed browser. The installer does not expose a
+separate browser page until additional browser packages are owned by accepted
+Arch or SchweisOS repository sources. The kernel page is a mandatory
+single-choice step. Linux Zen is the SchweisOS default kernel and is visibly
 marked recommended; standard, LTS, and hardened Arch kernels remain explicit
-alternatives. Unselected browsers and kernels are removed from the copied
-payload.
+alternatives. Unselected kernels and unsupported browser payload are removed
+from the copied payload.
 
 The optional-feature page exposes package groups for privacy, security,
 gaming, development, virtualization, multimedia, office, international fonts,

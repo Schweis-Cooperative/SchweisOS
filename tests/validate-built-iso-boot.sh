@@ -231,7 +231,6 @@ installed_installer_config_version="$(awk '$0 == "%VERSION%" { getline; print; e
 
 for installer_module in \
     welcomeq.conf \
-    packagechooser-browser.conf \
     packagechooser-kernel.conf \
     packagechooser-extras.conf \
     unpackfs.conf \
@@ -376,7 +375,6 @@ installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
 installer_slideshow="${rootfs}/etc/calamares/branding/schweisos/show.qml"
 installer_welcome_qml="${rootfs}/etc/calamares/branding/schweisos/welcomeq.qml"
 installer_settings="${rootfs}/etc/calamares/settings.conf"
-installer_browser_chooser="${rootfs}/etc/calamares/modules/packagechooser-browser.conf"
 installer_kernel_chooser="${rootfs}/etc/calamares/modules/packagechooser-kernel.conf"
 installer_extras_chooser="${rootfs}/etc/calamares/modules/packagechooser-extras.conf"
 installer_unpackfs="${rootfs}/etc/calamares/modules/unpackfs.conf"
@@ -393,7 +391,6 @@ for installer_payload in \
     "$installer_slideshow" \
     "$installer_welcome_qml" \
     "$installer_settings" \
-    "$installer_browser_chooser" \
     "$installer_kernel_chooser" \
     "$installer_extras_chooser" \
     "$installer_unpackfs" \
@@ -468,7 +465,6 @@ if grep -Eq 'Image[[:space:]]*\{' "$installer_welcome_qml"; then
 fi
 for module in \
     welcomeq \
-    packagechooser@browser \
     packagechooser@kernel \
     packagechooser@extras \
     unpackfs \
@@ -476,8 +472,12 @@ for module in \
     grep -Fxq "      - ${module}" "$installer_settings" || \
         fail "built Calamares settings omit required module: ${module}"
 done
-grep -Fxq 'default: firefox' "$installer_browser_chooser" || \
-    fail 'built installer browser default is not Firefox'
+if grep -Fq 'packagechooser@browser' "$installer_settings"; then
+    fail 'built Calamares settings expose a removed browser page'
+fi
+if [[ -e "${rootfs}/etc/calamares/modules/packagechooser-browser.conf" ]]; then
+    fail 'built live root retains removed browser chooser configuration'
+fi
 grep -Fxq 'default: linux-zen' "$installer_kernel_chooser" || \
     fail 'built installer kernel default is not Linux Zen'
 grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
@@ -490,7 +490,13 @@ grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || 
     fail 'built target reconciliation omits X11 compatibility mapping'
 grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
     fail 'built installer does not copy the verified Archiso root'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+if grep -Fq '${gs[packagechooser_browser]}' "$installer_reconcile_config"; then
+    fail 'built target reconciliation depends on a removed browser GlobalStorage key'
+fi
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}' \
+    "$installer_reconcile_config" || \
+    fail 'built target reconciliation does not pass the fixed Phase 1 Firefox browser contract'
+for selection_key in packagechooser_kernel packagechooser_extras; do
     grep -Fq "\${gs[${selection_key}]}" "$installer_reconcile_config" || \
         fail "built target reconciliation omits selection: ${selection_key}"
 done

@@ -80,6 +80,7 @@ fi
 
 require_absent_path usr/share/applications/calamares.desktop
 require_absent_path usr/local/share/applications/calamares.desktop
+require_absent_path etc/calamares/modules/packagechooser-browser.conf
 
 calamares_bin="$(relative_file usr/bin/calamares)"
 installer_launcher="$(relative_file usr/share/applications/schweisos-installer.desktop)"
@@ -96,7 +97,6 @@ calamares_branding="$(relative_file etc/calamares/branding/schweisos/branding.de
 calamares_slideshow="$(relative_file etc/calamares/branding/schweisos/show.qml)"
 calamares_welcome_qml="$(relative_file etc/calamares/branding/schweisos/welcomeq.qml)"
 calamares_welcome_config="$(relative_file etc/calamares/modules/welcomeq.conf)"
-calamares_browser_chooser="$(relative_file etc/calamares/modules/packagechooser-browser.conf)"
 calamares_kernel_chooser="$(relative_file etc/calamares/modules/packagechooser-kernel.conf)"
 calamares_extras_chooser="$(relative_file etc/calamares/modules/packagechooser-extras.conf)"
 calamares_unpackfs="$(relative_file etc/calamares/modules/unpackfs.conf)"
@@ -121,7 +121,6 @@ require_mode "$calamares_branding" 644
 require_mode "$calamares_slideshow" 644
 require_mode "$calamares_welcome_qml" 644
 require_mode "$calamares_welcome_config" 644
-require_mode "$calamares_browser_chooser" 644
 require_mode "$calamares_kernel_chooser" 644
 require_mode "$calamares_extras_chooser" 644
 require_mode "$calamares_unpackfs" 644
@@ -212,7 +211,6 @@ grep -Fxq 'branding: schweisos' "$calamares_settings" || \
     fail 'runtime Calamares settings do not select SchweisOS branding'
 for module in \
     welcomeq \
-    packagechooser@browser \
     packagechooser@kernel \
     packagechooser@extras \
     unpackfs \
@@ -220,6 +218,9 @@ for module in \
     grep -Fxq "      - ${module}" "$calamares_settings" || \
         fail "runtime Calamares settings omit required module: ${module}"
 done
+if grep -Fq 'packagechooser@browser' "$calamares_settings"; then
+    fail 'runtime Calamares settings must not expose a separate browser page'
+fi
 grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'
 require_contains "$calamares_branding" 'productLogo: "/usr/share/schweisos/branding/schweisos.png"'
@@ -263,10 +264,6 @@ if awk '
     fail 'runtime Calamares welcome page makes internet connectivity mandatory'
 fi
 require_contains "$calamares_welcome_config" 'internetCheckUrl: "https://schweisos.org/"'
-grep -Fxq 'mode: required' "$calamares_browser_chooser" || \
-    fail 'runtime browser chooser is not mandatory'
-grep -Fxq 'default: firefox' "$calamares_browser_chooser" || \
-    fail 'runtime browser chooser default is not Firefox'
 grep -Fxq 'mode: required' "$calamares_kernel_chooser" || \
     fail 'runtime kernel chooser is not mandatory'
 grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
@@ -278,7 +275,11 @@ require_contains "$calamares_extras_chooser" 'id: x11-compatibility'
 require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
 require_contains "$calamares_unpackfs" 'sourcefs: "file"'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+if grep -Fq '${gs[packagechooser_browser]}' "$calamares_reconcile_config"; then
+    fail 'runtime reconciliation depends on a removed browser GlobalStorage key'
+fi
+require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}'
+for selection_key in packagechooser_kernel packagechooser_extras; do
     require_contains "$calamares_reconcile_config" "\${gs[${selection_key}]}"
 done
 require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT}'
@@ -299,7 +300,6 @@ for owned_path in \
     etc/calamares/branding/schweisos/branding.desc \
     etc/calamares/branding/schweisos/show.qml \
     etc/calamares/branding/schweisos/welcomeq.qml \
-    etc/calamares/modules/packagechooser-browser.conf \
     etc/calamares/modules/packagechooser-kernel.conf \
     etc/calamares/modules/packagechooser-extras.conf \
     etc/calamares/modules/unpackfs.conf \

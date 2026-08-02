@@ -36,8 +36,8 @@ Implemented in source:
 - Active live-boot-media filtering so the USB or file-backed medium that
   started the live system is not exposed as an installation target.
 - Target package manifest for a minimal KDE Plasma daily-use system.
-- Mandatory browser and kernel selection, with Firefox and Linux Zen as the
-  documented defaults.
+- Fixed Firefox browser payload and mandatory kernel selection, with Linux Zen
+  as the documented default.
 - Optional, described software groups backed entirely by packages already on
   the live medium.
 - Target pacman include configuration for the SchweisOS signed repository.
@@ -56,9 +56,9 @@ Not yet fully qualified:
 
 - Graphical installation in the complete VM and hardware matrix.
 - First boot of an installed system across the documented storage scenarios.
-- Runtime qualification of every browser, kernel, and optional-feature
-  combination. The source contract and offline payload are implemented, but a
-  static validator is not installation-completion evidence.
+- Runtime qualification of every kernel and optional-feature combination. The
+  source contract and offline payload are implemented, but a static validator
+  is not installation-completion evidence.
 
 ## Runbooks
 
@@ -77,7 +77,7 @@ Live ISO
   -> exact-path Polkit / XWayland bridge
   -> Calamares
   -> UEFI preflight
-  -> browser, kernel, and optional-feature selection
+  -> kernel and optional-feature selection
   -> partition and mount
   -> unpack the signature-verified live root
   -> reconcile packages and remove exact live-only state

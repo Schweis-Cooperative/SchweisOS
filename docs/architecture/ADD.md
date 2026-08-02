@@ -406,8 +406,8 @@ theme.
 The target system is populated from the signature-verified live SquashFS with
 Calamares' upstream `unpackfs` module. A package-owned, fail-closed
 reconciliation step removes the exact Archiso-only package and file allowlist,
-the ephemeral live account, unselected browser and kernel alternatives, and
-unselected optional feature sets. This provides an offline installation
+the ephemeral live account, unsupported browser payload, unselected kernel
+alternatives, and unselected optional feature sets. This provides an offline installation
 payload without adding an unsigned repository or a second package manager.
 The complete contract and rollback are defined in
 [ADR-018 Installer Payload and Selection Architecture](../adr/ADR-018-installer-payload-and-selection-architecture.md).

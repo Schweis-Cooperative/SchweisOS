@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=13
+pkgrel=14
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -44,7 +44,6 @@ source=(
   'finished.conf'
   'fstab.conf'
   'locale.conf'
-  'packagechooser-browser.conf'
   'packagechooser-kernel.conf'
   'packagechooser-extras.conf'
   'partition.conf'
@@ -71,15 +70,14 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('44aa9b3220eb3a09d17ca76cc89bb1bdbfa0c87f031922a3a14a719297452cd2'
-            '72671ad5771a0d3e3154247cfa6021ab23afd79a1d42c9dd8b3be712b50eec66'
+sha256sums=('9c4604e7ebcc496f840d9d29ff6dd0a9b658f37100e702e22af151b2ef08bd31'
+            '48dcb172a29c7e0a247bf00c3f28ebf43cfeeb324c7c152236ffaaa8ac57219f'
             'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
             '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
-            '17d5d8fd597ac63c56ace6b2b196811d8481ac8772578914793764ed17989fc7'
+            '386df793135b4eae980c65d0aa6323bbdc739db291ca054cf259a3e7d482219b'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
-            'c0d74f0b6ea79ff8e6eed34be1c491cfb7b347e67b33faf2b120ce8080b757c7'
             '8bbb588f9cca61d630ba583015fda992877806dbeff72e8e00cb7861201d7ae2'
             'f512dfa1bc32b997849136f18d6437f131cac7d0a2a9a7a67abad50a5237d55a'
             '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
@@ -87,7 +85,7 @@ sha256sums=('44aa9b3220eb3a09d17ca76cc89bb1bdbfa0c87f031922a3a14a719297452cd2'
             '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
             '37610d934a204b1d64b92112769bafa32ff7c0615c9b3350a08aefe9b804892c'
             '6709e001d4e1bc291d82b52ade98915c3a10934d0a68c05ab970b4f4bd4110e1'
-            '2151a92180acd0570286347a0092e98fa3d125a077d1e967c02eb03ab7333db2'
+            '34fe76b06a140f60e526104a04bb9a090f056c00b0acb3c51d6fd2eeabdd65fd'
             '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
             'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
@@ -100,7 +98,7 @@ sha256sums=('44aa9b3220eb3a09d17ca76cc89bb1bdbfa0c87f031922a3a14a719297452cd2'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
             'aec4b01ff61ff1670396be7a59682ea96dc775660122f2b3cd05a84248952343'
             'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
-            '6fc07f5f72a3d204db8f855c2ca80a471c72b47f5e1aa5105a550f752c26fc35'
+            '05edddf0a0559bc52833cc6dec8d10052b4c78a74787fcdb3fb387a7eafc1706'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
             '402bd743b7583b900bc6c0c82e6de5d2af08f082393c6cf729c092efad199c0f'
             '797adf182bffb4c500cc1d34fdabbc6a0ab86f797e7504326c0801102d72e45f'
@@ -122,8 +120,6 @@ package() {
     "${pkgdir}/etc/calamares/modules/fstab.conf"
   install -Dm644 "${srcdir}/locale.conf" \
     "${pkgdir}/etc/calamares/modules/locale.conf"
-  install -Dm644 "${srcdir}/packagechooser-browser.conf" \
-    "${pkgdir}/etc/calamares/modules/packagechooser-browser.conf"
   install -Dm644 "${srcdir}/packagechooser-kernel.conf" \
     "${pkgdir}/etc/calamares/modules/packagechooser-kernel.conf"
   install -Dm644 "${srcdir}/packagechooser-extras.conf" \

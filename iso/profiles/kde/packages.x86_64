@@ -14,11 +14,9 @@ zstd
 # CPU microcode is hardware-specific and must be selected by the installer or
 # build workflow. Do not install intel-ucode and amd-ucode together by default.
 
-# Minimal KDE live desktop and offline browser choices
-chromium
+# Minimal KDE live desktop and Phase 1 supported browser
 discover
 dolphin
-falkon
 firefox
 kate
 kinfocenter

@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 ## Purpose
 
-SchweisOS lets users choose a browser, kernel, and bounded set of optional
+SchweisOS lets users choose a kernel and bounded set of optional
 features without turning installation into an unreviewed package manager. The
 selection model preserves Arch package semantics, works without network
 access, and keeps the trust boundary visible.
@@ -25,7 +25,9 @@ After Calamares mounts the target, upstream `unpackfs` copies that payload. The
 SchweisOS reconciliation helper then:
 
 1. validates every selection identifier;
-2. removes unselected browsers, kernels, and optional groups;
+2. removes unselected kernels, optional groups, and unsupported browser payload
+   if it ever enters the live root through a dependency or old repository
+   generation;
 3. removes Calamares, Archiso construction packages, the live account, and an
    exact list of live-only files;
 4. verifies every required and selected package remains installed;
@@ -35,17 +37,18 @@ SchweisOS reconciliation helper then:
 
 Any missing selected package or unknown identifier stops installation.
 
-## Required Choices
+## Required Payload and Choices
 
 ### Browser
 
-- Firefox — default; broad compatibility, privacy controls, and sustained Arch
-  support.
-- Chromium — open-source Chromium engine and web-application compatibility.
-- Falkon — lightweight KDE browser with Plasma integration.
-
-Exactly one remains installed. Browser projects that are not available from an
-accepted repository are not presented as fictitious choices.
+Firefox is the fixed Faz 1 installed browser. It provides broad compatibility,
+privacy controls, and sustained Arch support while keeping the installer UI
+simple. Chromium, Chrome, Edge, Opera, and unowned external binary channels are
+not presented. Firefox-family alternatives such as LibreWolf, Zen Browser,
+Floorp, Waterfox, Mullvad Browser, and Brave require separate SchweisOS package
+ownership or a documented accepted repository before they can become selectable.
+Browser projects that are not available from an accepted repository are not
+presented as fictitious choices.
 
 ### Kernel
 
@@ -56,8 +59,8 @@ accepted repository are not presented as fictitious choices.
 - Linux Hardened — additional hardening with an explicit compatibility
   tradeoff.
 
-Exactly one remains installed. systemd-boot entries and initramfs generation
-use the selected kernel name.
+Exactly one kernel remains installed. systemd-boot entries and initramfs
+generation use the selected kernel name.
 
 ## Optional Feature Groups
 

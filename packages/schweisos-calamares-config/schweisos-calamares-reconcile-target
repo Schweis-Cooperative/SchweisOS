@@ -28,7 +28,7 @@ findmnt --mountpoint "$target_root" >/dev/null 2>&1 || \
   die 'required target manifest is missing or unsafe'
 
 case "$browser" in
-  firefox|chromium|falkon) ;;
+  firefox) ;;
   *) die "unknown browser selection: ${browser}" ;;
 esac
 

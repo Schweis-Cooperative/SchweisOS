@@ -113,8 +113,8 @@ successful clean build manifest and its exact completed source ISO:
 ```bash
 tests/validate-boot-media-copy.sh \
   logs/iso/build-manifest.json \
-  /path/to/validated/schweisos-2026.07.27-x86_64.iso \
-  /path/to/mounted-media/schweisos-2026.07.27-x86_64.iso
+  /path/to/validated/schweisos-YYYY.MM.DD-x86_64.iso \
+  /path/to/mounted-media/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 This gate is independent of Ventoy or the file-copy tool. A PASS proves that
@@ -139,7 +139,7 @@ device's partitions are unmounted.
 For completed ISO forensics, run:
 
 ```bash
-scripts/test-iso.sh /path/to/schweisos-2026.07.27-x86_64.iso
+scripts/test-iso.sh /path/to/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 That wrapper runs the built-image identity, boot-composition, loopback, and

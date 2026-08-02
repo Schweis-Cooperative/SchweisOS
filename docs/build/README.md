@@ -284,8 +284,8 @@ snapshotting and measured comparisons belong to later release engineering.
 
 A successful build for the current release profile is configured to produce:
 
-- `out/iso/schweisos-2026.07.27-x86_64.iso`
-- `out/iso/schweisos-2026.07.27-x86_64.iso.sha256`
+- `out/iso/schweisos-YYYY.MM.DD-x86_64.iso`
+- `out/iso/schweisos-YYYY.MM.DD-x86_64.iso.sha256`
 - `work/iso/kde/build_date`
 - reusable content in `cache/pacman/`
 - `logs/iso/build-<id>.log`

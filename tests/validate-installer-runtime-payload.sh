@@ -87,6 +87,7 @@ installer_autostart="$(relative_file etc/xdg/autostart/schweisos-installer-autos
 installer_wrapper="$(relative_file usr/bin/schweisos-installer)"
 installer_autostart_helper="$(relative_file usr/lib/schweisos-calamares/autostart)"
 installer_live_session_helper="$(relative_file usr/lib/schweisos-calamares/is-live-session)"
+installer_network_helper="$(relative_file usr/lib/schweisos-calamares/network-status)"
 installer_root_helper="$(relative_file usr/lib/schweisos-calamares/launch-root)"
 installer_policy="$(relative_file usr/share/polkit-1/actions/org.schweisos.installer.policy)"
 live_profile_marker="$(relative_file usr/lib/schweisos-live/session)"
@@ -235,10 +236,20 @@ if grep -Fq 'Contributor' "$calamares_slideshow"; then
 fi
 for welcome_fragment in \
     'Welcome to SchweisOS' \
+    'schweisosInternetAvailable' \
+    'file:///run/schweisos-installer/network-state' \
     'Network.hasInternet' \
     'Offline installation is fully available.' \
     'Maintained by Marijua'; do
     require_contains "$calamares_welcome_qml" "$welcome_fragment"
+done
+require_contains "$installer_root_helper" '/usr/lib/schweisos-calamares/network-status || true'
+for network_fragment in \
+    'https://schweisos.org/' \
+    'https://archlinux.org/' \
+    'write_state connected https-probe' \
+    'write_state offline https-probe-failed'; do
+    require_contains "$installer_network_helper" "$network_fragment"
 done
 if grep -Eq 'Image[[:space:]]*\{' "$calamares_welcome_qml"; then
     fail 'runtime Calamares welcome page must remain text-first'
@@ -299,6 +310,7 @@ for owned_path in \
     usr/lib/schweisos-calamares/autostart \
     usr/lib/schweisos-calamares/is-live-session \
     usr/lib/schweisos-calamares/launch-root \
+    usr/lib/schweisos-calamares/network-status \
     usr/lib/schweisos-calamares/reconcile-target \
     usr/share/applications/schweisos-installer.desktop \
     usr/share/schweisos/calamares/target-packages.x86_64 \

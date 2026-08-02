@@ -44,8 +44,8 @@ Implemented in source:
 - Offline target creation through upstream Calamares `unpackfs`, followed by a
   fail-closed SchweisOS reconciliation step that removes unselected and
   live-only state.
-- Text-first welcome presentation, informative network status, and explicit
-  `Maintained by Marijua` project identity.
+- Text-first welcome presentation, SchweisOS-owned network status with
+  Calamares fallback, and explicit `Maintained by Marijua` project identity.
 - Full upstream IANA timezone data through Arch's `tzdata` package.
 - Static installer configuration validator.
 - Behavioral launcher and autostart regression tests.
@@ -104,9 +104,11 @@ Live ISO
   boot from Ventoy or another USB, install to an internal disk or a different
   removable disk. The active boot disk must not appear in Calamares' target
   list.
-- Calamares' welcome page reports connectivity but must never make it a
-  requirement. Package choice and target creation work offline from the ISO
-  payload; later repository access remains governed by pacman trust policy.
+- Calamares' welcome page reports connectivity from
+  `/run/schweisos-installer/network-state` when available and falls back to
+  Calamares' own network signal. Connectivity must never be a requirement.
+  Package choice and target creation work offline from the ISO payload; later
+  repository access remains governed by pacman trust policy.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future
   decisions.
 

@@ -34,8 +34,8 @@ This package owns:
   selection;
 - `/usr/bin/schweisos-installer`;
 - `/usr/lib/schweisos-calamares/*`, including the exact-path privileged
-  XWayland bridge, once-only live autostart helper, target reconciliation, and
-  installed-system configuration helpers;
+  XWayland bridge, once-only live autostart helper, network-state probe, target
+  reconciliation, and installed-system configuration helpers;
 - `/usr/share/applications/schweisos-installer.desktop`;
 - `/etc/xdg/autostart/schweisos-installer-autostart.desktop`;
 - `/usr/share/polkit-1/actions/org.schweisos.installer.policy`;
@@ -118,12 +118,16 @@ arguments, sanitizes loader and Qt plugin environment variables, and selects
 Qt's `xcb` backend over packaged XWayland. The public wrapper checks UEFI and
 display authorization, prevents concurrent instances, captures a private
 launch log, and displays a KDE error dialog for launch or runtime failures.
+Immediately before Calamares starts, the privileged helper refreshes
+`/run/schweisos-installer/network-state` through a bounded SchweisOS-owned
+probe. Probe failure is recorded as installer state, not treated as an install
+blocker.
 
 ## Presentation and Network Status
 
 The first page is a SchweisOS-owned `welcomeq` component with a text-first
-layout. It describes the distribution, shows whether Calamares currently sees
-internet connectivity, exposes the language selector, and identifies
+layout. It describes the distribution, reads SchweisOS' own network-state file
+with Calamares' network signal as fallback, exposes the language selector, and identifies
 `Maintained by Marijua`. It deliberately has no centered product logo or
 duplicated artwork. The sidebar and window icon reference the canonical runtime
 logo at `/usr/share/schweisos/branding/schweisos.png`.
@@ -131,8 +135,10 @@ logo at `/usr/share/schweisos/branding/schweisos.png`.
 Internet status is informative, never an installation requirement. A
 disconnected machine receives a clear offline message and can complete the
 same package selection because the payload is already on the medium. A
-connected machine is told that repository-backed services are available after
-installation. The installer does not perform a hidden partial upgrade, change
+connected machine is told that online features are enabled. The probe requires
+a route and then verifies HTTPS reachability against SchweisOS and Arch Linux
+endpoints with short timeouts; it does not use telemetry, accounts, or silent
+bug reporting. The installer does not perform a hidden partial upgrade, change
 mirrors silently, or mix live-build and target-package trust domains.
 
 The execution-page slideshow is text-first and identifies `Marijua` as

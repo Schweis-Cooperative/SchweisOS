@@ -78,6 +78,7 @@ helper_sources=(
   "${package_dir}/schweisos-installer-root"
   "${package_dir}/schweisos-installer-autostart"
   "${package_dir}/schweisos-installer-live-session"
+  "${package_dir}/schweisos-calamares-network-status"
   "${package_dir}/schweisos-calamares-preflight"
   "${package_dir}/schweisos-calamares-reconcile-target"
   "${package_dir}/schweisos-calamares-configure-pacman"
@@ -132,7 +133,7 @@ grep -Fxq $'\toptdepends = schweisos-grub-theme: future installer-owned GRUB alt
 for helper_name in \
   schweisos-installer schweisos-calamares-preflight schweisos-calamares-reconcile-target \
   schweisos-calamares-configure-pacman schweisos-calamares-install-systemd-boot \
-  schweisos-calamares-enable-services; do
+  schweisos-calamares-enable-services schweisos-calamares-network-status; do
   grep -Fq "install -Dm755 \"\${srcdir}/${helper_name}\"" "${package_dir}/PKGBUILD" || \
     fail "installer helper must be installed executable by PKGBUILD: ${helper_name}"
 done
@@ -396,6 +397,9 @@ for privileged_fragment in \
   grep -Fq "$privileged_fragment" "${package_dir}/schweisos-installer-root" || \
     fail "installer privileged bridge is missing: ${privileged_fragment}"
 done
+grep -Fq '/usr/lib/schweisos-calamares/network-status || true' \
+  "${package_dir}/schweisos-installer-root" || \
+  fail 'privileged installer launcher does not refresh SchweisOS network status before Calamares starts'
 for policy_fragment in \
   '<action id="org.schweisos.installer.launch">' \
   '<annotate key="org.freedesktop.policykit.exec.path">/usr/lib/schweisos-calamares/launch-root</annotate>' \
@@ -428,10 +432,22 @@ for welcome_fragment in \
   'Welcome to SchweisOS' \
   'Offline installation is fully available.' \
   'Maintained by Marijua' \
+  'schweisosInternetAvailable' \
+  'file:///run/schweisos-installer/network-state' \
   'Network.hasInternet' \
   'config.languagesModel'; do
   grep -Fq "$welcome_fragment" "${package_dir}/welcomeq.qml" || \
     fail "custom installer welcome is missing: ${welcome_fragment}"
+done
+for network_fragment in \
+  'https://schweisos.org/' \
+  'https://archlinux.org/' \
+  'ip route get 1.1.1.1' \
+  'nmcli -t -f CONNECTIVITY general' \
+  'write_state connected https-probe' \
+  'write_state offline https-probe-failed'; do
+  grep -Fq "$network_fragment" "${package_dir}/schweisos-calamares-network-status" || \
+    fail "installer network detector is missing: ${network_fragment}"
 done
 ! grep -Eq 'Image[[:space:]]*\{' "${package_dir}/welcomeq.qml" || \
   fail 'text-first welcome must not contain a centered logo image'

@@ -122,9 +122,17 @@ case-sensitive schema. Product icon and sidebar logo refer to
 The first page is a SchweisOS-owned `welcomeq` component. It is text-first,
 describes the distribution, exposes the language selector, reports network
 state, and identifies `Maintained by Marijua`. It does not render a centered
-product logo, a compact product banner, or duplicated artwork. Network state is
-informative: a disconnected user is explicitly told that offline installation
-is fully available, and internet is absent from the required-condition list.
+product logo, a compact product banner, or duplicated artwork.
+
+Network state is informative: a disconnected user is explicitly told that
+offline installation is fully available, and internet is absent from the
+required-condition list. The welcome page does not trust Calamares'
+`Network.hasInternet` result alone, because hardware tests showed that value can
+remain false while Firefox has working HTTPS connectivity. Before the UI starts,
+the privileged SchweisOS launcher writes `/run/schweisos-installer/network-state`
+after checking for a route and probing SchweisOS/Arch HTTPS endpoints with short
+timeouts. The QML welcome page reads that file and uses Calamares' signal only as
+fallback while the file is unavailable.
 
 The branding component also includes Calamares' required `slideshow` key and a
 SchweisOS-owned `show.qml` resource. The slideshow is deliberately small:

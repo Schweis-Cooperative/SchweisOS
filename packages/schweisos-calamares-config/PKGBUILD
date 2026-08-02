@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=12
+pkgrel=13
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -60,6 +60,7 @@ source=(
   'schweisos-installer-live-session'
   'schweisos-installer-autostart.desktop'
   'org.schweisos.installer.policy'
+  'schweisos-calamares-network-status'
   'schweisos-calamares-preflight'
   'schweisos-calamares-reconcile-target'
   'schweisos-calamares-configure-pacman'
@@ -67,11 +68,11 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('a36ac13aac71ef826f48f90e91189a9b8e67fb31c66bc37ed3e4215bfb2deac1'
+sha256sums=('44aa9b3220eb3a09d17ca76cc89bb1bdbfa0c87f031922a3a14a719297452cd2'
             '72671ad5771a0d3e3154247cfa6021ab23afd79a1d42c9dd8b3be712b50eec66'
             'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
             '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
-            '18cf3c64c429c821334a9bc1c6e9a754b99eff2f98363eff5362acaf07bed522'
+            '17d5d8fd597ac63c56ace6b2b196811d8481ac8772578914793764ed17989fc7'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
@@ -89,11 +90,12 @@ sha256sums=('a36ac13aac71ef826f48f90e91189a9b8e67fb31c66bc37ed3e4215bfb2deac1'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
             'fb7462164ee57ed5cdf69c908522e7d0163be29834c3361060a25b9ede70b78a'
             '97d950aa85bd4725911ba0ef7cafc0a2a2dc33a253fae81ab16bb2974c4f6405'
-            '737a0100892d98c4664011d83e439975109c7fe97a46911bff3a25f465ebdf34'
+            '76f852971118bd86408da6e809c43924e8a9bea0d4ca7baaf15d8dc8a209d51d'
             '52a5f15f1f8b52df30b901a8a03f148a85fc2bf763a00f5e7d1ebd6119202c05'
             'eda905fcc184d57c44b85578345ec2baaaeb9d821afd51d3ec914d1d315c4a80'
             '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
+            'aec4b01ff61ff1670396be7a59682ea96dc775660122f2b3cd05a84248952343'
             'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
             '6fc07f5f72a3d204db8f855c2ca80a471c72b47f5e1aa5105a550f752c26fc35'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
@@ -156,6 +158,8 @@ package() {
     "${pkgdir}/usr/lib/schweisos-calamares/autostart"
   install -Dm755 "${srcdir}/schweisos-installer-live-session" \
     "${pkgdir}/usr/lib/schweisos-calamares/is-live-session"
+  install -Dm755 "${srcdir}/schweisos-calamares-network-status" \
+    "${pkgdir}/usr/lib/schweisos-calamares/network-status"
   install -Dm755 "${srcdir}/schweisos-calamares-preflight" \
     "${pkgdir}/usr/lib/schweisos-calamares/preflight"
   install -Dm755 "${srcdir}/schweisos-calamares-reconcile-target" \

@@ -27,9 +27,12 @@ the Calamares binary and configuration packages.
 ## Presentation
 
 `welcomeq.qml` owns the text-first first page, language selector, informative
-network state, and maintainer attribution. `show.qml` owns only the execution
-slideshow. `branding.desc` owns Calamares colors, dimensions, URLs, and
-canonical runtime logo references.
+network state, and maintainer attribution. The visible network state is fed by
+`/usr/lib/schweisos-calamares/network-status`, which writes
+`/run/schweisos-installer/network-state` before Calamares starts; Calamares'
+`Network.hasInternet` signal is only a fallback. `show.qml` owns only the
+execution slideshow. `branding.desc` owns Calamares colors, dimensions, URLs,
+and canonical runtime logo references.
 
 The repository has one real logo source. Installer files reference the runtime
 path installed from that source; they do not embed or copy a second logo.

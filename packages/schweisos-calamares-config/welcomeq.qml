@@ -13,6 +13,46 @@ Page {
     readonly property color accent: "#1589d6"
     readonly property color foreground: "#102235"
     readonly property color muted: "#53697d"
+    property string schweisosNetworkState: "unknown"
+    property string schweisosNetworkReason: ""
+    property string schweisosNetworkSource: ""
+    readonly property bool schweisosInternetAvailable: schweisosNetworkState === "connected" || (schweisosNetworkState === "unknown" && Network.hasInternet)
+
+    function updateNetworkState() {
+        var request = new XMLHttpRequest()
+        request.onreadystatechange = function() {
+            if (request.readyState !== XMLHttpRequest.DONE)
+                return
+            if (request.status !== 0 && request.status !== 200)
+                return
+
+            var lines = request.responseText.split("\n")
+            for (var index = 0; index < lines.length; index++) {
+                var separator = lines[index].indexOf("=")
+                if (separator < 1)
+                    continue
+                var key = lines[index].substring(0, separator)
+                var value = lines[index].substring(separator + 1)
+                if (key === "STATE")
+                    schweisosNetworkState = value
+                else if (key === "REASON")
+                    schweisosNetworkReason = value
+                else if (key === "SOURCE")
+                    schweisosNetworkSource = value
+            }
+        }
+        request.open("GET", "file:///run/schweisos-installer/network-state")
+        request.send()
+    }
+
+    Component.onCompleted: updateNetworkState()
+
+    Timer {
+        interval: 3000
+        repeat: true
+        running: true
+        onTriggered: welcome.updateNetworkState()
+    }
 
     background: Rectangle {
         color: "#f7fafc"
@@ -50,8 +90,8 @@ Page {
             Layout.maximumWidth: 720
             Layout.preferredHeight: networkContent.implicitHeight + 28
             radius: 12
-            color: Network.hasInternet ? "#eaf7f0" : "#fff6df"
-            border.color: Network.hasInternet ? "#77ba93" : "#d6a94c"
+            color: welcome.schweisosInternetAvailable ? "#eaf7f0" : "#fff6df"
+            border.color: welcome.schweisosInternetAvailable ? "#77ba93" : "#d6a94c"
             border.width: 1
 
             RowLayout {
@@ -64,7 +104,7 @@ Page {
                     Layout.preferredWidth: 12
                     Layout.preferredHeight: 12
                     radius: 6
-                    color: Network.hasInternet ? "#21824b" : "#b27700"
+                    color: welcome.schweisosInternetAvailable ? "#21824b" : "#b27700"
                 }
 
                 ColumnLayout {
@@ -73,7 +113,7 @@ Page {
 
                     Label {
                         Layout.fillWidth: true
-                        text: Network.hasInternet ? qsTr("Internet connection detected") : qsTr("No Internet connection")
+                        text: welcome.schweisosInternetAvailable ? qsTr("Internet connected") : qsTr("Offline installation available")
                         color: welcome.foreground
                         font.pixelSize: 15
                         font.weight: Font.DemiBold
@@ -81,9 +121,9 @@ Page {
 
                     Label {
                         Layout.fillWidth: true
-                        text: Network.hasInternet
-                            ? qsTr("Repository-backed online services will be available after installation.")
-                            : qsTr("Offline installation is fully available. Optional online services can be enabled later.")
+                        text: welcome.schweisosInternetAvailable
+                            ? qsTr("Online features are enabled. Mirrors and optional packages can be refreshed when selected.")
+                            : qsTr("No Internet connection was confirmed. Offline installation is fully available. Optional online features are disabled.")
                         color: welcome.muted
                         font.pixelSize: 13
                         wrapMode: Text.WordWrap

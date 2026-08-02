@@ -122,10 +122,12 @@ arguments, sanitizes loader and Qt plugin environment variables, and selects
 Qt's `xcb` backend over packaged XWayland. The public wrapper checks UEFI and
 display authorization, prevents concurrent instances, captures a private
 launch log, and displays a KDE error dialog for launch or runtime failures.
-Immediately before Calamares starts, the privileged helper refreshes
-`/run/schweisos-installer/network-state` through a bounded SchweisOS-owned
-probe. Probe failure is recorded as installer state, not treated as an install
-blocker.
+Immediately before Calamares starts, the privileged helper starts a bounded
+SchweisOS-owned network probe that refreshes
+`/run/schweisos-installer/network-state` for the first 90 seconds of the
+installer session. This avoids a false offline state when NetworkManager
+finishes connecting after the installer window appears. Probe failure is
+recorded as installer state, not treated as an install blocker.
 
 ## Presentation and Network Status
 
@@ -139,11 +141,12 @@ logo at `/usr/share/schweisos/branding/schweisos.png`.
 Internet status is informative, never an installation requirement. A
 disconnected machine receives a clear offline message and can complete the
 same package selection because the payload is already on the medium. A
-connected machine is told that online features are enabled. The probe requires
-a route and then verifies HTTPS reachability against SchweisOS and Arch Linux
-endpoints with short timeouts; it does not use telemetry, accounts, or silent
-bug reporting. The installer does not perform a hidden partial upgrade, change
-mirrors silently, or mix live-build and target-package trust domains.
+connected machine is told that online features are enabled. The probe accepts
+NetworkManager's `full` connectivity result when available; otherwise it
+requires a route and verifies HTTPS reachability against SchweisOS and Arch
+Linux endpoints with short timeouts. It does not use telemetry, accounts, or
+silent bug reporting. The installer does not perform a hidden partial upgrade,
+change mirrors silently, or mix live-build and target-package trust domains.
 
 The execution-page slideshow is text-first and identifies `Marijua` as
 `Project Maintainer`. Maintainer identity is package data that can be revised

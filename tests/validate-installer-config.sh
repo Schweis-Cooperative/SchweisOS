@@ -428,9 +428,9 @@ for privileged_fragment in \
   grep -Fq "$privileged_fragment" "${package_dir}/schweisos-installer-root" || \
     fail "installer privileged bridge is missing: ${privileged_fragment}"
 done
-grep -Fq '/usr/lib/schweisos-calamares/network-status || true' \
+grep -Fq '/usr/lib/schweisos-calamares/network-status --watch 90 3' \
   "${package_dir}/schweisos-installer-root" || \
-  fail 'privileged installer launcher does not refresh SchweisOS network status before Calamares starts'
+  fail 'privileged installer launcher does not refresh SchweisOS network status after Calamares starts'
 for policy_fragment in \
   '<action id="org.schweisos.installer.launch">' \
   '<annotate key="org.freedesktop.policykit.exec.path">/usr/lib/schweisos-calamares/launch-root</annotate>' \
@@ -475,7 +475,10 @@ for network_fragment in \
   'https://archlinux.org/' \
   'ip route get 1.1.1.1' \
   'nmcli -t -f CONNECTIVITY general' \
+  'networkmanager_reports_full_connectivity' \
+  'watch_network "$watch_seconds" "$interval"' \
   'write_state connected https-probe' \
+  'write_state connected networkmanager-connectivity nmcli' \
   'write_state offline https-probe-failed'; do
   grep -Fq "$network_fragment" "${package_dir}/schweisos-calamares-network-status" || \
     fail "installer network detector is missing: ${network_fragment}"

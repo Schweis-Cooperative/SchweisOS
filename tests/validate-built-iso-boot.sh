@@ -463,6 +463,8 @@ for welcome_fragment in \
     grep -Fq "$welcome_fragment" "$installer_welcome_qml" || \
         fail "built text-first welcome omits: ${welcome_fragment}"
 done
+grep -Fq '/usr/lib/schweisos-calamares/network-status --watch 90 3' "$installer_root_helper" || \
+    fail 'built installer does not refresh SchweisOS network state after Calamares starts'
 if grep -Eq 'Image[[:space:]]*\{' "$installer_welcome_qml"; then
     fail 'built installer welcome page must not contain a centered logo image'
 fi

@@ -129,10 +129,12 @@ offline installation is fully available, and internet is absent from the
 required-condition list. The welcome page does not trust Calamares'
 `Network.hasInternet` result alone, because hardware tests showed that value can
 remain false while Firefox has working HTTPS connectivity. Before the UI starts,
-the privileged SchweisOS launcher writes `/run/schweisos-installer/network-state`
-after checking for a route and probing SchweisOS/Arch HTTPS endpoints with short
-timeouts. The QML welcome page reads that file and uses Calamares' signal only as
-fallback while the file is unavailable.
+the privileged SchweisOS launcher starts a bounded probe that refreshes
+`/run/schweisos-installer/network-state` for the first 90 seconds of the
+installer session. It accepts NetworkManager's `full` connectivity state when
+available; otherwise it checks for a route and probes SchweisOS/Arch HTTPS
+endpoints with short timeouts. The QML welcome page reads that file and uses
+Calamares' signal only as fallback while the file is unavailable.
 
 The branding component also includes Calamares' required `slideshow` key and a
 SchweisOS-owned `show.qml` resource. The slideshow is deliberately small:

@@ -22,7 +22,7 @@ if [[ ! -x /usr/bin/calamares ]]; then
   exit 1
 fi
 if [[ -x /usr/lib/schweisos-calamares/network-status ]]; then
-  /usr/lib/schweisos-calamares/network-status || true
+  /usr/lib/schweisos-calamares/network-status --watch 90 3 >/dev/null 2>&1 &
 fi
 
 # Calamares 3.4 runs its UI with administrative privileges. Native Wayland

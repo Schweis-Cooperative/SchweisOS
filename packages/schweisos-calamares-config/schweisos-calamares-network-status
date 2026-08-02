@@ -7,6 +7,8 @@ readonly state_dir=/run/schweisos-installer
 readonly state_file="${state_dir}/network-state"
 readonly probe_timeout=4
 readonly connect_timeout=2
+readonly default_watch_seconds=90
+readonly default_watch_interval=3
 
 write_state() {
   local state=$1
@@ -41,6 +43,11 @@ has_route() {
   return 1
 }
 
+networkmanager_reports_full_connectivity() {
+  command -v nmcli >/dev/null 2>&1 || return 1
+  [[ "$(nmcli -t -f CONNECTIVITY general 2>/dev/null || true)" == full ]]
+}
+
 probe_https() {
   local url=$1
 
@@ -57,6 +64,11 @@ detect_network() {
 
   if ! has_route; then
     write_state offline no-route ''
+    return 0
+  fi
+
+  if networkmanager_reports_full_connectivity; then
+    write_state connected networkmanager-connectivity nmcli
     return 0
   fi
 
@@ -77,13 +89,46 @@ detect_network() {
   write_state offline https-probe-failed ''
 }
 
-main() {
-  if (( $# != 0 )); then
-    printf 'usage: schweisos-calamares-network-status\n' >&2
-    return 2
-  fi
+watch_network() {
+  local watch_seconds=$1
+  local interval=$2
+  local elapsed=0
 
-  detect_network
+  while (( elapsed <= watch_seconds )); do
+    detect_network
+    if [[ -f "$state_file" ]] && grep -Fxq 'STATE=connected' "$state_file"; then
+      return 0
+    fi
+    sleep "$interval"
+    elapsed=$(( elapsed + interval ))
+  done
+}
+
+main() {
+  case "${1-}" in
+    '')
+      (( $# == 0 )) || return 2
+      detect_network
+      ;;
+    --watch)
+      shift
+      local watch_seconds=${1:-$default_watch_seconds}
+      local interval=${2:-$default_watch_interval}
+      [[ "$watch_seconds" =~ ^[1-9][0-9]*$ ]] || {
+        printf 'usage: schweisos-calamares-network-status [--watch SECONDS [INTERVAL]]\n' >&2
+        return 2
+      }
+      [[ "$interval" =~ ^[1-9][0-9]*$ ]] || {
+        printf 'usage: schweisos-calamares-network-status [--watch SECONDS [INTERVAL]]\n' >&2
+        return 2
+      }
+      watch_network "$watch_seconds" "$interval"
+      ;;
+    *)
+      printf 'usage: schweisos-calamares-network-status [--watch SECONDS [INTERVAL]]\n' >&2
+      return 2
+      ;;
+  esac
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

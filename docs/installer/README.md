@@ -105,9 +105,11 @@ Live ISO
   boot from Ventoy or another USB, install to an internal disk or a different
   removable disk. The active boot disk must not appear in Calamares' target
   list.
-- Calamares' welcome page reports connectivity from
-  `/run/schweisos-installer/network-state` when available and falls back to
-  Calamares' own network signal. Connectivity must never be a requirement.
+- Calamares' welcome page reports connectivity from a SchweisOS-owned
+  `/run/schweisos-installer/network-state` file that is refreshed for the
+  first 90 seconds of the installer session, then falls back to Calamares' own
+  network signal while the file is unavailable. Connectivity must never be a
+  requirement.
   Package choice and target creation work offline from the ISO payload; later
   repository access remains governed by pacman trust policy.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future

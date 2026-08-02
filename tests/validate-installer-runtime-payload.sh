@@ -247,11 +247,14 @@ for welcome_fragment in \
     'Maintained by Marijua'; do
     require_contains "$calamares_welcome_qml" "$welcome_fragment"
 done
-require_contains "$installer_root_helper" '/usr/lib/schweisos-calamares/network-status || true'
+require_contains "$installer_root_helper" '/usr/lib/schweisos-calamares/network-status --watch 90 3'
 for network_fragment in \
     'https://schweisos.org/' \
     'https://archlinux.org/' \
+    'networkmanager_reports_full_connectivity' \
+    'watch_network "$watch_seconds" "$interval"' \
     'write_state connected https-probe' \
+    'write_state connected networkmanager-connectivity nmcli' \
     'write_state offline https-probe-failed'; do
     require_contains "$installer_network_helper" "$network_fragment"
 done

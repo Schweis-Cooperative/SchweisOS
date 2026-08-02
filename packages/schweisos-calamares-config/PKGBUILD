@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=16
+pkgrel=17
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -71,7 +71,7 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('57c78111bf21e9904d8cf9d2ff19023f7e41d0a15111c44922d28e12d2f7bba3'
+sha256sums=('7b4278c3fadf179acfe41feeeb8e968d89a6f0af1c531720ca1513a9182f7ae0'
             '7955bbb0dcbd4d7de1525036cba56c44f411209d6f0bf0da3a11ba034b27572a'
             'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
             '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
@@ -93,12 +93,12 @@ sha256sums=('57c78111bf21e9904d8cf9d2ff19023f7e41d0a15111c44922d28e12d2f7bba3'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
             'fb7462164ee57ed5cdf69c908522e7d0163be29834c3361060a25b9ede70b78a'
             '97d950aa85bd4725911ba0ef7cafc0a2a2dc33a253fae81ab16bb2974c4f6405'
-            '76f852971118bd86408da6e809c43924e8a9bea0d4ca7baaf15d8dc8a209d51d'
+            '89f3bb2c99ea6bdad8229ab2e7aafea1857dafdb280257e5768abba3af68055c'
             '52a5f15f1f8b52df30b901a8a03f148a85fc2bf763a00f5e7d1ebd6119202c05'
             'eda905fcc184d57c44b85578345ec2baaaeb9d821afd51d3ec914d1d315c4a80'
             '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
-            'aec4b01ff61ff1670396be7a59682ea96dc775660122f2b3cd05a84248952343'
+            '05383232f13a07afd8048049f74d4397e4eaef5403fc980534c97cec2f55873a'
             'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
             '7d4487619eae09004d0749245794158248f1dfcd30de2405e61eb76d505bca23'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'

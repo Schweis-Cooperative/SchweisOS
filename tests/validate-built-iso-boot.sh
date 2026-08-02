@@ -494,6 +494,19 @@ grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
     fail 'built installer does not expose the recommended kernel label'
 grep -Fxq 'mode: optionalmultiple' "$installer_extras_chooser" || \
     fail 'built installer optional features are not a multiple-choice group'
+if grep -Fq 'screenshot:' "$installer_profile_chooser" "$installer_kernel_chooser" "$installer_extras_chooser"; then
+    fail 'built installer package choosers reuse the logo as generic selection artwork'
+fi
+for package_description in \
+    'Packages: firewalld, plasma-firewall.' \
+    'Packages: gamemode, mangohud, lutris.' \
+    'Packages: git, cmake, ninja.' \
+    'Packages: pacman-contrib, reflector.' \
+    'Package: linux-zen.'; do
+    if ! grep -Fq "$package_description" "$installer_extras_chooser" "$installer_kernel_chooser"; then
+        fail "built package chooser omits package-level description: ${package_description}"
+    fi
+done
 grep -Fq 'id: x11-compatibility' "$installer_extras_chooser" || \
     fail 'built installer does not expose X11 compatibility choice'
 grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || \

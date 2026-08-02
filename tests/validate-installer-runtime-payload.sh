@@ -281,6 +281,19 @@ grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
 require_contains "$calamares_kernel_chooser" 'Linux Zen (Recommended)'
 grep -Fxq 'mode: optionalmultiple' "$calamares_extras_chooser" || \
     fail 'runtime optional-feature chooser does not allow multiple choices'
+if grep -Fq 'screenshot:' "$calamares_profile_chooser" "$calamares_kernel_chooser" "$calamares_extras_chooser"; then
+    fail 'runtime package choosers must not reuse the logo as generic selection artwork'
+fi
+for package_description in \
+    'Packages: firewalld, plasma-firewall.' \
+    'Packages: gamemode, mangohud, lutris.' \
+    'Packages: git, cmake, ninja.' \
+    'Packages: pacman-contrib, reflector.' \
+    'Package: linux-zen.'; do
+    if ! grep -Fq "$package_description" "$calamares_extras_chooser" "$calamares_kernel_chooser"; then
+        fail "runtime package chooser omits package-level description: ${package_description}"
+    fi
+done
 require_contains "$calamares_extras_chooser" 'id: x11-compatibility'
 require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'

@@ -287,6 +287,22 @@ grep -Fxq 'default: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
   fail 'linux-zen must be the recommended default kernel'
 grep -Fxq 'mode: optionalmultiple' "${package_dir}/packagechooser-extras.conf" || \
   fail 'optional feature chooser must allow zero or more selections'
+for chooser in profile kernel extras; do
+  if grep -Fq 'screenshot:' "${package_dir}/packagechooser-${chooser}.conf"; then
+    fail "package chooser must not reuse the logo as generic selection artwork: ${chooser}"
+  fi
+done
+for package_description in \
+  'Packages: firewalld, plasma-firewall.' \
+  'Packages: gamemode, mangohud, lutris.' \
+  'Packages: git, cmake, ninja.' \
+  'Packages: pacman-contrib, reflector.' \
+  'Package: linux-zen.'; do
+  grep -Fq "$package_description" \
+    "${package_dir}/packagechooser-extras.conf" \
+    "${package_dir}/packagechooser-kernel.conf" || \
+    fail "installer package chooser omits package-level description: ${package_description}"
+done
 grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must copy the mounted, validated Archiso root'
 grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \

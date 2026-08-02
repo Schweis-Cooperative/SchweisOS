@@ -587,6 +587,14 @@ done
 grep -Fq "mount_handler='schweisos_iso_file_mount_handler'" \
     "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
     fail 'initramfs ISO-file fallback hook does not install the SchweisOS mount handler'
+for fallback_fragment in \
+    '_schweisos_wait_for_removable_candidates' \
+    'remaining="$(getarg '\''rootdelay'\'')"' \
+    'sleep 1'; do
+    grep -Fq "$fallback_fragment" \
+        "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
+        fail "initramfs ISO-file fallback hook is missing: ${fallback_fragment}"
+done
 if ! awk '
   /mount_handler:-/ && /archiso_loop_mount_handler/ { in_loop_guard = 1 }
   in_loop_guard && /getarg '\''img_dev'\''/ { saw_img_dev = 1 }

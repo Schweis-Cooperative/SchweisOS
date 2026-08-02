@@ -508,9 +508,12 @@ for required_fallback_fragment in \
   "mount_handler:-" \
   "archiso_loop_mount_handler" \
   "_schweisos_try_explicit_archiso_device" \
+  "_schweisos_wait_for_removable_candidates" \
   "getarg 'archisodevice'" \
   "getarg 'img_dev'" \
   "getarg 'img_loop'" \
+  "remaining=\"\$(getarg 'rootdelay')\"" \
+  "sleep 1" \
   "Checking explicit Archiso device" \
   "mount_handler='schweisos_iso_file_mount_handler'" \
   "mkdir -p \"\${_schweisos_search_mount}\"" \

@@ -13,6 +13,32 @@
 
 _schweisos_search_mount=/run/schweisos/iso-file-search
 
+_schweisos_removable_candidates() {
+    lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )' 2>/dev/null
+}
+
+_schweisos_wait_for_removable_candidates() {
+    local remaining
+
+    remaining="$(getarg 'rootdelay')"
+    case "${remaining}" in
+        ''|*[!0-9]*)
+            remaining=10
+            ;;
+    esac
+
+    while [ "${remaining}" -gt 0 ]; do
+        if [ -n "$(_schweisos_removable_candidates)" ]; then
+            return 0
+        fi
+
+        sleep 1
+        remaining=$((remaining - 1))
+    done
+
+    [ -n "$(_schweisos_removable_candidates)" ]
+}
+
 _schweisos_try_explicit_archiso_device() {
     local search_dev
 
@@ -42,7 +68,7 @@ _schweisos_scan_direct_marker_on_removable() {
 
     mkdir -p "${_schweisos_search_mount}"
 
-    for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
+    for search_dev in $(_schweisos_removable_candidates); do
         [ -b "${search_dev}" ] || continue
 
         msg ":: Searching for native Archiso marker '${archisosearchfilename}' in '${search_dev}'"
@@ -67,7 +93,7 @@ _schweisos_scan_iso_file_on_removable() {
     marker="${archisosearchuuid}.uuid"
     mkdir -p "${_schweisos_search_mount}"
 
-    for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
+    for search_dev in $(_schweisos_removable_candidates); do
         [ -b "${search_dev}" ] || continue
 
         msg ":: Searching removable ISO files for '${marker}' in '${search_dev}'"
@@ -122,34 +148,39 @@ schweisos_iso_file_mount_handler() {
         return
     fi
 
-    if _schweisos_scan_direct_marker_on_removable; then
-        export archisodevice
-        export archisosearchuuid=''
-        export archisosearchfilename=''
-        archiso_mount_handler "${newroot}"
-        return
-    fi
-
-    if _schweisos_scan_iso_file_on_removable; then
-        msg ":: Found SchweisOS ISO '${schweisos_iso_file}' on '${schweisos_iso_source_device}'"
-
-        if loopdev="$(losetup --find --show --read-only "${schweisos_iso_file}")"; then
-            export archisodevice="${loopdev}"
+    if _schweisos_wait_for_removable_candidates; then
+        if _schweisos_scan_direct_marker_on_removable; then
+            export archisodevice
             export archisosearchuuid=''
             export archisosearchfilename=''
             archiso_mount_handler "${newroot}"
-
-            if [ "${copytoram}" = 'y' ]; then
-                losetup -d "${loopdev}" 2>/dev/null
-                umount "${_schweisos_search_mount}" 2>/dev/null
-                rmdir "${_schweisos_search_mount}" 2>/dev/null
-            fi
             return
         fi
 
-        echo "ERROR: Setting read-only loopback device for ISO file '${schweisos_iso_file}'"
-        launch_interactive_shell
+        if _schweisos_scan_iso_file_on_removable; then
+            msg ":: Found SchweisOS ISO '${schweisos_iso_file}' on '${schweisos_iso_source_device}'"
+
+            if loopdev="$(losetup --find --show --read-only "${schweisos_iso_file}")"; then
+                export archisodevice="${loopdev}"
+                export archisosearchuuid=''
+                export archisosearchfilename=''
+                archiso_mount_handler "${newroot}"
+
+                if [ "${copytoram}" = 'y' ]; then
+                    losetup -d "${loopdev}" 2>/dev/null
+                    umount "${_schweisos_search_mount}" 2>/dev/null
+                    rmdir "${_schweisos_search_mount}" 2>/dev/null
+                fi
+                return
+            fi
+
+            echo "ERROR: Setting read-only loopback device for ISO file '${schweisos_iso_file}'"
+            launch_interactive_shell
+        fi
+    else
+        msg ":: No removable media appeared before SchweisOS ISO-file fallback deadline"
     fi
+
 
     archiso_mount_handler "${newroot}"
 }

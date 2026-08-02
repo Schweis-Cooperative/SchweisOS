@@ -193,6 +193,9 @@ The SchweisOS fallback hook is intentionally narrow:
   the outer multiboot filesystem instead of inside the ISO file;
 - it runs only when the native `archisosearchuuid` contract is active and no
   `img_dev/img_loop` handoff exists;
+- it waits up to the Archiso `rootdelay` window for removable candidates before
+  deciding that no USB partition is available, because Ventoy hardware tests
+  showed this fallback can run before `/dev/sdX` partitions appear;
 - it first preserves native removable-media boot by looking for the requested
   marker directly on removable partitions;
 - if the direct marker is absent, it searches removable media for ISO files
@@ -385,6 +388,8 @@ Pre-build validation must fail closed if:
   `schweisos_iso_file_fallback` after `archiso_loop_mnt`;
 - the fallback hook scans non-removable disks before preserving upstream
   Archiso fallback;
+- the fallback hook stops waiting for removable candidates before falling back
+  to upstream native marker search;
 - the fallback hook stops clearing `archisosearchuuid` and
   `archisosearchfilename` before delegating a discovered ISO loop device to
   upstream Archiso;

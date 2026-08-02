@@ -85,8 +85,11 @@ adds one narrow initramfs fallback hook, `schweisos_iso_file_fallback`, after
 `archiso_loop_mnt`. It leaves the upstream loopback handler alone only when the
 kernel command line includes both `img_dev` and `img_loop`. Without that complete
 handoff, it first preserves native removable-media boot by checking for
-Archiso's marker directly on removable partitions. If the marker is not there,
-it searches only removable media for ISO files whose raw contents contain the
+Archiso's marker directly on removable partitions. Hardware testing showed
+that Ventoy can hand control to the initramfs before the removable partitions
+are visible, so this fallback waits up to the Archiso `rootdelay` window before
+it concludes that no removable candidate exists. If the marker is not there, it
+searches only removable media for ISO files whose raw contents contain the
 requested `<uuid>.uuid` marker, mounts the matching ISO read-only through a loop
 device, clears the native search variables, and delegates back to upstream
 `archiso_mount_handler`. The fallback does not perform unconditional

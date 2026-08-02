@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=7
+pkgrel=8
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -39,16 +39,19 @@ source=(
   'finished.conf'
   'fstab.conf'
   'locale.conf'
+  'packagechooser-browser.conf'
+  'packagechooser-kernel.conf'
+  'packagechooser-extras.conf'
   'partition.conf'
+  'unpackfs.conf'
   'users.conf'
   'welcome.conf'
   'shellprocess-preflight.conf'
-  'shellprocess-pacstrap.conf'
+  'shellprocess-reconcile.conf'
   'shellprocess-pacman.conf'
   'shellprocess-systemd-boot.conf'
   'shellprocess-services.conf'
   'target-packages.x86_64'
-  'pacman.conf'
   'schweisos-installer'
   'schweisos-installer-root'
   'schweisos-installer-autostart'
@@ -56,40 +59,43 @@ source=(
   'schweisos-installer-autostart.desktop'
   'org.schweisos.installer.policy'
   'schweisos-calamares-preflight'
-  'schweisos-calamares-pacstrap'
+  'schweisos-calamares-reconcile-target'
   'schweisos-calamares-configure-pacman'
   'schweisos-calamares-install-systemd-boot'
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
 sha256sums=('4103462a2e4866bd531b481ccb9e6b2f7cee11f27f27bcee35142c78cfb8f5b5'
-            '3d4f07d689e866e5163f237f2a8e859604236c9a3cafa0929786d2f8e3c743bb'
+            '72671ad5771a0d3e3154247cfa6021ab23afd79a1d42c9dd8b3be712b50eec66'
             'edad8d70497f700ac59094ffc047432f7e7d36a253733e75bfe49e5747b6179d'
             '243b118803da91303502967e404e64587acfdecf1562d001894a2f5309748a85'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
+            'c0d74f0b6ea79ff8e6eed34be1c491cfb7b347e67b33faf2b120ce8080b757c7'
+            '8bbb588f9cca61d630ba583015fda992877806dbeff72e8e00cb7861201d7ae2'
+            '105fec2717f839a2a3fbf2e798cda888db7949be6be180f5d613f6d18587514c'
             '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
+            '54496f0e30b18e32ccb2a4860ca2ad07976f57d5e8513d31d48c9e15e48b66b1'
             '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
             'e2961bdb6846ba7e6fb98b09d0ce840b088ba4ec2b4731bc6b598cc129caf786'
             '6709e001d4e1bc291d82b52ade98915c3a10934d0a68c05ab970b4f4bd4110e1'
-            '8f21d0884f82052488a573fe5b9bfebaee43bbf15385f69d99c131719d934869'
+            '2151a92180acd0570286347a0092e98fa3d125a077d1e967c02eb03ab7333db2'
             '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
             'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
-            '7b160c53fb08be6fd6c1190c791a15fb4d2d543fa1905d1998039d2513759e80'
-            '0ae0782d572f9d9d0faa490e739bfe0de8ce375562ba8ef56e0cd2ee9e19f285'
+            '6dbbdadb2fa0edfd6779b6b4e7ee0bd131c76955881d2e308875416c0dcc58f6'
             '97d950aa85bd4725911ba0ef7cafc0a2a2dc33a253fae81ab16bb2974c4f6405'
             '737a0100892d98c4664011d83e439975109c7fe97a46911bff3a25f465ebdf34'
             '52a5f15f1f8b52df30b901a8a03f148a85fc2bf763a00f5e7d1ebd6119202c05'
             'eda905fcc184d57c44b85578345ec2baaaeb9d821afd51d3ec914d1d315c4a80'
             '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
-            '86d63db22e71999341419a0cef0b14a1e92689b0cae21b557fa27935f7c42125'
-            'd5b4ff3d563f64ef932b717a8c27536191baa1ad25640d1abccd33041a88c9ff'
+            'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
+            'fdec471edd74fdc4404a6ce3361fd336ba253e1659ff83c33d33fb271f84773f'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
-            'd5f0ae6864749a744269ab68ea520960600b7c3675db16d4813a8c504edf5661'
-            'b7a6ceb1f5091bed1c2c70151e0448dbbe1eb3f430f3170d090fee404c6e2d6b'
+            '402bd743b7583b900bc6c0c82e6de5d2af08f082393c6cf729c092efad199c0f'
+            '797adf182bffb4c500cc1d34fdabbc6a0ab86f797e7504326c0801102d72e45f'
             '3ea5833a5e88f683617fbffc5002620ba6244aef7a52a6901bd2341b79b93047')
 
 package() {
@@ -106,8 +112,16 @@ package() {
     "${pkgdir}/etc/calamares/modules/fstab.conf"
   install -Dm644 "${srcdir}/locale.conf" \
     "${pkgdir}/etc/calamares/modules/locale.conf"
+  install -Dm644 "${srcdir}/packagechooser-browser.conf" \
+    "${pkgdir}/etc/calamares/modules/packagechooser-browser.conf"
+  install -Dm644 "${srcdir}/packagechooser-kernel.conf" \
+    "${pkgdir}/etc/calamares/modules/packagechooser-kernel.conf"
+  install -Dm644 "${srcdir}/packagechooser-extras.conf" \
+    "${pkgdir}/etc/calamares/modules/packagechooser-extras.conf"
   install -Dm644 "${srcdir}/partition.conf" \
     "${pkgdir}/etc/calamares/modules/partition.conf"
+  install -Dm644 "${srcdir}/unpackfs.conf" \
+    "${pkgdir}/etc/calamares/modules/unpackfs.conf"
   install -Dm644 "${srcdir}/users.conf" \
     "${pkgdir}/etc/calamares/modules/users.conf"
   install -Dm644 "${srcdir}/welcome.conf" \
@@ -115,8 +129,8 @@ package() {
 
   install -Dm644 "${srcdir}/shellprocess-preflight.conf" \
     "${pkgdir}/etc/calamares/modules/shellprocess-preflight.conf"
-  install -Dm644 "${srcdir}/shellprocess-pacstrap.conf" \
-    "${pkgdir}/etc/calamares/modules/shellprocess-pacstrap.conf"
+  install -Dm644 "${srcdir}/shellprocess-reconcile.conf" \
+    "${pkgdir}/etc/calamares/modules/shellprocess-reconcile.conf"
   install -Dm644 "${srcdir}/shellprocess-pacman.conf" \
     "${pkgdir}/etc/calamares/modules/shellprocess-pacman.conf"
   install -Dm644 "${srcdir}/shellprocess-systemd-boot.conf" \
@@ -126,8 +140,6 @@ package() {
 
   install -Dm644 "${srcdir}/target-packages.x86_64" \
     "${pkgdir}/usr/share/schweisos/calamares/target-packages.x86_64"
-  install -Dm644 "${srcdir}/pacman.conf" \
-    "${pkgdir}/usr/share/schweisos/calamares/pacman.conf"
   install -Dm644 "${srcdir}/README.md" \
     "${pkgdir}/usr/share/doc/${pkgname}/README.md"
 
@@ -141,8 +153,8 @@ package() {
     "${pkgdir}/usr/lib/schweisos-calamares/is-live-session"
   install -Dm755 "${srcdir}/schweisos-calamares-preflight" \
     "${pkgdir}/usr/lib/schweisos-calamares/preflight"
-  install -Dm755 "${srcdir}/schweisos-calamares-pacstrap" \
-    "${pkgdir}/usr/lib/schweisos-calamares/pacstrap-target"
+  install -Dm755 "${srcdir}/schweisos-calamares-reconcile-target" \
+    "${pkgdir}/usr/lib/schweisos-calamares/reconcile-target"
   install -Dm755 "${srcdir}/schweisos-calamares-configure-pacman" \
     "${pkgdir}/usr/lib/schweisos-calamares/configure-pacman"
   install -Dm755 "${srcdir}/schweisos-calamares-install-systemd-boot" \

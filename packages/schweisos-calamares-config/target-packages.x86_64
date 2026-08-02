@@ -1,6 +1,5 @@
 # Base system
 base
-linux
 linux-firmware
 sudo
 
@@ -13,7 +12,6 @@ efibootmgr
 # KDE desktop
 discover
 dolphin
-firefox
 kate
 kinfocenter
 konsole
@@ -25,26 +23,18 @@ plasma-systemmonitor
 sddm
 ttf-dejavu
 
-# Default user and system utilities
+# Required user and system utilities
 bash-completion
 curl
 fastfetch
 fwupd
-git
 man-db
 man-pages
 nano
-openssh
 pciutils
-reflector
-rsync
 usbutils
 wget
 xdg-utils
-
-# Container tooling
-distrobox
-podman
 
 # SchweisOS distribution identity
 schweisos-branding

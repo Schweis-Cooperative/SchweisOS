@@ -6,6 +6,7 @@ set -euo pipefail
 export LC_ALL=C
 
 target_root=${1:?target root argument is required}
+selection_file="${target_root}/var/lib/schweisos/installer/selection.conf"
 
 if [[ "$target_root" == / || -z "$target_root" ]]; then
   printf 'schweisos systemd-boot: unsafe target root\n' >&2
@@ -15,6 +16,31 @@ if [[ ! -d "${target_root}/boot" ]] || ! findmnt --target "${target_root}/boot" 
   printf 'schweisos systemd-boot: /boot must be the mounted EFI system partition\n' >&2
   exit 1
 fi
+if [[ ! -f "$selection_file" || -L "$selection_file" ]]; then
+  printf 'schweisos systemd-boot: installer selection evidence is missing or unsafe\n' >&2
+  exit 1
+fi
+kernel="$(awk -F= '$1 == "KERNEL" { print $2; count++ } END { if (count != 1) exit 1 }' \
+  "$selection_file")" || {
+  printf 'schweisos systemd-boot: selected kernel is unreadable\n' >&2
+  exit 1
+}
+case "$kernel" in
+  linux|linux-lts|linux-zen|linux-hardened) ;;
+  *)
+    printf 'schweisos systemd-boot: unsupported selected kernel: %s\n' "$kernel" >&2
+    exit 1
+    ;;
+esac
+for kernel_artifact in \
+  "${target_root}/boot/vmlinuz-${kernel}" \
+  "${target_root}/etc/mkinitcpio.d/${kernel}.preset"; do
+  if [[ ! -f "$kernel_artifact" || -L "$kernel_artifact" ]]; then
+    printf 'schweisos systemd-boot: selected kernel artifact is missing or unsafe: %s\n' \
+      "$kernel_artifact" >&2
+    exit 1
+  fi
+done
 
 root_source="$(findmnt --target "$target_root" --noheadings --output SOURCE | head -n 1)"
 if [[ -z "$root_source" ]]; then
@@ -40,8 +66,8 @@ EOF
 
 cat > "${target_root}/boot/loader/entries/schweisos.conf" <<EOF
 title   SchweisOS
-linux   /vmlinuz-linux
-initrd  /initramfs-linux.img
+linux   /vmlinuz-${kernel}
+initrd  /initramfs-${kernel}.img
 options root=UUID=${root_uuid} rw quiet loglevel=3 systemd.show_status=auto
 EOF
 

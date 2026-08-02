@@ -15,9 +15,24 @@ if [[ ! -d /sys/firmware/efi ]]; then
   exit 1
 fi
 
-for required_command in pacstrap arch-chroot bootctl findmnt blkid; do
+for required_command in arch-chroot bootctl findmnt blkid userdel; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'schweisos installer preflight: required command is missing: %s\n' "$required_command" >&2
     exit 1
   fi
 done
+
+for timezone_contract in \
+  /usr/share/zoneinfo/zone1970.tab \
+  /usr/share/zoneinfo/Europe/Istanbul; do
+  if [[ ! -f "$timezone_contract" || -L "$timezone_contract" ]]; then
+    printf 'schweisos installer preflight: timezone database contract is missing: %s\n' \
+      "$timezone_contract" >&2
+    exit 1
+  fi
+done
+
+if [[ ! -d /run/archiso/airootfs ]] || ! findmnt --mountpoint /run/archiso/airootfs >/dev/null 2>&1; then
+  printf 'schweisos installer preflight: mounted Archiso root is unavailable\n' >&2
+  exit 1
+fi

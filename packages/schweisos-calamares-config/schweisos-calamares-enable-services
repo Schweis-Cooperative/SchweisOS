@@ -14,3 +14,16 @@ fi
 
 arch-chroot "$target_root" systemctl enable NetworkManager.service
 arch-chroot "$target_root" systemctl enable sddm.service
+
+enable_if_installed() {
+  local package=$1
+  local unit=$2
+  if arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1; then
+    arch-chroot "$target_root" systemctl enable "$unit"
+  fi
+}
+
+enable_if_installed firewalld firewalld.service
+enable_if_installed cups cups.service
+enable_if_installed bluez bluez.service
+enable_if_installed libvirt libvirtd.service

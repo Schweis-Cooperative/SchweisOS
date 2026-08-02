@@ -46,16 +46,19 @@ required_files=(
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
+  "${package_dir}/packagechooser-browser.conf"
+  "${package_dir}/packagechooser-kernel.conf"
+  "${package_dir}/packagechooser-extras.conf"
   "${package_dir}/partition.conf"
+  "${package_dir}/unpackfs.conf"
   "${package_dir}/users.conf"
   "${package_dir}/welcome.conf"
   "${package_dir}/shellprocess-preflight.conf"
-  "${package_dir}/shellprocess-pacstrap.conf"
+  "${package_dir}/shellprocess-reconcile.conf"
   "${package_dir}/shellprocess-pacman.conf"
   "${package_dir}/shellprocess-systemd-boot.conf"
   "${package_dir}/shellprocess-services.conf"
   "${package_dir}/target-packages.x86_64"
-  "${package_dir}/pacman.conf"
   "${package_dir}/schweisos-installer.desktop"
   "${package_dir}/schweisos-installer-autostart.desktop"
   "${package_dir}/org.schweisos.installer.policy"
@@ -75,7 +78,7 @@ helper_sources=(
   "${package_dir}/schweisos-installer-autostart"
   "${package_dir}/schweisos-installer-live-session"
   "${package_dir}/schweisos-calamares-preflight"
-  "${package_dir}/schweisos-calamares-pacstrap"
+  "${package_dir}/schweisos-calamares-reconcile-target"
   "${package_dir}/schweisos-calamares-configure-pacman"
   "${package_dir}/schweisos-calamares-install-systemd-boot"
   "${package_dir}/schweisos-calamares-enable-services"
@@ -126,7 +129,7 @@ grep -Fxq $'\toptdepends = schweisos-grub-theme: future installer-owned GRUB alt
 ! grep -Fq "'SKIP'" "${package_dir}/PKGBUILD" || \
   fail 'installer config package source checksums must not be skipped'
 for helper_name in \
-  schweisos-installer schweisos-calamares-preflight schweisos-calamares-pacstrap \
+  schweisos-installer schweisos-calamares-preflight schweisos-calamares-reconcile-target \
   schweisos-calamares-configure-pacman schweisos-calamares-install-systemd-boot \
   schweisos-calamares-enable-services; do
   grep -Fq "install -Dm755 \"\${srcdir}/${helper_name}\"" "${package_dir}/PKGBUILD" || \
@@ -184,6 +187,9 @@ grep -Fq 'unlink -- "$upstream_launcher"' "${calamares_package_dir}/PKGBUILD" ||
   fail 'Calamares package must omit the generic Install System launcher'
 ! grep -Eq 'rm[[:space:]]+-[[:alnum:]]*f' "${calamares_package_dir}/PKGBUILD" || \
   fail 'Calamares launcher omission must not use a force flag'
+if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)packagechooser(;|$)'; then
+  fail 'Calamares package must build the upstream packagechooser module'
+fi
 [[ ! -e "${profile_airootfs}/usr/local/share/applications/calamares.desktop" \
     && ! -L "${profile_airootfs}/usr/local/share/applications/calamares.desktop" ]] || \
   fail 'the ISO profile must not retain a second-layer Calamares launcher mask'
@@ -207,8 +213,12 @@ grep -Fq "  versionedName: \"SchweisOS ${release_pkgver}\"" "${package_dir}/bran
   fail 'Calamares branding versionedName must match schweisos-release pkgver'
 grep -Fq 'shellprocess@preflight' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must include preflight'
-grep -Fq 'shellprocess@pacstrap' "${package_dir}/settings.conf" || \
-  fail 'Calamares sequence must install packages through pacstrap'
+for required_sequence in \
+  welcomeq packagechooser@browser packagechooser@kernel packagechooser@extras \
+  unpackfs shellprocess@reconcile; do
+  grep -Fq -- "- ${required_sequence}" "${package_dir}/settings.conf" || \
+    fail "Calamares sequence is missing: ${required_sequence}"
+done
 grep -Fq 'shellprocess@systemd-boot' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must install systemd-boot'
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(displaymanager|networkcfg)[[:space:]]*$' \
@@ -244,20 +254,46 @@ grep -R --line-number '@@ROOT@@' "$package_dir" && \
 grep -Fq 'target root is not available before Calamares mount' \
   "${package_dir}/schweisos-calamares-preflight" || \
   fail 'preflight helper must reject accidental target-root arguments'
-for mounted_shellprocess in pacstrap pacman systemd-boot services; do
+for mounted_shellprocess in reconcile pacman systemd-boot services; do
   grep -Fq '${ROOT}' "${package_dir}/shellprocess-${mounted_shellprocess}.conf" || \
     fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
 done
 
-grep -Fq 'pacstrap -K -C "$pacman_config" "$target_root"' \
-  "${package_dir}/schweisos-calamares-pacstrap" || \
-  fail 'installer must use pacstrap with the packaged pacman config'
-grep -Fq 'Include = /etc/pacman.d/schweisos.conf' "${package_dir}/pacman.conf" || \
-  fail 'installer pacstrap config must include SchweisOS repository snippet'
-grep -Fq 'LocalFileSigLevel = Required' "${package_dir}/pacman.conf" || \
-  fail 'installer pacstrap config must require signatures for local package files'
-! grep -Eq 'SigLevel[[:space:]]*=[^#]*(Never|TrustAll)' "${package_dir}/pacman.conf" || \
-  fail 'installer pacstrap config must not weaken signature trust'
+for chooser in browser kernel extras; do
+  grep -Fxq 'method: legacy' "${package_dir}/packagechooser-${chooser}.conf" || \
+    fail "package chooser must use the audited legacy GlobalStorage contract: ${chooser}"
+done
+grep -Fxq 'mode: required' "${package_dir}/packagechooser-browser.conf" || \
+  fail 'browser chooser must require exactly one selection'
+grep -Fxq 'default: firefox' "${package_dir}/packagechooser-browser.conf" || \
+  fail 'Firefox must remain the default browser selection'
+grep -Fxq 'mode: required' "${package_dir}/packagechooser-kernel.conf" || \
+  fail 'kernel chooser must require exactly one selection'
+grep -Fxq 'default: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
+  fail 'linux-zen must be the recommended default kernel'
+grep -Fxq 'mode: optionalmultiple' "${package_dir}/packagechooser-extras.conf" || \
+  fail 'optional feature chooser must allow zero or more selections'
+grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
+  fail 'unpackfs must copy the mounted, validated Archiso root'
+grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \
+  fail 'unpackfs must treat the mounted Archiso root as a directory payload'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+  grep -Fq "\${gs[${selection_key}]}" "${package_dir}/shellprocess-reconcile.conf" || \
+    fail "reconciliation shellprocess is missing GlobalStorage selection: ${selection_key}"
+done
+for reconciliation_fragment in \
+  'firefox|chromium|falkon' \
+  'linux|linux-lts|linux-zen|linux-hardened' \
+  'arch-install-scripts' \
+  'schweisos-calamares-config' \
+  'pacman -Rns --noconfirm' \
+  '/usr/lib/schweisos-live' \
+  'selection.conf' \
+  'PAYLOAD=archiso-airootfs'; do
+  grep -Fq "$reconciliation_fragment" \
+    "${package_dir}/schweisos-calamares-reconcile-target" || \
+    fail "target reconciliation contract is missing: ${reconciliation_fragment}"
+done
 grep -Fq "include_line='Include = /etc/pacman.d/schweisos.conf'" \
   "${package_dir}/schweisos-calamares-configure-pacman" || \
   fail 'installer must enable the SchweisOS repository in target pacman.conf'
@@ -265,6 +301,10 @@ grep -Fq 'bootctl install' "${package_dir}/schweisos-calamares-install-systemd-b
   fail 'installer MVP must install systemd-boot through bootctl'
 grep -Fq 'root=UUID=${root_uuid}' "${package_dir}/schweisos-calamares-install-systemd-boot" || \
   fail 'systemd-boot entry must bind to the installed root UUID'
+grep -Fq 'linux   /vmlinuz-${kernel}' "${package_dir}/schweisos-calamares-install-systemd-boot" || \
+  fail 'systemd-boot entry must use the selected kernel'
+grep -Fq 'initrd  /initramfs-${kernel}.img' "${package_dir}/schweisos-calamares-install-systemd-boot" || \
+  fail 'systemd-boot entry must use the selected initramfs'
 grep -Fq 'mkinitcpio -P' "${package_dir}/schweisos-calamares-install-systemd-boot" || \
   fail 'installer must regenerate target initramfs'
 grep -Fq 'systemctl enable NetworkManager.service' "${package_dir}/schweisos-calamares-enable-services" || \
@@ -417,12 +457,18 @@ if ! awk '
 fi
 
 for target_package in \
-  base btrfs-progs dosfstools e2fsprogs efibootmgr linux linux-firmware \
+  base btrfs-progs dosfstools e2fsprogs efibootmgr linux-firmware \
   networkmanager plasma-desktop sddm sudo \
   schweisos-branding schweisos-keyring schweisos-mirrorlist \
   schweisos-pacman-config schweisos-release; do
   grep -Fxq "$target_package" "${tmp_dir}/target-packages.normalized" || \
     fail "required target package is missing: ${target_package}"
+done
+for dynamic_target_package in \
+  firefox chromium falkon linux linux-lts linux-zen linux-hardened \
+  distrobox podman firewalld plasma-firewall; do
+  ! grep -Fxq "$dynamic_target_package" "${tmp_dir}/target-packages.normalized" || \
+    fail "dynamic target package must be owned by a chooser: ${dynamic_target_package}"
 done
 for forbidden_target_package in calamares schweisos-calamares-config mkinitcpio-archiso plymouth; do
   ! grep -Fxq "$forbidden_target_package" "${tmp_dir}/target-packages.normalized" || \
@@ -431,7 +477,8 @@ done
 
 for live_package in \
   arch-install-scripts btrfs-progs calamares dosfstools efibootmgr \
-  schweisos-calamares-config; do
+  schweisos-calamares-config chromium falkon firefox linux linux-lts linux-zen \
+  linux-hardened firewalld plasma-firewall distrobox podman; do
   grep -Fxq "$live_package" "$profile_packages" || \
     fail "installer live package is missing from ISO profile: ${live_package}"
 done
@@ -464,9 +511,10 @@ git -C "$project_root" diff --check -- \
   tests/validate-installer-config.sh
 
 "${project_root}/tests/test-installer-experience.sh"
+bash "${project_root}/tests/test-installer-reconciliation.sh"
 
 printf 'Installer configuration validation passed.\n'
 printf '  package: schweisos-calamares-config\n'
 printf '  installer: Calamares configuration packaged separately\n'
-printf '  target install: pacstrap from signed Arch and SchweisOS repositories\n'
+printf '  target install: offline unpackfs payload with fail-closed reconciliation\n'
 printf '  bootloader: UEFI systemd-boot MVP\n'

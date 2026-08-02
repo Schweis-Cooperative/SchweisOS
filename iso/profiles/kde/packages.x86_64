@@ -2,6 +2,9 @@
 base
 linux
 linux-firmware
+linux-hardened
+linux-lts
+linux-zen
 mkinitcpio
 mkinitcpio-archiso
 plymouth
@@ -10,9 +13,11 @@ zstd
 # CPU microcode is hardware-specific and must be selected by the installer or
 # build workflow. Do not install intel-ucode and amd-ucode together by default.
 
-# Minimal KDE live desktop
+# Minimal KDE live desktop and offline browser choices
+chromium
 discover
 dolphin
+falkon
 firefox
 kate
 kinfocenter
@@ -50,6 +55,37 @@ calamares
 dosfstools
 efibootmgr
 schweisos-calamares-config
+
+# Offline installer choice universe. Unselected top-level packages are removed
+# from the target by the package-owned reconciliation helper.
+bluez
+bluez-utils
+cmake
+cups
+firewalld
+gamemode
+gparted
+libreoffice-fresh
+lutris
+mangohud
+ninja
+noto-fonts
+noto-fonts-cjk
+noto-fonts-emoji
+nvme-cli
+orca
+pacman-contrib
+plasma-firewall
+power-profiles-daemon
+qemu-desktop
+smartmontools
+speech-dispatcher
+system-config-printer
+testdisk
+torbrowser-launcher
+virt-manager
+vlc
+wayland-utils
 
 # Container tooling
 distrobox

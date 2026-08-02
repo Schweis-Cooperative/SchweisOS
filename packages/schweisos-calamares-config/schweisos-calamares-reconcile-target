@@ -1,0 +1,213 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+shopt -s extglob
+
+export LC_ALL=C
+
+die() {
+  printf 'schweisos target reconciliation: %s\n' "$*" >&2
+  exit 1
+}
+
+target_root=${1:?target root argument is required}
+browser=${2:?browser selection is required}
+kernel=${3:?kernel selection is required}
+extras_csv=${4-}
+required_manifest=/usr/share/schweisos/calamares/target-packages.x86_64
+
+[[ "$target_root" == /* && "$target_root" != / && "$target_root" != *'/../'* ]] || \
+  die 'unsafe target root'
+[[ -d "$target_root" && ! -L "$target_root" ]] || die 'target root is missing or unsafe'
+findmnt --mountpoint "$target_root" >/dev/null 2>&1 || \
+  die "target root is not a mount point: ${target_root}"
+[[ -f "${target_root}/etc/pacman.conf" && ! -L "${target_root}/etc/pacman.conf" ]] || \
+  die 'copied target does not contain a safe pacman configuration'
+[[ -f "$required_manifest" && ! -L "$required_manifest" ]] || \
+  die 'required target manifest is missing or unsafe'
+
+case "$browser" in
+  firefox|chromium|falkon) ;;
+  *) die "unknown browser selection: ${browser}" ;;
+esac
+
+case "$kernel" in
+  linux|linux-lts|linux-zen|linux-hardened) ;;
+  *) die "unknown kernel selection: ${kernel}" ;;
+esac
+
+declare -Ar feature_packages=(
+  [privacy]='torbrowser-launcher'
+  [security]='firewalld plasma-firewall'
+  [gaming]='gamemode mangohud lutris'
+  [development]='git cmake ninja'
+  [virtualization]='qemu-desktop virt-manager'
+  [multimedia]='vlc'
+  [office]='libreoffice-fresh'
+  [fonts]='noto-fonts noto-fonts-cjk noto-fonts-emoji'
+  [printing]='cups system-config-printer'
+  [bluetooth]='bluez bluez-utils'
+  [accessibility]='orca speech-dispatcher'
+  [wayland-tools]='wayland-utils'
+  [power-management]='power-profiles-daemon'
+  [network-tools]='openssh rsync'
+  [containers]='distrobox podman'
+  [diagnostics]='smartmontools nvme-cli'
+  [recovery]='gparted testdisk'
+  [maintenance]='pacman-contrib reflector'
+)
+
+declare -A selected_features=()
+if [[ -n "$extras_csv" ]]; then
+  IFS=',' read -r -a extras <<<"$extras_csv"
+  for feature in "${extras[@]}"; do
+    [[ -n "$feature" ]] || die 'empty optional-feature identifier'
+    [[ -v "feature_packages[$feature]" ]] || die "unknown optional-feature selection: ${feature}"
+    [[ ! -v "selected_features[$feature]" ]] || die "duplicate optional-feature selection: ${feature}"
+    selected_features[$feature]=1
+  done
+fi
+
+required_packages=()
+while IFS= read -r line; do
+  line=${line%%#*}
+  line=${line##+([[:space:]])}
+  line=${line%%+([[:space:]])}
+  [[ -n "$line" ]] || continue
+  [[ "$line" =~ ^[a-z0-9@._+-]+$ ]] || die "unsafe package in required manifest: ${line}"
+  required_packages+=("$line")
+done <"$required_manifest"
+(( ${#required_packages[@]} > 0 )) || die 'required target manifest is empty'
+
+selected_packages=("$browser" "$kernel")
+unselected_packages=()
+for candidate in firefox chromium falkon; do
+  [[ "$candidate" == "$browser" ]] || unselected_packages+=("$candidate")
+done
+for candidate in linux linux-lts linux-zen linux-hardened; do
+  [[ "$candidate" == "$kernel" ]] || unselected_packages+=("$candidate")
+done
+for feature in "${!feature_packages[@]}"; do
+  read -r -a packages <<<"${feature_packages[$feature]}"
+  if [[ -v "selected_features[$feature]" ]]; then
+    selected_packages+=("${packages[@]}")
+  else
+    unselected_packages+=("${packages[@]}")
+  fi
+done
+
+# These packages exist only to construct and run the live installer. They may
+# never remain part of the installed-system contract.
+live_only_packages=(
+  arch-install-scripts
+  calamares
+  mkinitcpio-archiso
+  plymouth
+  schweisos-calamares-config
+)
+unselected_packages+=("${live_only_packages[@]}")
+
+installed_removals=()
+for package in "${unselected_packages[@]}"; do
+  if arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1; then
+    installed_removals+=("$package")
+  fi
+done
+if (( ${#installed_removals[@]} > 0 )); then
+  arch-chroot "$target_root" pacman -Rns --noconfirm -- "${installed_removals[@]}"
+fi
+
+for package in "${required_packages[@]}" "${selected_packages[@]}"; do
+  arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1 || \
+    die "required or selected package is absent from the offline payload: ${package}"
+done
+arch-chroot "$target_root" pacman -D --asexplicit -- \
+  "${required_packages[@]}" "${selected_packages[@]}" >/dev/null
+
+remove_target_path() {
+  local relative_path=$1
+  local path
+  [[ "$relative_path" == /* && "$relative_path" != *'..'* ]] || \
+    die "unsafe live-state path: ${relative_path}"
+  path="${target_root}${relative_path}"
+  if [[ -L "$path" || -f "$path" ]]; then
+    unlink -- "$path"
+  elif [[ -d "$path" ]]; then
+    rm -r -- "$path"
+  fi
+}
+
+live_paths=(
+  /etc/mkinitcpio.conf.d/archiso.conf
+  /etc/mkinitcpio.d/linux.preset
+  /etc/plymouth
+  /etc/polkit-1/rules.d/49-schweisos-live-admin.rules
+  /etc/sddm.conf.d/10-schweisos-live.conf
+  /etc/sudoers.d/10-schweisos-live
+  /etc/systemd/system/emergency.target.d/10-schweisos-debug-fallback.conf
+  /etc/systemd/system/plymouth-quit-wait.service.d/10-schweisos-debug-fallback.conf
+  /etc/systemd/system/plymouth-quit.service.d/10-schweisos-debug-fallback.conf
+  /etc/systemd/system/plymouth-start.service.d/10-schweisos-debug-fallback.conf
+  /etc/systemd/system/schweisos-boot-debug-fallback.service
+  /etc/systemd/system/schweisos-plymouth-exit-fallback.service
+  /etc/systemd/system/schweisos-plymouth-exit-watch.path
+  /etc/systemd/system/schweisos-plymouth-watchdog.service
+  /etc/systemd/system/sddm.service.d/10-schweisos-debug-fallback.conf
+  /etc/systemd/system/sysinit.target.d/10-schweisos-plymouth-watch.conf
+  /etc/sysusers.d/schweisos-live.conf
+  /etc/tmpfiles.d/schweisos-live.conf
+  /usr/lib/initcpio/hooks/schweisos_iso_file_fallback
+  /usr/lib/initcpio/install/schweisos_iso_file_fallback
+  /usr/lib/schweisos-live
+  /usr/share/plymouth/themes/schweisos
+)
+for live_path in "${live_paths[@]}"; do
+  remove_target_path "$live_path"
+done
+
+if awk -F: '$1 == "live" { found=1 } END { exit !found }' "${target_root}/etc/passwd"; then
+  userdel --root "$target_root" --remove live
+fi
+if awk -F: '$1 == "live" { found=1 } END { exit !found }' "${target_root}/etc/passwd"; then
+  die 'ephemeral live account remains in target'
+fi
+
+# Archiso replaces the ordinary linux preset. Restore a package-compatible
+# installed-system preset when the standard kernel is selected; the other
+# kernel packages retain their own presets.
+if [[ "$kernel" == linux ]]; then
+  install -d -m 0755 -- "${target_root}/etc/mkinitcpio.d"
+  preset="${target_root}/etc/mkinitcpio.d/linux.preset"
+  [[ ! -L "$preset" ]] || die 'target linux preset is an unsafe symlink'
+  cat >"$preset" <<'EOF'
+# mkinitcpio preset file for the 'linux' package
+
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux"
+
+PRESETS=('default' 'fallback')
+
+default_image="/boot/initramfs-linux.img"
+
+fallback_image="/boot/initramfs-linux-fallback.img"
+fallback_options="-S autodetect"
+EOF
+  chmod 0644 -- "$preset"
+fi
+
+evidence_dir="${target_root}/var/lib/schweisos/installer"
+install -d -m 0755 -- "$evidence_dir"
+evidence="${evidence_dir}/selection.conf"
+[[ ! -L "$evidence" ]] || die 'selection evidence path is an unsafe symlink'
+{
+  printf 'FORMAT_VERSION=1\n'
+  printf 'BROWSER=%s\n' "$browser"
+  printf 'KERNEL=%s\n' "$kernel"
+  printf 'OPTIONAL_FEATURES=%s\n' "$extras_csv"
+  printf 'PAYLOAD=archiso-airootfs\n'
+} >"$evidence"
+chmod 0644 -- "$evidence"
+
+printf 'schweisos target reconciliation: browser=%s kernel=%s optional=%s\n' \
+  "$browser" "$kernel" "${extras_csv:-none}"

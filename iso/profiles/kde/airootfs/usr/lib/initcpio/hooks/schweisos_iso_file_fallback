@@ -96,7 +96,9 @@ EOF
 
 run_hook() {
     if [ "${mount_handler:-}" = 'archiso_loop_mount_handler' ]; then
-        return 0
+        if [ -n "$(getarg 'img_dev')" ] && [ -n "$(getarg 'img_loop')" ]; then
+            return 0
+        fi
     fi
 
     [ -n "${archisosearchuuid:-}" ] || return 0

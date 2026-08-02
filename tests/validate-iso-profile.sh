@@ -526,6 +526,24 @@ for required_fallback_fragment in \
   grep -Fq "$required_fallback_fragment" "$iso_file_fallback_hook" || \
     fail "ISO-file fallback hook is missing: ${required_fallback_fragment}"
 done
+if ! awk '
+  /mount_handler:-/ && /archiso_loop_mount_handler/ { in_loop_guard = 1 }
+  in_loop_guard && /getarg '\''img_dev'\''/ { saw_img_dev = 1 }
+  in_loop_guard && /getarg '\''img_loop'\''/ { saw_img_loop = 1 }
+  in_loop_guard && /return 0/ {
+    if (saw_img_dev && saw_img_loop) {
+      exit 0
+    }
+    exit 1
+  }
+  END {
+    if (!(saw_img_dev && saw_img_loop)) {
+      exit 1
+    }
+  }
+' "$iso_file_fallback_hook"; then
+  fail 'ISO-file fallback must not yield to archiso_loop_mnt without a complete img_dev/img_loop handoff'
+fi
 if grep -Fq 'RM == 0' "$iso_file_fallback_hook"; then
   fail 'ISO-file fallback must not scan non-removable disks before preserving upstream Archiso fallback'
 fi

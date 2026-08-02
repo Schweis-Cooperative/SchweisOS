@@ -186,7 +186,11 @@ search-marker behavior, without requesting boot-time `checksum=y` by default.
 The SchweisOS fallback hook is intentionally narrow:
 
 - it does nothing when `archiso_loop_mnt` has already selected the upstream
-  loopback mount handler from `img_dev/img_loop`;
+  loopback mount handler from a complete `img_dev/img_loop` handoff;
+- it overrides an inherited `archiso_loop_mnt` handler when
+  `archisosearchuuid` is present but `img_dev/img_loop` is incomplete, because
+  that state is native marker search and would otherwise look for the marker on
+  the outer multiboot filesystem instead of inside the ISO file;
 - it runs only when the native `archisosearchuuid` contract is active and no
   `img_dev/img_loop` handoff exists;
 - it first preserves native removable-media boot by looking for the requested

@@ -80,15 +80,15 @@ turns `img_dev/img_loop` into the loop device Archiso mounts.
 
 Some multiboot paths produce a kernel command line with
 `archisosearchuuid` but no `img_dev/img_loop`. That proves native Archiso
-search is active, not which bootloader generated the entry, and leaves
-`archiso_loop_mnt` present but intentionally passive. SchweisOS therefore adds
-one narrow initramfs
-fallback hook, `schweisos_iso_file_fallback`, after `archiso_loop_mnt`. It
-first preserves native removable-media boot by checking for Archiso's marker
-directly on removable partitions. If the marker is not there, it searches only
-removable media for ISO files whose raw contents contain the requested
-`<uuid>.uuid` marker, mounts the matching ISO read-only through a loop device,
-clears the native search variables, and delegates back to upstream
+search is active, not which bootloader generated the entry. SchweisOS therefore
+adds one narrow initramfs fallback hook, `schweisos_iso_file_fallback`, after
+`archiso_loop_mnt`. It leaves the upstream loopback handler alone only when the
+kernel command line includes both `img_dev` and `img_loop`. Without that complete
+handoff, it first preserves native removable-media boot by checking for
+Archiso's marker directly on removable partitions. If the marker is not there,
+it searches only removable media for ISO files whose raw contents contain the
+requested `<uuid>.uuid` marker, mounts the matching ISO read-only through a loop
+device, clears the native search variables, and delegates back to upstream
 `archiso_mount_handler`. The fallback does not perform unconditional
 loop-module loading; the normal successful path is `losetup` plus upstream
 Archiso delegation. This keeps the initramfs output free of misleading

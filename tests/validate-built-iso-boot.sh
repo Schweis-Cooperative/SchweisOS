@@ -587,6 +587,24 @@ done
 grep -Fq "mount_handler='schweisos_iso_file_mount_handler'" \
     "${initramfs_root}/hooks/schweisos_iso_file_fallback" || \
     fail 'initramfs ISO-file fallback hook does not install the SchweisOS mount handler'
+if ! awk '
+  /mount_handler:-/ && /archiso_loop_mount_handler/ { in_loop_guard = 1 }
+  in_loop_guard && /getarg '\''img_dev'\''/ { saw_img_dev = 1 }
+  in_loop_guard && /getarg '\''img_loop'\''/ { saw_img_loop = 1 }
+  in_loop_guard && /return 0/ {
+    if (saw_img_dev && saw_img_loop) {
+      exit 0
+    }
+    exit 1
+  }
+  END {
+    if (!(saw_img_dev && saw_img_loop)) {
+      exit 1
+    }
+  }
+' "${initramfs_root}/hooks/schweisos_iso_file_fallback"; then
+    fail 'initramfs ISO-file fallback yields to archiso_loop_mnt without a complete img_dev/img_loop handoff'
+fi
 if grep -Fq 'modprobe loop' "${initramfs_root}/hooks/schweisos_iso_file_fallback"; then
     fail 'initramfs ISO-file fallback hook performs unconditional loop-module loading'
 fi

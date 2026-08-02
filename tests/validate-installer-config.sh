@@ -119,7 +119,7 @@ grep -Fxq $'\turl = https://schweisos.org' <<<"$srcinfo" || \
 for dependency in \
   arch-install-scripts bash calamares dosfstools efibootmgr e2fsprogs kdialog pacman \
   polkit schweisos-branding schweisos-keyring schweisos-mirrorlist \
-  schweisos-pacman-config schweisos-release systemd util-linux xorg-xwayland; do
+  schweisos-pacman-config schweisos-release systemd tzdata util-linux xorg-xwayland; do
   grep -Fxq $'\tdepends = '"$dependency" <<<"$srcinfo" || \
     fail "installer config package dependency is missing: ${dependency}"
 done
@@ -473,7 +473,7 @@ fi
 
 for target_package in \
   base btrfs-progs dosfstools e2fsprogs efibootmgr linux-firmware \
-  networkmanager plasma-desktop sddm sudo \
+  networkmanager plasma-desktop sddm sudo tzdata \
   schweisos-branding schweisos-keyring schweisos-mirrorlist \
   schweisos-pacman-config schweisos-release; do
   grep -Fxq "$target_package" "${tmp_dir}/target-packages.normalized" || \

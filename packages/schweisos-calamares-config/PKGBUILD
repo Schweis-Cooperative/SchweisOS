@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=9
+pkgrel=10
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -24,6 +24,7 @@ depends=(
   'schweisos-pacman-config'
   'schweisos-release'
   'systemd'
+  'tzdata'
   'util-linux'
   'xorg-xwayland'
 )
@@ -86,7 +87,7 @@ sha256sums=('4103462a2e4866bd531b481ccb9e6b2f7cee11f27f27bcee35142c78cfb8f5b5'
             '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
             'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
-            '6dbbdadb2fa0edfd6779b6b4e7ee0bd131c76955881d2e308875416c0dcc58f6'
+            'fb7462164ee57ed5cdf69c908522e7d0163be29834c3361060a25b9ede70b78a'
             '97d950aa85bd4725911ba0ef7cafc0a2a2dc33a253fae81ab16bb2974c4f6405'
             '737a0100892d98c4664011d83e439975109c7fe97a46911bff3a25f465ebdf34'
             '52a5f15f1f8b52df30b901a8a03f148a85fc2bf763a00f5e7d1ebd6119202c05'

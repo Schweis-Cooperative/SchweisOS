@@ -32,6 +32,7 @@ man-db
 man-pages
 nano
 pciutils
+tzdata
 usbutils
 wget
 xdg-utils

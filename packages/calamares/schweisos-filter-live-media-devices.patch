@@ -1,0 +1,210 @@
+diff --git a/src/modules/partition/core/DeviceList.cpp b/src/modules/partition/core/DeviceList.cpp
+index 2f8f1dd2a..2bf1d60b4 100644
+--- a/src/modules/partition/core/DeviceList.cpp
++++ b/src/modules/partition/core/DeviceList.cpp
+@@ -20,7 +20,12 @@
+ #include <kpmcore/core/device.h>
+ #include <kpmcore/core/partition.h>
+ 
++#include <QFile>
++#include <QFileInfo>
+ #include <QProcess>
++#include <QRegularExpression>
++#include <QStringList>
++#include <QTextStream>
+ 
+ using Calamares::Partition::PartitionIterator;
+ 
+@@ -93,6 +98,172 @@ operator<<( QDebug& s, QList< Device* >::iterator& it )
+     return s;
+ }
+ 
++static void
++appendUnique( QStringList& list, const QString& value )
++{
++    if ( !value.isEmpty() && !list.contains( value ) )
++    {
++        list.append( value );
++    }
++}
++
++static QString
++stripShellQuotes( QString value )
++{
++    value = value.trimmed();
++    if ( value.length() >= 2 )
++    {
++        const QChar first = value.front();
++        const QChar last = value.back();
++        if ( ( first == QLatin1Char( '"' ) && last == QLatin1Char( '"' ) )
++             || ( first == QLatin1Char( '\'' ) && last == QLatin1Char( '\'' ) ) )
++        {
++            value = value.mid( 1, value.length() - 2 );
++        }
++    }
++    return value;
++}
++
++static QString
++readTextFile( const QString& path )
++{
++    QFile file( path );
++    if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
++    {
++        return {};
++    }
++    return QString::fromUtf8( file.readAll() ).trimmed();
++}
++
++static QString
++canonicalDevicePath( QString path )
++{
++    path = stripShellQuotes( path );
++    if ( path.startsWith( QStringLiteral( "UUID=" ) ) )
++    {
++        path = QStringLiteral( "/dev/disk/by-uuid/" ) + path.mid( 5 );
++    }
++    else if ( path.startsWith( QStringLiteral( "LABEL=" ) ) )
++    {
++        path = QStringLiteral( "/dev/disk/by-label/" ) + path.mid( 6 );
++    }
++
++    QFileInfo info( path );
++    if ( info.exists() )
++    {
++        const QString canonical = info.canonicalFilePath();
++        if ( !canonical.isEmpty() )
++        {
++            return canonical;
++        }
++    }
++    return path;
++}
++
++static QString
++parentDiskForDevicePath( const QString& originalPath )
++{
++    const QString devicePath = canonicalDevicePath( originalPath );
++    if ( !devicePath.startsWith( QStringLiteral( "/dev/" ) ) )
++    {
++        return {};
++    }
++
++    auto result = Calamares::System::runCommand(
++        { QStringLiteral( "lsblk" ), QStringLiteral( "-rno" ), QStringLiteral( "PKNAME" ), devicePath },
++        std::chrono::seconds( 30 ) );
++    const QString output = result.getOutput().trimmed();
++    if ( !output.isEmpty() )
++    {
++        QString parent = output.section( QLatin1Char( '\n' ), 0, 0 ).trimmed();
++        if ( !parent.isEmpty() )
++        {
++            if ( !parent.startsWith( QStringLiteral( "/dev/" ) ) )
++            {
++                parent.prepend( QStringLiteral( "/dev/" ) );
++            }
++            return canonicalDevicePath( parent );
++        }
++    }
++
++    static const QRegularExpression nvmeOrMmcPartition(
++        QStringLiteral( R"(^(/dev/(?:nvme\d+n\d+|mmcblk\d+))p\d+$)" ) );
++    auto nvmeOrMmcMatch = nvmeOrMmcPartition.match( devicePath );
++    if ( nvmeOrMmcMatch.hasMatch() )
++    {
++        return nvmeOrMmcMatch.captured( 1 );
++    }
++
++    static const QRegularExpression sdStylePartition(
++        QStringLiteral( R"(^(/dev/(?:sd[a-z]+|vd[a-z]+|xvd[a-z]+|hd[a-z]+))\d+$)" ) );
++    auto sdStyleMatch = sdStylePartition.match( devicePath );
++    if ( sdStyleMatch.hasMatch() )
++    {
++        return sdStyleMatch.captured( 1 );
++    }
++
++    return devicePath;
++}
++
++static QStringList
++mountSourcesForPath( const QString& mountPoint )
++{
++    QStringList sources;
++    QFile file( QStringLiteral( "/proc/self/mountinfo" ) );
++    if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
++    {
++        return sources;
++    }
++
++    QTextStream stream( &file );
++    while ( !stream.atEnd() )
++    {
++        const QString line = stream.readLine();
++        const QStringList fields = line.split( QLatin1Char( ' ' ) );
++        const int separator = fields.indexOf( QStringLiteral( "-" ) );
++        if ( fields.size() < 10 || separator < 0 || separator + 2 >= fields.size() )
++        {
++            continue;
++        }
++        if ( fields.value( 4 ) == mountPoint )
++        {
++            appendUnique( sources, fields.value( separator + 2 ) );
++        }
++    }
++    return sources;
++}
++
++static QStringList
++schweisosLiveMediaDevices()
++{
++    QStringList devices;
++    if ( !QFileInfo::exists( QStringLiteral( "/usr/lib/schweisos-live/session" ) ) )
++    {
++        return devices;
++    }
++
++    QStringList candidates;
++    const QString cmdline = readTextFile( QStringLiteral( "/proc/cmdline" ) );
++    static const QRegularExpression kernelDeviceArgument(
++        QStringLiteral( R"((?:^|\s)(?:img_dev|archisodevice)=("[^"]+"|'[^']+'|\S+))" ) );
++    auto matches = kernelDeviceArgument.globalMatch( cmdline );
++    while ( matches.hasNext() )
++    {
++        appendUnique( candidates, matches.next().captured( 1 ) );
++    }
++
++    for ( const QString& mountSource : mountSourcesForPath( QStringLiteral( "/run/archiso/bootmnt" ) ) )
++    {
++        appendUnique( candidates, mountSource );
++    }
++
++    for ( const QString& candidate : candidates )
++    {
++        appendUnique( devices, parentDiskForDevicePath( candidate ) );
++    }
++    return devices;
++}
++
+ using DeviceList = QList< Device* >;
+ 
+ static inline DeviceList::iterator
+@@ -151,6 +322,7 @@ getDevices( DeviceType which )
+ 
+     bool writableOnly = ( which == DeviceType::WritableOnly );
+     // Remove the device which contains / from the list
++    const QStringList liveMediaDevices = writableOnly ? schweisosLiveMediaDevices() : QStringList();
+     for ( DeviceList::iterator it = devices.begin(); it != devices.end(); )
+     {
+         if ( !( *it ) )
+@@ -173,6 +345,11 @@ getDevices( DeviceType which )
+             cDebug() << Logger::SubEntry << "Removing device with iso9660 filesystem (probably a CD) on it" << it;
+             it = removeInSafeMode( devices, it );
+         }
++        else if ( writableOnly && liveMediaDevices.contains( ( *it )->deviceNode() ) )
++        {
++            cDebug() << Logger::SubEntry << "Removing SchweisOS live boot media device" << it;
++            it = removeInSafeMode( devices, it );
++        }
+         else
+         {
+             ++it;

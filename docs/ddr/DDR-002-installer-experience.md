@@ -1,8 +1,8 @@
 # DDR-002 Installer Experience
 
-Version: 1.1
+Version: 1.2
 Status: Accepted for Faz 1 source implementation
-Date: 2026-07-30
+Date: 2026-08-02
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
@@ -128,6 +128,20 @@ current contributors list. The first contributors list contains `Marijua` and
 is package-owned so it can grow without altering the launcher or boot
 architecture.
 
+### Storage Target Safety
+
+The installer must not offer the exact live boot medium as an installation
+target. In a Ventoy/file-based boot, the USB that carries the ISO can appear to
+Calamares as a writable exFAT disk because the running root filesystem is
+mounted from an ISO file or device-mapper mapping. Leaving that disk visible
+lets a user select the same DataTraveler/Ventoy medium that booted the live
+session and fail later during `sfdisk` partition-table creation.
+
+SchweisOS treats that as a UX and safety failure, not a user mistake. The
+booted medium is removed from the Calamares target-device list before the user
+reaches partitioning. Installing from one USB drive to a different removable
+target remains allowed; installing over the active live medium does not.
+
 ## User Flow
 
 ```text
@@ -150,6 +164,7 @@ preflight or privilege/display bridge failure
 
 Calamares runtime failure
   -> do not assume the target disk is unchanged
+  -> if the active boot medium was visible, treat it as a packaging regression
 
 either failure class
   -> private launch log is retained
@@ -189,6 +204,8 @@ Static validation must reject:
   canonical banner;
 - a slideshow without the SchweisOS welcome message or current contributors
   list;
+- a Calamares binary package that allows the active SchweisOS live boot medium
+  to appear as a writable installation target;
 - launcher/autostart sources installed with the wrong package modes;
 - installer payload copied into `airootfs/`.
 

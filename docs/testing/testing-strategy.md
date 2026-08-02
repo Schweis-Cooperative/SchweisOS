@@ -2,7 +2,7 @@
 
 Version: 0.7
 Status: Draft
-Date: 2026-07-30
+Date: 2026-08-02
 
 ## Goal
 
@@ -30,6 +30,11 @@ Testing must be realistic for a one-developer distribution. The first test suite
 - UEFI VM, GRUB alternative once implemented.
 
 Legacy BIOS is not required for the first release.
+
+QEMU installation tests must attach a writable target disk. A command that only
+passes `-cdrom schweisos-YYYY.MM.DD-x86_64.iso` is a boot-only test and should
+produce no installable target. Use
+[`docs/testing/qemu.md`](qemu.md) for the canonical QEMU installation command.
 
 ## Repository Bootstrap Tests
 

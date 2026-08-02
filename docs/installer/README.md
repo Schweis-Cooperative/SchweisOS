@@ -1,8 +1,8 @@
 # SchweisOS Installer
 
-Version: 0.3
+Version: 0.4
 Status: Faz 1 source implementation; runtime qualification pending
-Date: 2026-07-30
+Date: 2026-08-02
 
 SchweisOS Faz 1 introduces the source architecture for the first installable
 MVP. The accepted graphical installer is Calamares, configured by the
@@ -33,6 +33,8 @@ Implemented in source:
 - UEFI-only preflight policy.
 - systemd-boot installed-system workflow.
 - ext4 default filesystem with Btrfs as advanced optional filesystem support.
+- Active live-boot-media filtering so the USB or file-backed medium that
+  started the live system is not exposed as an installation target.
 - Target package manifest for a minimal KDE Plasma daily-use system.
 - Target pacman include configuration for the SchweisOS signed repository.
 - Static installer configuration validator.
@@ -83,6 +85,10 @@ Live ISO
 - The installer does not activate GRUB in the MVP.
 - Automated storage does not expose LUKS or LVM until their boot and recovery
   contracts are implemented.
+- The medium that booted the live system is not a supported target disk. If you
+  boot from Ventoy or another USB, install to an internal disk or a different
+  removable disk. The active boot disk must not appear in Calamares' target
+  list.
 - Calamares' welcome module must not be the network gate. If package retrieval
   is unavailable, the audited package installation step must report that real
   failure.

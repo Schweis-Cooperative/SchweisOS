@@ -1,6 +1,6 @@
 # ADR-016 Installer Architecture
 
-Version: 0.3
+Version: 0.4
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted for Faz 1 source implementation
 
 ## Date
 
-2026-07-30
+2026-08-02
 
 ## Related ADRs and DDRs
 
@@ -84,6 +84,18 @@ package source and requires a signed SchweisOS repository package before an
 installer ISO can resolve `calamares` and `schweisos-calamares-config`.
 Package resolution must fail closed until that dependency is available from an
 approved repository source.
+
+The SchweisOS Calamares binary package carries one narrow downstream patch for
+live-media safety. Upstream Calamares' `WritableOnly` device filter removes the
+live root device and ISO9660 media, but a Ventoy/file-based boot presents the
+active USB storage as a writable exFAT disk while the live root is mounted from
+an ISO file or device-mapper mapping. That allows the booted USB itself to
+appear as an installation target and fail destructively during partition-table
+creation. SchweisOS therefore filters the parent disk of the active Archiso
+media from the Calamares partition device model when the SchweisOS live marker
+is present. The filter derives the media from `img_dev`, `archisodevice`, and
+`/run/archiso/bootmnt` runtime evidence; it does not hide ordinary removable
+target disks that are not the current boot medium.
 
 The live ISO must let the autologged-in `live` user start the installer and
 other administrative live-session tools without knowing a root password. This
@@ -179,6 +191,12 @@ is inert groundwork. The MVP does not run `grub-install`, does not generate
 The MVP defaults to GPT, a 512 MiB EFI system partition mounted at `/boot`, and
 an ext4 root filesystem.
 
+The active live boot medium is not a supported installation target. A user may
+install from one USB drive to another removable drive, but not onto the exact
+USB or file-backed medium that is supplying the running live system. That disk
+must be absent from Calamares' target selection rather than left to fail later
+in `sfdisk`.
+
 Btrfs is exposed only as an advanced filesystem option when the live installer
 environment provides `btrfs-progs`. No snapshot, rollback, compression-policy,
 or subvolume promise is made in Faz 1. Snapshot architecture belongs to the
@@ -235,8 +253,9 @@ mirrors, or temporary keys.
   Calamares branding and slideshow resources, the single visible installer
   launcher, live-session autostart, exact-path privilege bridge, target package
   manifest, pacstrap pacman configuration, and installer helper scripts.
-- `packages/calamares/` owns the reviewed upstream binary package and omission
-  of its generic launcher; it does not own SchweisOS desktop presentation.
+- `packages/calamares/` owns the reviewed upstream binary package, omission of
+  its generic launcher, and the narrow live-media target filter patch; it does
+  not own SchweisOS desktop presentation.
 - `iso/profiles/kde/packages.x86_64` owns inclusion of Calamares and
   `schweisos-calamares-config` in the live image.
 - `iso/profiles/kde/airootfs/` owns only live account authorization and the
@@ -297,6 +316,9 @@ Negative:
 - Calamares binary packaging becomes a required SchweisOS repository task
   because Arch official repositories do not provide it in the evaluated
   environment.
+- The live-media target filter is downstream maintenance burden. It is accepted
+  only because the unfiltered upstream device model exposes the actively
+  booted Ventoy/file-based USB as a writable installation target.
 - Static validation cannot prove storage safety, successful boot, or graphical
   quality. ISO build, VM testing, and hardware testing remain mandatory before
   user-facing claims.
@@ -318,6 +340,8 @@ The installer configuration validator must fail closed if:
 
 - `schweisos-calamares-config` sources are missing or unsafe;
 - the Calamares binary package retains its generic desktop launcher;
+- the Calamares binary package omits or stops applying the reviewed
+  SchweisOS live-media target filter;
 - the branded launcher, once-only autostart, exact-path Polkit action,
   XWayland bridge, single-instance lock, local log, or visible error path is
   missing;

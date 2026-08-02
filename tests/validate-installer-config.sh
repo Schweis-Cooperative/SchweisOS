@@ -22,6 +22,7 @@ done
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 package_dir="${project_root}/packages/schweisos-calamares-config"
 calamares_package_dir="${project_root}/packages/calamares"
+calamares_live_media_patch="${calamares_package_dir}/schweisos-filter-live-media-devices.patch"
 release_package_dir="${project_root}/packages/schweisos-release"
 profile_packages="${project_root}/iso/profiles/kde/packages.x86_64"
 profile_airootfs="${project_root}/iso/profiles/kde/airootfs"
@@ -65,6 +66,7 @@ required_files=(
   "${installer_docs}/README.md"
   "${installer_docs}/manual-installation-runbook.md"
   "${installer_docs}/recovery-runbook.md"
+  "$calamares_live_media_patch"
 )
 
 helper_sources=(
@@ -97,6 +99,9 @@ desktop-file-validate "${package_dir}/schweisos-installer-autostart.desktop"
 
 if ! (cd -- "$package_dir" && makepkg --verifysource >/dev/null); then
   fail 'installer config package source checksums do not verify'
+fi
+if ! (cd -- "$calamares_package_dir" && makepkg --verifysource >/dev/null); then
+  fail 'Calamares package source checksums do not verify'
 fi
 srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
 calamares_srcinfo="$(cd -- "$calamares_package_dir" && makepkg --printsrcinfo)"
@@ -147,6 +152,21 @@ grep -Fq '"${pkgdir}/usr/share/polkit-1/actions/org.schweisos.installer.policy"'
 
 grep -Fxq 'pkgname = calamares' <<<"$calamares_srcinfo" || \
   fail 'unexpected Calamares package source name'
+grep -Fxq $'\tsource = schweisos-filter-live-media-devices.patch' <<<"$calamares_srcinfo" || \
+  fail 'Calamares package must carry the SchweisOS live-media target filter patch'
+grep -Fq 'patch -Np1 -i "${srcdir}/schweisos-filter-live-media-devices.patch"' \
+  "${calamares_package_dir}/PKGBUILD" || \
+  fail 'Calamares package must apply the live-media target filter patch in prepare()'
+for patch_fragment in \
+  'schweisosLiveMediaDevices' \
+  '/usr/lib/schweisos-live/session' \
+  'img_dev|archisodevice' \
+  '/run/archiso/bootmnt' \
+  'lsblk' \
+  'Removing SchweisOS live boot media device'; do
+  grep -Fq "$patch_fragment" "$calamares_live_media_patch" || \
+    fail "Calamares live-media target filter patch is missing: ${patch_fragment}"
+done
 grep -Fq 'upstream_launcher="${pkgdir}/usr/share/applications/calamares.desktop"' \
   "${calamares_package_dir}/PKGBUILD" || \
   fail 'Calamares package must identify the generic launcher by exact path'

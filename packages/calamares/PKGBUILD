@@ -2,7 +2,7 @@
 
 pkgname=calamares
 pkgver=3.4.2
-pkgrel=2
+pkgrel=3
 pkgdesc='Distribution-independent installer framework'
 arch=('x86_64')
 url='https://codeberg.org/Calamares/calamares'
@@ -26,8 +26,19 @@ makedepends=(
   'qt6-tools'
   'qt6-translations'
 )
-source=("calamares-${pkgver}.tar.gz::https://codeberg.org/Calamares/calamares/releases/download/v${pkgver}/calamares-${pkgver}.tar.gz")
-sha256sums=('733bbbb00dc9f84874bd5c22960952f317ea2537565431179fa2152b2fbfdccc')
+source=(
+  "calamares-${pkgver}.tar.gz::https://codeberg.org/Calamares/calamares/releases/download/v${pkgver}/calamares-${pkgver}.tar.gz"
+  'schweisos-filter-live-media-devices.patch'
+)
+sha256sums=(
+  '733bbbb00dc9f84874bd5c22960952f317ea2537565431179fa2152b2fbfdccc'
+  '34066a77ec9793c16a08547da94815d82734af0b4a5decd6a0be138166f186d2'
+)
+
+prepare() {
+  cd -- "${srcdir}/${pkgname}-${pkgver}"
+  patch -Np1 -i "${srcdir}/schweisos-filter-live-media-devices.patch"
+}
 
 build() {
   cmake -S "${srcdir}/${pkgname}-${pkgver}" -B build -G Ninja \

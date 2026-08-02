@@ -478,6 +478,21 @@ if [[ "$expected_iso_name" == */* || "$expected_iso_name" == .* || "$expected_is
     exit 1
 fi
 expected_iso="${out_dir}/${expected_iso_name}"
+if [[ "$iso_build_mode" == release ]]; then
+    release_package_dir="${repo_root}/packages/schweisos-release"
+    if ! release_srcinfo="$(cd -- "$release_package_dir" && makepkg --printsrcinfo)"; then
+        failure_code=release_version_unavailable
+        error 'Unable to read the SchweisOS release package version.'
+        exit 1
+    fi
+    release_pkgver="$(awk -F ' = ' '$1 == "\tpkgver" { print $2; exit }' \
+        <<<"$release_srcinfo")"
+    if [[ -z "$release_pkgver" || "${profile_metadata_lines[1]}" != "$release_pkgver" ]]; then
+        failure_code=release_date_mismatch
+        error 'Release SOURCE_DATE_EPOCH date must equal schweisos-release pkgver.'
+        exit 1
+    fi
+fi
 checkpoint_manifest
 
 shopt -s nullglob

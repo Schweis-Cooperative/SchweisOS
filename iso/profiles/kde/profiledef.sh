@@ -2,10 +2,11 @@
 # shellcheck disable=SC2034
 
 iso_name="schweisos"
-iso_label="SCHWEIS_$(date --utc --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
+build_epoch="${SOURCE_DATE_EPOCH:-$(date +%s)}"
+iso_label="SCHWEIS_$(date --utc --date="@${build_epoch}" +%Y%m)"
 iso_publisher="Schweis Project <https://schweisos.org>"
 iso_application="SchweisOS KDE Live Environment"
-iso_version="2026.07.27"
+iso_version="$(date --utc --date="@${build_epoch}" +%Y.%m.%d)"
 install_dir="schweis"
 buildmodes=('iso')
 bootmodes=('uefi.systemd-boot')

@@ -13,7 +13,7 @@ fail() {
 (( $# == 1 )) || fail 'usage: validate-built-iso-identity.sh ISO_PATH'
 iso_path="$1"
 
-for tool in awk bsdtar chmod cmp cp find git grep makepkg mkdir mktemp readlink rm sort unsquashfs; do
+for tool in awk bsdtar chmod cmp cp date find git grep makepkg mkdir mktemp readlink rm sort unsquashfs; do
   command -v "$tool" >/dev/null 2>&1 || fail "required tool not found: $tool"
 done
 project_root="$(git -C "$(dirname -- "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
@@ -37,8 +37,16 @@ fi
 install_dir="$(
   SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n" "$install_dir"' _ "$profile"
 )"
+iso_basename="$(basename -- "$iso_path")"
+if [[ ! "$iso_basename" =~ ^schweisos-([0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01]))-x86_64\.iso$ ]]; then
+  fail 'ISO filename does not contain a valid automatic image date'
+fi
+filename_image_version="${BASH_REMATCH[1]}"
+profile_epoch="$(date --utc --date="${filename_image_version//./-} 00:00:00" +%s 2>/dev/null)" || \
+  fail 'ISO filename image date is not a real calendar date'
 profile_identity="$(
-  SOURCE_DATE_EPOCH=0 bash -c 'source "$1"; printf "%s\n%s\n" "$iso_name" "$iso_version"' _ "$profile"
+  SOURCE_DATE_EPOCH="$profile_epoch" bash -c \
+    'source "$1"; printf "%s\n%s\n" "$iso_name" "$iso_version"' _ "$profile"
 )"
 mapfile -t profile_identity_lines <<<"$profile_identity"
 (( ${#profile_identity_lines[@]} == 2 )) || fail 'profile identity metadata is incomplete'
@@ -46,8 +54,8 @@ profile_iso_name="${profile_identity_lines[0]}"
 profile_iso_version="${profile_identity_lines[1]}"
 [[ "$install_dir" =~ ^[a-z0-9._-]+$ ]] || fail 'invalid Archiso install directory'
 [[ "$profile_iso_name" =~ ^[a-z0-9._+-]+$ ]] || fail 'profile IMAGE_ID is unsafe'
-[[ "$profile_iso_version" == "$source_pkgver" ]] || \
-  fail 'profile IMAGE_VERSION must match schweisos-release pkgver'
+[[ "$profile_iso_version" == "$filename_image_version" ]] || \
+  fail 'profile IMAGE_VERSION must match the automatic date in the ISO filename'
 squashfs_path="${install_dir}/x86_64/airootfs.sfs"
 iso_squashfs_count="$(bsdtar -tf "$iso_path" | awk -v expected="$squashfs_path" '$0 == expected { count++ } END { print count + 0 }')"
 [[ "$iso_squashfs_count" == 1 ]] || fail "ISO does not contain exactly one ${squashfs_path}"

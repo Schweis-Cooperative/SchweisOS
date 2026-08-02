@@ -54,11 +54,13 @@ Reference: [Archiso - ArchWiki](https://wiki.archlinux.org/title/Archiso).
 
 ## Versioning
 
-SchweisOS release identifiers use `YYYY.MM.DD`. The same identifier is used by
-`schweisos-release`, the Archiso profile `iso_version`, ISO filenames, release
-artifact directories, release manifests, validators, and release notes. Public
-release maturity labels such as alpha or beta belong in release notes and
-roadmap documentation, not in the machine release identifier. Release staging
+SchweisOS release identifiers use `YYYY.MM.DD`. The Archiso profile derives
+its image version and ISO filename from `SOURCE_DATE_EPOCH` in UTC instead of
+storing a date literal. In release mode the build fails before `mkarchiso`
+unless that derived value equals `schweisos-release`; release artifact
+directories, manifests, validators, and release notes use the same identifier.
+Public release maturity labels such as alpha or beta belong in release notes
+and roadmap documentation, not in the machine release identifier. Release staging
 requires the exact filename `schweisos-YYYY.MM.DD-x86_64.iso`; independently
 well-formed but unequal dates are rejected.
 

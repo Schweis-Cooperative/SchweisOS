@@ -166,7 +166,8 @@ profile_snapshot() {
     [[ "$iso_label" == SCHWEIS_197001 ]]
     [[ "$iso_label" =~ ^[A-Z0-9_]{1,32}$ ]]
     [[ "$iso_publisher" == "Schweis Project <https://schweisos.org>" ]]
-    [[ "$iso_version" == "$2" ]]
+    [[ "$iso_version" == 1970.01.01 ]]
+    [[ "$iso_version" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])$ ]]
     [[ "$install_dir" =~ ^[a-z0-9]{1,8}$ ]]
     [[ "${#buildmodes[@]}" -eq 1 && "${buildmodes[0]}" == iso ]]
     [[ "${#bootmodes[@]}" -eq 1 && "${bootmodes[0]}" == uefi.systemd-boot ]]
@@ -178,8 +179,13 @@ profile_snapshot() {
     declare -p iso_name iso_label iso_publisher iso_application iso_version
     declare -p install_dir buildmodes bootmodes arch pacman_conf
     declare -p airootfs_image_type airootfs_image_tool_options
-  ' _ "$profiledef" "$release_pkgver"
+  ' _ "$profiledef"
 }
+
+grep -Fq 'iso_version="$(date --utc --date="@${build_epoch}" +%Y.%m.%d)"' \
+  "$profiledef" || fail 'profile image version must be derived from SOURCE_DATE_EPOCH'
+! grep -Eq '^iso_version="[0-9]{4}\.[0-9]{2}\.[0-9]{2}"$' "$profiledef" || \
+  fail 'profile image version must not contain a manually maintained date literal'
 
 profile_snapshot UTC >"${tmp_dir}/profile.utc"
 profile_snapshot Europe/Istanbul >"${tmp_dir}/profile.istanbul"

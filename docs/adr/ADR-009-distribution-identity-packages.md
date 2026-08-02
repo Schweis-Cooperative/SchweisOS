@@ -1,6 +1,6 @@
 # ADR-009 Distribution Identity Packages
 
-Version: 1.1
+Version: 1.2
 
 ## Status
 
@@ -54,6 +54,14 @@ to the SchweisOS-owned file. This is the only accepted live-image difference:
 installed-system release metadata remains byte-for-byte package-owned, while
 built ISO validation requires the package identity plus exactly those two
 Archiso image fields.
+
+`IMAGE_VERSION` identifies the image construction date, not a second installed
+system release. The profile derives it in UTC as `YYYY.MM.DD` from
+`SOURCE_DATE_EPOCH`, and the ISO filename uses the same value. Development
+images may therefore carry an `IMAGE_VERSION` newer than the packaged
+`VERSION_ID`. Official release mode remains stricter: the build wrapper
+requires the derived image date to equal the reviewed `schweisos-release`
+package version before invoking `mkarchiso`.
 
 `schweisos-keyring` owns SchweisOS package signing trust material.
 

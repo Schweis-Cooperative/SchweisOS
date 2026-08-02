@@ -47,9 +47,15 @@ required_files=(
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
+  "${package_dir}/packagechooser-desktop.conf"
+  "${package_dir}/packagechooser-browser.conf"
   "${package_dir}/packagechooser-profile.conf"
   "${package_dir}/packagechooser-kernel.conf"
   "${package_dir}/packagechooser-extras.conf"
+  "${package_dir}/packagechooser-desktop.qml"
+  "${package_dir}/packagechooser-browser.qml"
+  "${package_dir}/packagechooser-profile.qml"
+  "${package_dir}/packagechooser-kernel.qml"
   "${package_dir}/partition.conf"
   "${package_dir}/unpackfs.conf"
   "${package_dir}/users.conf"
@@ -215,8 +221,22 @@ grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/show.qml"' \
   "${package_dir}/PKGBUILD" || fail 'Calamares slideshow QML resource must be installed beside branding.desc'
 grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/welcomeq.qml"' \
   "${package_dir}/PKGBUILD" || fail 'custom welcome QML must be installed in the branding directory'
+for qml_resource in packagechooser-desktop packagechooser-browser packagechooser-profile packagechooser-kernel; do
+  grep -Fq "'${qml_resource}.qml'" "${package_dir}/PKGBUILD" || \
+    fail "selection QML resource must be a package source: ${qml_resource}.qml"
+  grep -Fq "install -Dm644 \"\${srcdir}/${qml_resource}.qml\"" "${package_dir}/PKGBUILD" || \
+    fail "selection QML resource must be package-owned: ${qml_resource}.qml"
+  grep -Fq "\"\${pkgdir}/etc/calamares/branding/schweisos/${qml_resource}.qml\"" \
+    "${package_dir}/PKGBUILD" || fail "selection QML resource must install beside branding: ${qml_resource}.qml"
+done
 grep -Fq '"${pkgdir}/etc/calamares/modules/welcomeq.conf"' \
   "${package_dir}/PKGBUILD" || fail 'custom welcome configuration must be package-owned'
+for chooser_config in desktop browser profile kernel extras; do
+  grep -Fq "'packagechooser-${chooser_config}.conf'" "${package_dir}/PKGBUILD" || \
+    fail "package chooser configuration must be a package source: ${chooser_config}"
+  grep -Fq "install -Dm644 \"\${srcdir}/packagechooser-${chooser_config}.conf\"" \
+    "${package_dir}/PKGBUILD" || fail "package chooser configuration must be package-owned: ${chooser_config}"
+done
 grep -Fq "  version: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
   fail 'Calamares branding version must match schweisos-release pkgver'
 grep -Fq "  shortVersion: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
@@ -226,15 +246,24 @@ grep -Fq "  versionedName: \"SchweisOS ${release_pkgver}\"" "${package_dir}/bran
 grep -Fq 'shellprocess@preflight' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must include preflight'
 for required_sequence in \
-  welcomeq packagechooser@profile packagechooser@kernel packagechooser@extras \
+  welcomeq packagechooserq@desktop packagechooserq@browser packagechooserq@kernel \
+  packagechooserq@profile packagechooser@extras \
   unpackfs shellprocess@reconcile; do
   grep -Fq -- "- ${required_sequence}" "${package_dir}/settings.conf" || \
     fail "Calamares sequence is missing: ${required_sequence}"
 done
 ! grep -Fq 'packagechooser@browser' "${package_dir}/settings.conf" || \
-  fail 'browser selection must not be a separate installer page in Phase 1'
+  fail 'browser selection must use the QML packagechooserq page'
 ! grep -Fq 'packagechooser@desktop' "${package_dir}/settings.conf" || \
-  fail 'desktop-environment selection must not be exposed before non-KDE payloads are qualified'
+  fail 'desktop selection must use the QML packagechooserq page'
+for instance_fragment in \
+  'id: desktop' 'module: packagechooserq' 'config: packagechooser-desktop.conf' \
+  'id: browser' 'config: packagechooser-browser.conf' \
+  'id: kernel' 'config: packagechooser-kernel.conf' \
+  'id: profile' 'config: packagechooser-profile.conf'; do
+  grep -Fq "$instance_fragment" "${package_dir}/settings.conf" || \
+    fail "Calamares settings are missing QML selection instance fragment: ${instance_fragment}"
+done
 grep -Fq 'shellprocess@systemd-boot' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must install systemd-boot'
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(displaymanager|networkcfg)[[:space:]]*$' \
@@ -275,28 +304,57 @@ for mounted_shellprocess in reconcile pacman systemd-boot services; do
     fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
 done
 
-for chooser in profile kernel extras; do
+for chooser in desktop browser profile kernel extras; do
   grep -Fxq 'method: legacy' "${package_dir}/packagechooser-${chooser}.conf" || \
-    fail "package chooser must use the audited legacy GlobalStorage contract: ${chooser}"
+    fail "package chooser must use the audited GlobalStorage contract: ${chooser}"
 done
-grep -Fxq 'mode: required' "${package_dir}/packagechooser-profile.conf" || \
-  fail 'installation profile chooser must require exactly one selection'
-grep -Fxq 'default: privacy' "${package_dir}/packagechooser-profile.conf" || \
-  fail 'Privacy must remain the recommended Phase 1 installation profile'
-for profile_id in privacy gaming developer creator office minimal; do
-  grep -Fq "  - id: ${profile_id}" "${package_dir}/packagechooser-profile.conf" || \
-    fail "installation profile chooser is missing: ${profile_id}"
+for qml_chooser in desktop browser profile kernel; do
+  grep -Fxq 'qmlSearch: branding' "${package_dir}/packagechooser-${qml_chooser}.conf" || \
+    fail "QML package chooser must load only package-owned branding QML: ${qml_chooser}"
+  grep -Fxq "qmlFilename: packagechooser-${qml_chooser}" \
+    "${package_dir}/packagechooser-${qml_chooser}.conf" || \
+    fail "QML package chooser has the wrong QML filename: ${qml_chooser}"
 done
-grep -Fxq 'mode: required' "${package_dir}/packagechooser-kernel.conf" || \
-  fail 'kernel chooser must require exactly one selection'
-grep -Fxq 'default: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
+grep -Fxq 'packageChoice: kde-plasma' "${package_dir}/packagechooser-desktop.conf" || \
+  fail 'desktop chooser must default to the only qualified KDE Plasma option'
+grep -Fxq 'packageChoice: firefox' "${package_dir}/packagechooser-browser.conf" || \
+  fail 'browser chooser must default to Firefox'
+grep -Fxq 'packageChoice: privacy' "${package_dir}/packagechooser-profile.conf" || \
+  fail 'Privacy must remain the recommended installation profile'
+grep -Fxq 'packageChoice: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
   fail 'linux-zen must be the recommended default kernel'
 grep -Fxq 'mode: optionalmultiple' "${package_dir}/packagechooser-extras.conf" || \
   fail 'optional feature chooser must allow zero or more selections'
-for chooser in profile kernel extras; do
+for chooser in desktop browser profile kernel extras; do
   if grep -Fq 'screenshot:' "${package_dir}/packagechooser-${chooser}.conf"; then
     fail "package chooser must not reuse the logo as generic selection artwork: ${chooser}"
   fi
+done
+for desktop_fragment in \
+  'config.packageChoice = "kde-plasma"' \
+  'Officially supported' \
+  'KDE Plasma is the only desktop environment installed by this ISO'; do
+  grep -Fq "$desktop_fragment" "${package_dir}/packagechooser-desktop.qml" || \
+    fail "desktop QML chooser is missing: ${desktop_fragment}"
+done
+for browser_fragment in \
+  'id: "firefox"' \
+  'id: "librewolf"' \
+  'id: "zen-browser"' \
+  'id: "brave"' \
+  'available: false' \
+  'Not in this ISO' \
+  'config.packageChoice = "firefox"'; do
+  grep -Fq "$browser_fragment" "${package_dir}/packagechooser-browser.qml" || \
+    fail "browser QML chooser is missing: ${browser_fragment}"
+done
+for profile_id in privacy gaming developer creator office minimal; do
+  grep -Fq "id: \"${profile_id}\"" "${package_dir}/packagechooser-profile.qml" || \
+    fail "installation profile QML chooser is missing: ${profile_id}"
+done
+for kernel_id in linux-zen linux linux-lts linux-hardened; do
+  grep -Fq "id: \"${kernel_id}\"" "${package_dir}/packagechooser-kernel.qml" || \
+    fail "kernel QML chooser is missing: ${kernel_id}"
 done
 for package_description in \
   'Packages: firewalld, plasma-firewall.' \
@@ -306,27 +364,33 @@ for package_description in \
   'Package: linux-zen.'; do
   grep -Fq "$package_description" \
     "${package_dir}/packagechooser-extras.conf" \
-    "${package_dir}/packagechooser-kernel.conf" || \
+    "${package_dir}/packagechooser-kernel.qml" || \
     fail "installer package chooser omits package-level description: ${package_description}"
 done
 grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must copy the mounted, validated Archiso root'
 grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must treat the mounted Archiso root as a directory payload'
-! grep -Fq '${gs[packagechooser_browser]}' "${package_dir}/shellprocess-reconcile.conf" || \
-  fail 'reconciliation must not depend on a removed browser GlobalStorage key'
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}' \
   "${package_dir}/shellprocess-reconcile.conf" || \
-  fail 'reconciliation must pass the fixed Phase 1 Firefox browser contract'
-for selection_key in packagechooser_profile packagechooser_kernel packagechooser_extras; do
+  fail 'reconciliation must pass the browser, kernel, profile, optional feature, and desktop choices'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
   grep -Fq "\${gs[${selection_key}]}" "${package_dir}/shellprocess-reconcile.conf" || \
     fail "reconciliation shellprocess is missing GlobalStorage selection: ${selection_key}"
 done
 for reconciliation_fragment in \
-  'firefox) ;;' \
+  'declare -Ar browser_packages=' \
+  "[firefox]='firefox'" \
+  "[librewolf]='librewolf'" \
+  "[zen-browser]='zen-browser'" \
+  "[brave]='brave-browser'" \
+  'browser selection is approved but not available in this ISO payload' \
+  'for forbidden_browser_package in chromium falkon google-chrome opera microsoft-edge-stable' \
+  'kde-plasma) ;;' \
   'linux|linux-lts|linux-zen|linux-hardened' \
   'declare -Ar profile_features=' \
   "[privacy]='security,maintenance,x11-compatibility'" \
+  'DESKTOP=%s' \
   'PROFILE=%s' \
   'arch-install-scripts' \
   'schweisos-calamares-config' \

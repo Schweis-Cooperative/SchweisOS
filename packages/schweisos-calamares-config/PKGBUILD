@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=17
+pkgrel=18
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -44,9 +44,15 @@ source=(
   'finished.conf'
   'fstab.conf'
   'locale.conf'
+  'packagechooser-desktop.conf'
+  'packagechooser-browser.conf'
   'packagechooser-profile.conf'
   'packagechooser-kernel.conf'
   'packagechooser-extras.conf'
+  'packagechooser-desktop.qml'
+  'packagechooser-browser.qml'
+  'packagechooser-profile.qml'
+  'packagechooser-kernel.qml'
   'partition.conf'
   'unpackfs.conf'
   'users.conf'
@@ -72,22 +78,28 @@ source=(
   'schweisos-installer.desktop'
 )
 sha256sums=('7b4278c3fadf179acfe41feeeb8e968d89a6f0af1c531720ca1513a9182f7ae0'
-            '7955bbb0dcbd4d7de1525036cba56c44f411209d6f0bf0da3a11ba034b27572a'
+            '06b75fe983435ecce692cc83444717c78ee8f4ba7a7b56dde98d694019d4c055'
             'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
             '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
             '386df793135b4eae980c65d0aa6323bbdc739db291ca054cf259a3e7d482219b'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
-            '0ddcb5c2a8dc21df9eff3c4cc863303761b9366001fb90d6e46c1e90badaa23c'
-            'e327e635596c3fafb0049f222debe130abdfb808012d46fe013571f4d51b320b'
+            '83353a008424cef68bc2b0e4ce55645e1ee343dc5be64c9bd7f787baefdda6a5'
+            '3d513b78be093ef55fe8e9044141aa921e03cab09ad0521d9b499d1a46941c17'
+            '763e9ece06e62ad1907f9a9f75c41838e4c313333e03da2f833417ffe782ef62'
+            '4a0dcee71f68574b9338afd463a9229b09f2bd1da1a7d33e6e5326694e800280'
             'd8ca6371d48f38e41b5f1ba2aacdbe0a46c04473cd44380dad3b552393dac476'
+            'e065017bc87fdb612d372104c516c548582af868187da41faa4ad9f1b47bf11c'
+            '722242e1f6da87fee9e62619400d0e854d748c552b42ff509a7cba9476aa0758'
+            '69a95a0712636f06de6a7e4d21233e55b4860f15f9bcc60c4eef13bd32035f5a'
+            '9b937d2dd0bba7dcd720eb0f0f4bf1ee977fac8abe4262ae91e40e41b20ff890'
             '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
             '54496f0e30b18e32ccb2a4860ca2ad07976f57d5e8513d31d48c9e15e48b66b1'
             '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
             '37610d934a204b1d64b92112769bafa32ff7c0615c9b3350a08aefe9b804892c'
             '6709e001d4e1bc291d82b52ade98915c3a10934d0a68c05ab970b4f4bd4110e1'
-            '00ad7e7584eec6ba88dde8bbf17a0a4e94c2ab8f08414f82f3fcbcf745b4d3ae'
+            'bf95da443f1bb9689c00d526741c8aa69f3b576a86fbbc2e70da62c5fbe65810'
             '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
             'd6120e3781e22bcd4451be937e5940eaa2523c7f678ea54be70ac4f16ecbe2b9'
             '3a932f6c7e3ccd79bca24cd2feebdcfc71d5764a08926a6982cc5b65871ce6bd'
@@ -100,7 +112,7 @@ sha256sums=('7b4278c3fadf179acfe41feeeb8e968d89a6f0af1c531720ca1513a9182f7ae0'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
             '05383232f13a07afd8048049f74d4397e4eaef5403fc980534c97cec2f55873a'
             'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
-            '7d4487619eae09004d0749245794158248f1dfcd30de2405e61eb76d505bca23'
+            'e2e691b3cabe2ba12340413b2e66ed23852f0d4f1272048623318bb50fa2cc08'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
             '402bd743b7583b900bc6c0c82e6de5d2af08f082393c6cf729c092efad199c0f'
             '797adf182bffb4c500cc1d34fdabbc6a0ab86f797e7504326c0801102d72e45f'
@@ -115,6 +127,14 @@ package() {
     "${pkgdir}/etc/calamares/branding/schweisos/show.qml"
   install -Dm644 "${srcdir}/welcomeq.qml" \
     "${pkgdir}/etc/calamares/branding/schweisos/welcomeq.qml"
+  install -Dm644 "${srcdir}/packagechooser-desktop.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/packagechooser-desktop.qml"
+  install -Dm644 "${srcdir}/packagechooser-browser.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/packagechooser-browser.qml"
+  install -Dm644 "${srcdir}/packagechooser-profile.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/packagechooser-profile.qml"
+  install -Dm644 "${srcdir}/packagechooser-kernel.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/packagechooser-kernel.qml"
 
   install -Dm644 "${srcdir}/finished.conf" \
     "${pkgdir}/etc/calamares/modules/finished.conf"
@@ -122,6 +142,10 @@ package() {
     "${pkgdir}/etc/calamares/modules/fstab.conf"
   install -Dm644 "${srcdir}/locale.conf" \
     "${pkgdir}/etc/calamares/modules/locale.conf"
+  install -Dm644 "${srcdir}/packagechooser-desktop.conf" \
+    "${pkgdir}/etc/calamares/modules/packagechooser-desktop.conf"
+  install -Dm644 "${srcdir}/packagechooser-browser.conf" \
+    "${pkgdir}/etc/calamares/modules/packagechooser-browser.conf"
   install -Dm644 "${srcdir}/packagechooser-profile.conf" \
     "${pkgdir}/etc/calamares/modules/packagechooser-profile.conf"
   install -Dm644 "${srcdir}/packagechooser-kernel.conf" \

@@ -16,6 +16,7 @@ browser=${2:?browser selection is required}
 kernel=${3:?kernel selection is required}
 profile=${4:?installation profile selection is required}
 extras_csv=${5-}
+desktop=${6:-kde-plasma}
 required_manifest=/usr/share/schweisos/calamares/target-packages.x86_64
 
 [[ "$target_root" == /* && "$target_root" != / && "$target_root" != *'/../'* ]] || \
@@ -28,9 +29,26 @@ findmnt --mountpoint "$target_root" >/dev/null 2>&1 || \
 [[ -f "$required_manifest" && ! -L "$required_manifest" ]] || \
   die 'required target manifest is missing or unsafe'
 
-case "$browser" in
-  firefox) ;;
-  *) die "unknown browser selection: ${browser}" ;;
+declare -Ar browser_packages=(
+  [firefox]='firefox'
+  [librewolf]='librewolf'
+  [zen-browser]='zen-browser'
+  [brave]='brave-browser'
+)
+declare -Ar browser_available=(
+  [firefox]=1
+  [librewolf]=0
+  [zen-browser]=0
+  [brave]=0
+)
+
+[[ -v "browser_packages[$browser]" ]] || die "unknown browser selection: ${browser}"
+[[ ${browser_available[$browser]} == 1 ]] || \
+  die "browser selection is approved but not available in this ISO payload: ${browser}"
+
+case "$desktop" in
+  kde-plasma) ;;
+  *) die "unknown desktop selection: ${desktop}" ;;
 esac
 
 case "$kernel" in
@@ -102,10 +120,16 @@ while IFS= read -r line; do
 done <"$required_manifest"
 (( ${#required_packages[@]} > 0 )) || die 'required target manifest is empty'
 
-selected_packages=("$browser" "$kernel")
+selected_browser_package=${browser_packages[$browser]}
+selected_packages=("$selected_browser_package" "$kernel")
 unselected_packages=()
-for candidate in firefox chromium falkon; do
-  [[ "$candidate" == "$browser" ]] || unselected_packages+=("$candidate")
+for candidate_browser in "${!browser_packages[@]}"; do
+  candidate_package=${browser_packages[$candidate_browser]}
+  [[ "$candidate_package" == "$selected_browser_package" ]] || \
+    unselected_packages+=("$candidate_package")
+done
+for forbidden_browser_package in chromium falkon google-chrome opera microsoft-edge-stable; do
+  unselected_packages+=("$forbidden_browser_package")
 done
 for candidate in linux linux-lts linux-zen linux-hardened; do
   [[ "$candidate" == "$kernel" ]] || unselected_packages+=("$candidate")
@@ -233,6 +257,7 @@ evidence="${evidence_dir}/selection.conf"
 [[ ! -L "$evidence" ]] || die 'selection evidence path is an unsafe symlink'
 {
   printf 'FORMAT_VERSION=1\n'
+  printf 'DESKTOP=%s\n' "$desktop"
   printf 'BROWSER=%s\n' "$browser"
   printf 'KERNEL=%s\n' "$kernel"
   printf 'PROFILE=%s\n' "$profile"

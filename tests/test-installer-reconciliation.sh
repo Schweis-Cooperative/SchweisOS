@@ -113,10 +113,11 @@ sed "s#/usr/share/schweisos/calamares#${runtime_share}#" "$helper" >"$test_helpe
 chmod 0755 -- "$test_helper"
 
 PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen \
-  privacy development
+  privacy development kde-plasma
 
 selection="${target_root}/var/lib/schweisos/installer/selection.conf"
 [[ -f "$selection" && ! -L "$selection" ]] || fail 'selection evidence was not created'
+grep -Fxq 'DESKTOP=kde-plasma' "$selection" || fail 'desktop evidence is incorrect'
 grep -Fxq 'BROWSER=firefox' "$selection" || fail 'browser evidence is incorrect'
 grep -Fxq 'KERNEL=linux-zen' "$selection" || fail 'kernel evidence is incorrect'
 grep -Fxq 'PROFILE=privacy' "$selection" || fail 'profile evidence is incorrect'
@@ -139,9 +140,17 @@ if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" unknown linux-
     >/dev/null 2>&1; then
   fail 'unknown browser selection was accepted'
 fi
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" librewolf linux-zen privacy '' kde-plasma \
+    >/dev/null 2>&1; then
+  fail 'disabled browser selection was accepted'
+fi
 if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen unknown '' \
     >/dev/null 2>&1; then
   fail 'unknown installation profile selection was accepted'
+fi
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen privacy '' gnome \
+    >/dev/null 2>&1; then
+  fail 'unknown desktop selection was accepted'
 fi
 if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" / firefox linux-zen privacy '' \
     >/dev/null 2>&1; then

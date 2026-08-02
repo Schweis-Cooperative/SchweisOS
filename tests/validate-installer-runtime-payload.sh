@@ -80,8 +80,6 @@ fi
 
 require_absent_path usr/share/applications/calamares.desktop
 require_absent_path usr/local/share/applications/calamares.desktop
-require_absent_path etc/calamares/modules/packagechooser-browser.conf
-require_absent_path etc/calamares/modules/packagechooser-desktop.conf
 
 calamares_bin="$(relative_file usr/bin/calamares)"
 installer_launcher="$(relative_file usr/share/applications/schweisos-installer.desktop)"
@@ -97,7 +95,13 @@ calamares_settings="$(relative_file etc/calamares/settings.conf)"
 calamares_branding="$(relative_file etc/calamares/branding/schweisos/branding.desc)"
 calamares_slideshow="$(relative_file etc/calamares/branding/schweisos/show.qml)"
 calamares_welcome_qml="$(relative_file etc/calamares/branding/schweisos/welcomeq.qml)"
+calamares_desktop_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-desktop.qml)"
+calamares_browser_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-browser.qml)"
+calamares_profile_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-profile.qml)"
+calamares_kernel_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-kernel.qml)"
 calamares_welcome_config="$(relative_file etc/calamares/modules/welcomeq.conf)"
+calamares_desktop_chooser="$(relative_file etc/calamares/modules/packagechooser-desktop.conf)"
+calamares_browser_chooser="$(relative_file etc/calamares/modules/packagechooser-browser.conf)"
 calamares_profile_chooser="$(relative_file etc/calamares/modules/packagechooser-profile.conf)"
 calamares_kernel_chooser="$(relative_file etc/calamares/modules/packagechooser-kernel.conf)"
 calamares_extras_chooser="$(relative_file etc/calamares/modules/packagechooser-extras.conf)"
@@ -122,7 +126,13 @@ require_mode "$calamares_settings" 644
 require_mode "$calamares_branding" 644
 require_mode "$calamares_slideshow" 644
 require_mode "$calamares_welcome_qml" 644
+require_mode "$calamares_desktop_qml" 644
+require_mode "$calamares_browser_qml" 644
+require_mode "$calamares_profile_qml" 644
+require_mode "$calamares_kernel_qml" 644
 require_mode "$calamares_welcome_config" 644
+require_mode "$calamares_desktop_chooser" 644
+require_mode "$calamares_browser_chooser" 644
 require_mode "$calamares_profile_chooser" 644
 require_mode "$calamares_kernel_chooser" 644
 require_mode "$calamares_extras_chooser" 644
@@ -214,8 +224,10 @@ grep -Fxq 'branding: schweisos' "$calamares_settings" || \
     fail 'runtime Calamares settings do not select SchweisOS branding'
 for module in \
     welcomeq \
-    packagechooser@profile \
-    packagechooser@kernel \
+    packagechooserq@desktop \
+    packagechooserq@browser \
+    packagechooserq@kernel \
+    packagechooserq@profile \
     packagechooser@extras \
     unpackfs \
     shellprocess@reconcile; do
@@ -223,10 +235,10 @@ for module in \
         fail "runtime Calamares settings omit required module: ${module}"
 done
 if grep -Fq 'packagechooser@browser' "$calamares_settings"; then
-    fail 'runtime Calamares settings must not expose a separate browser page'
+    fail 'runtime browser selection must use the QML packagechooserq page'
 fi
 if grep -Fq 'packagechooser@desktop' "$calamares_settings"; then
-    fail 'runtime Calamares settings must not expose unqualified desktop-environment selection'
+    fail 'runtime desktop selection must use the QML packagechooserq page'
 fi
 grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'
@@ -274,21 +286,41 @@ if awk '
     fail 'runtime Calamares welcome page makes internet connectivity mandatory'
 fi
 require_contains "$calamares_welcome_config" 'internetCheckUrl: "https://schweisos.org/"'
-grep -Fxq 'mode: required' "$calamares_profile_chooser" || \
-    fail 'runtime installation profile chooser is not mandatory'
-grep -Fxq 'default: privacy' "$calamares_profile_chooser" || \
-    fail 'runtime installation profile default is not Privacy'
-for profile_id in privacy gaming developer creator office minimal; do
-    require_contains "$calamares_profile_chooser" "  - id: ${profile_id}"
+for qml_chooser in \
+    "$calamares_desktop_chooser" \
+    "$calamares_browser_chooser" \
+    "$calamares_profile_chooser" \
+    "$calamares_kernel_chooser"; do
+    grep -Fxq 'method: legacy' "$qml_chooser" || \
+        fail "${qml_chooser#"$rootfs"/} does not use the audited GlobalStorage contract"
+    grep -Fxq 'qmlSearch: branding' "$qml_chooser" || \
+        fail "${qml_chooser#"$rootfs"/} does not restrict QML to package-owned branding"
 done
-grep -Fxq 'mode: required' "$calamares_kernel_chooser" || \
-    fail 'runtime kernel chooser is not mandatory'
-grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
+grep -Fxq 'packageChoice: kde-plasma' "$calamares_desktop_chooser" || \
+    fail 'runtime desktop chooser default is not KDE Plasma'
+grep -Fxq 'packageChoice: firefox' "$calamares_browser_chooser" || \
+    fail 'runtime browser chooser default is not Firefox'
+grep -Fxq 'packageChoice: privacy' "$calamares_profile_chooser" || \
+    fail 'runtime installation profile default is not Privacy'
+grep -Fxq 'packageChoice: linux-zen' "$calamares_kernel_chooser" || \
     fail 'runtime kernel chooser default is not Linux Zen'
-require_contains "$calamares_kernel_chooser" 'Linux Zen (Recommended)'
+require_contains "$calamares_desktop_qml" 'Officially supported'
+require_contains "$calamares_desktop_qml" 'KDE Plasma is the only desktop environment installed by this ISO'
+for browser_id in firefox librewolf zen-browser brave; do
+    require_contains "$calamares_browser_qml" "id: \"${browser_id}\""
+done
+require_contains "$calamares_browser_qml" 'Not in this ISO'
+for profile_id in privacy gaming developer creator office minimal; do
+    require_contains "$calamares_profile_qml" "id: \"${profile_id}\""
+done
+for kernel_id in linux-zen linux linux-lts linux-hardened; do
+    require_contains "$calamares_kernel_qml" "id: \"${kernel_id}\""
+done
 grep -Fxq 'mode: optionalmultiple' "$calamares_extras_chooser" || \
     fail 'runtime optional-feature chooser does not allow multiple choices'
-if grep -Fq 'screenshot:' "$calamares_profile_chooser" "$calamares_kernel_chooser" "$calamares_extras_chooser"; then
+if grep -Fq 'screenshot:' \
+    "$calamares_desktop_chooser" "$calamares_browser_chooser" "$calamares_profile_chooser" \
+    "$calamares_kernel_chooser" "$calamares_extras_chooser"; then
     fail 'runtime package choosers must not reuse the logo as generic selection artwork'
 fi
 for package_description in \
@@ -297,7 +329,7 @@ for package_description in \
     'Packages: git, cmake, ninja.' \
     'Packages: pacman-contrib, reflector.' \
     'Package: linux-zen.'; do
-    if ! grep -Fq "$package_description" "$calamares_extras_chooser" "$calamares_kernel_chooser"; then
+    if ! grep -Fq "$package_description" "$calamares_extras_chooser" "$calamares_kernel_qml"; then
         fail "runtime package chooser omits package-level description: ${package_description}"
     fi
 done
@@ -305,15 +337,14 @@ require_contains "$calamares_extras_chooser" 'id: x11-compatibility'
 require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
 require_contains "$calamares_unpackfs" 'sourcefs: "file"'
-if grep -Fq '${gs[packagechooser_browser]}' "$calamares_reconcile_config"; then
-    fail 'runtime reconciliation depends on a removed browser GlobalStorage key'
-fi
-require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}'
-for selection_key in packagechooser_kernel packagechooser_profile packagechooser_extras; do
+require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
     require_contains "$calamares_reconcile_config" "\${gs[${selection_key}]}"
 done
 require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT}'
 require_contains "$calamares_reconcile_helper" 'PAYLOAD=archiso-airootfs'
+require_contains "$calamares_reconcile_helper" 'DESKTOP=%s'
+require_contains "$calamares_reconcile_helper" 'browser selection is approved but not available in this ISO payload'
 require_contains "$calamares_reconcile_helper" '/var/lib/schweisos/installer'
 grep -Fq $'TR\tEurope/Istanbul' "$timezone_index" || \
     fail 'runtime IANA timezone index omits Europe/Istanbul'
@@ -330,6 +361,12 @@ for owned_path in \
     etc/calamares/branding/schweisos/branding.desc \
     etc/calamares/branding/schweisos/show.qml \
     etc/calamares/branding/schweisos/welcomeq.qml \
+    etc/calamares/branding/schweisos/packagechooser-desktop.qml \
+    etc/calamares/branding/schweisos/packagechooser-browser.qml \
+    etc/calamares/branding/schweisos/packagechooser-profile.qml \
+    etc/calamares/branding/schweisos/packagechooser-kernel.qml \
+    etc/calamares/modules/packagechooser-desktop.conf \
+    etc/calamares/modules/packagechooser-browser.conf \
     etc/calamares/modules/packagechooser-profile.conf \
     etc/calamares/modules/packagechooser-kernel.conf \
     etc/calamares/modules/packagechooser-extras.conf \

@@ -231,6 +231,8 @@ installed_installer_config_version="$(awk '$0 == "%VERSION%" { getline; print; e
 
 for installer_module in \
     welcomeq.conf \
+    packagechooser-desktop.conf \
+    packagechooser-browser.conf \
     packagechooser-profile.conf \
     packagechooser-kernel.conf \
     packagechooser-extras.conf \
@@ -242,6 +244,19 @@ for installer_module in \
         fail "built live root is missing Calamares module: ${installer_module}"
     cmp -s "${installer_config_dir}/${installer_module}" "$built_module" || \
         fail "built Calamares ${installer_module} differs from the package source"
+done
+for installer_qml in \
+    welcomeq.qml \
+    show.qml \
+    packagechooser-desktop.qml \
+    packagechooser-browser.qml \
+    packagechooser-profile.qml \
+    packagechooser-kernel.qml; do
+    built_qml="${rootfs}/etc/calamares/branding/schweisos/${installer_qml}"
+    [[ -f "$built_qml" && ! -L "$built_qml" ]] || \
+        fail "built live root is missing Calamares QML resource: ${installer_qml}"
+    cmp -s "${installer_config_dir}/${installer_qml}" "$built_qml" || \
+        fail "built Calamares QML ${installer_qml} differs from the package source"
 done
 installer_welcome="${rootfs}/etc/calamares/modules/welcomeq.conf"
 if awk '
@@ -375,7 +390,13 @@ installer_policy="${rootfs}/usr/share/polkit-1/actions/org.schweisos.installer.p
 installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
 installer_slideshow="${rootfs}/etc/calamares/branding/schweisos/show.qml"
 installer_welcome_qml="${rootfs}/etc/calamares/branding/schweisos/welcomeq.qml"
+installer_desktop_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-desktop.qml"
+installer_browser_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-browser.qml"
+installer_profile_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-profile.qml"
+installer_kernel_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-kernel.qml"
 installer_settings="${rootfs}/etc/calamares/settings.conf"
+installer_desktop_chooser="${rootfs}/etc/calamares/modules/packagechooser-desktop.conf"
+installer_browser_chooser="${rootfs}/etc/calamares/modules/packagechooser-browser.conf"
 installer_profile_chooser="${rootfs}/etc/calamares/modules/packagechooser-profile.conf"
 installer_kernel_chooser="${rootfs}/etc/calamares/modules/packagechooser-kernel.conf"
 installer_extras_chooser="${rootfs}/etc/calamares/modules/packagechooser-extras.conf"
@@ -392,7 +413,13 @@ for installer_payload in \
     "$installer_branding" \
     "$installer_slideshow" \
     "$installer_welcome_qml" \
+    "$installer_desktop_qml" \
+    "$installer_browser_qml" \
+    "$installer_profile_qml" \
+    "$installer_kernel_qml" \
     "$installer_settings" \
+    "$installer_desktop_chooser" \
+    "$installer_browser_chooser" \
     "$installer_profile_chooser" \
     "$installer_kernel_chooser" \
     "$installer_extras_chooser" \
@@ -470,8 +497,10 @@ if grep -Eq 'Image[[:space:]]*\{' "$installer_welcome_qml"; then
 fi
 for module in \
     welcomeq \
-    packagechooser@profile \
-    packagechooser@kernel \
+    packagechooserq@desktop \
+    packagechooserq@browser \
+    packagechooserq@kernel \
+    packagechooserq@profile \
     packagechooser@extras \
     unpackfs \
     shellprocess@reconcile; do
@@ -479,29 +508,44 @@ for module in \
         fail "built Calamares settings omit required module: ${module}"
 done
 if grep -Fq 'packagechooser@browser' "$installer_settings"; then
-    fail 'built Calamares settings expose a removed browser page'
+    fail 'built Calamares settings must use the QML browser chooser'
 fi
 if grep -Fq 'packagechooser@desktop' "$installer_settings"; then
-    fail 'built Calamares settings expose unqualified desktop-environment selection'
+    fail 'built Calamares settings must use the QML desktop chooser'
 fi
-for unsupported_chooser in browser desktop; do
-    if [[ -e "${rootfs}/etc/calamares/modules/packagechooser-${unsupported_chooser}.conf" ]]; then
-        fail "built live root retains unsupported ${unsupported_chooser} chooser configuration"
-    fi
-done
-grep -Fxq 'default: privacy' "$installer_profile_chooser" || \
+grep -Fxq 'packageChoice: kde-plasma' "$installer_desktop_chooser" || \
+    fail 'built installer desktop default is not KDE Plasma'
+grep -Fxq 'packageChoice: firefox' "$installer_browser_chooser" || \
+    fail 'built installer browser default is not Firefox'
+grep -Fxq 'packageChoice: privacy' "$installer_profile_chooser" || \
     fail 'built installer profile default is not Privacy'
+grep -Fxq 'packageChoice: linux-zen' "$installer_kernel_chooser" || \
+    fail 'built installer kernel default is not Linux Zen'
+grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_qml" || \
+    fail 'built installer does not expose the recommended kernel label'
+grep -Fq 'Officially supported' "$installer_desktop_qml" || \
+    fail 'built installer desktop page does not identify the supported desktop'
+grep -Fq 'KDE Plasma is the only desktop environment installed by this ISO' "$installer_desktop_qml" || \
+    fail 'built installer desktop page does not explain the KDE-only boundary'
+for browser_id in firefox librewolf zen-browser brave; do
+    grep -Fq "id: \"${browser_id}\"" "$installer_browser_qml" || \
+        fail "built installer browser chooser omits: ${browser_id}"
+done
+grep -Fq 'Not in this ISO' "$installer_browser_qml" || \
+    fail 'built installer browser chooser does not show disabled candidate status'
 for profile_id in privacy gaming developer creator office minimal; do
-    grep -Fq "  - id: ${profile_id}" "$installer_profile_chooser" || \
+    grep -Fq "id: \"${profile_id}\"" "$installer_profile_qml" || \
         fail "built installer profile chooser omits: ${profile_id}"
 done
-grep -Fxq 'default: linux-zen' "$installer_kernel_chooser" || \
-    fail 'built installer kernel default is not Linux Zen'
-grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
-    fail 'built installer does not expose the recommended kernel label'
+for kernel_id in linux-zen linux linux-lts linux-hardened; do
+    grep -Fq "id: \"${kernel_id}\"" "$installer_kernel_qml" || \
+        fail "built installer kernel chooser omits: ${kernel_id}"
+done
 grep -Fxq 'mode: optionalmultiple' "$installer_extras_chooser" || \
     fail 'built installer optional features are not a multiple-choice group'
-if grep -Fq 'screenshot:' "$installer_profile_chooser" "$installer_kernel_chooser" "$installer_extras_chooser"; then
+if grep -Fq 'screenshot:' \
+    "$installer_desktop_chooser" "$installer_browser_chooser" "$installer_profile_chooser" \
+    "$installer_kernel_chooser" "$installer_extras_chooser"; then
     fail 'built installer package choosers reuse the logo as generic selection artwork'
 fi
 for package_description in \
@@ -510,7 +554,7 @@ for package_description in \
     'Packages: git, cmake, ninja.' \
     'Packages: pacman-contrib, reflector.' \
     'Package: linux-zen.'; do
-    if ! grep -Fq "$package_description" "$installer_extras_chooser" "$installer_kernel_chooser"; then
+    if ! grep -Fq "$package_description" "$installer_extras_chooser" "$installer_kernel_qml"; then
         fail "built package chooser omits package-level description: ${package_description}"
     fi
 done
@@ -520,13 +564,10 @@ grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || 
     fail 'built target reconciliation omits X11 compatibility mapping'
 grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
     fail 'built installer does not copy the verified Archiso root'
-if grep -Fq '${gs[packagechooser_browser]}' "$installer_reconcile_config"; then
-    fail 'built target reconciliation depends on a removed browser GlobalStorage key'
-fi
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}' \
     "$installer_reconcile_config" || \
-    fail 'built target reconciliation does not pass the fixed Phase 1 Firefox browser contract'
-for selection_key in packagechooser_kernel packagechooser_profile packagechooser_extras; do
+    fail 'built target reconciliation does not pass the guided selection contract'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
     grep -Fq "\${gs[${selection_key}]}" "$installer_reconcile_config" || \
         fail "built target reconciliation omits selection: ${selection_key}"
 done

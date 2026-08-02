@@ -143,7 +143,7 @@ Page {
                 model: [
                     { title: qsTr("Private by default"), body: qsTr("No telemetry, forced account, or silent reporting.") },
                     { title: qsTr("Arch-compatible"), body: qsTr("Upstream packages and full-system updates stay intact.") },
-                    { title: qsTr("Your system"), body: qsTr("Choose your kernel and optional tools.") }
+                    { title: qsTr("Your system"), body: qsTr("Choose the supported desktop, browser, kernel, profile, and optional tools.") }
                 ]
 
                 Rectangle {

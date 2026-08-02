@@ -8,10 +8,11 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 ## Purpose
 
-SchweisOS lets users choose a kernel and bounded set of optional
-features without turning installation into an unreviewed package manager. The
-selection model preserves Arch package semantics, works without network
-access, and keeps the trust boundary visible.
+SchweisOS lets users choose the supported desktop target, browser, kernel,
+installation profile, and a bounded set of optional features without turning
+installation into an unreviewed package manager. The selection model preserves
+Arch package semantics, works without network access, and keeps the trust
+boundary visible.
 
 ## Payload and Trust
 
@@ -25,9 +26,9 @@ After Calamares mounts the target, upstream `unpackfs` copies that payload. The
 SchweisOS reconciliation helper then:
 
 1. validates every selection identifier;
-2. removes unselected kernels, optional groups, and unsupported browser payload
-   if it ever enters the live root through a dependency or old repository
-   generation;
+2. removes unselected kernels, optional groups, unsupported browser payload,
+   and forbidden browser payload if it ever enters the live root through a
+   dependency or old repository generation;
 3. removes Calamares, Archiso construction packages, the live account, and an
    exact list of live-only files;
 4. verifies every required and selected package remains installed;
@@ -41,16 +42,17 @@ Any missing selected package or unknown identifier stops installation.
 
 ### Desktop Environment
 
-Faz 1 installs KDE Plasma. SchweisOS deliberately does not expose a desktop
-environment chooser yet. The current ISO, offline payload, installed boot
-workflow, SDDM session policy, screenshots, and validation matrix are qualified
-only for Plasma.
+Faz 1 installs KDE Plasma. The installer intentionally exposes a Desktop
+Environment page, but that page has exactly one selectable option:
+KDE Plasma. The purpose is a professional guided flow, a clear support
+boundary, and future extensibility without pretending that other desktops are
+already qualified.
 
 Future desktop choices such as GNOME, XFCE, LXQt, Cinnamon, MATE, Budgie,
 COSMIC, Hyprland, Sway, Wayfire, Niri, Openbox, Qtile, i3, bspwm, River,
 Enlightenment, UKUI, and Deepin require separate package ownership and QA
-before they can appear in the installer. A maintainer adding desktop selection
-must provide:
+before they can become selectable in the installer. A maintainer adding a
+second desktop selection must provide:
 
 - an accepted package-set manifest for each desktop or window manager;
 - installed-session, display-manager, portal, audio, network, and update
@@ -60,23 +62,40 @@ must provide:
 - QEMU, raw USB, Ventoy Normal, Ventoy GRUB2, and hardware qualification
   evidence for the expanded matrix.
 
-Until that work exists, displaying non-KDE choices would be a false promise and
-is forbidden by validation.
+Until that work exists, displaying selectable non-KDE choices would be a false
+promise and is forbidden by validation.
 
 ### Browser
 
-Firefox is the fixed Faz 1 installed browser. It provides broad compatibility,
-privacy controls, and sustained Arch support while keeping the installer UI
-simple. Chromium, Chrome, Edge, Opera, and unowned external binary channels are
-not presented. Firefox-family alternatives such as LibreWolf, Zen Browser,
-Floorp, Waterfox, Mullvad Browser, and Brave require separate SchweisOS package
-ownership or a documented accepted repository before they can become selectable.
-Browser projects that are not available from an accepted repository are not
-presented as fictitious choices.
+The Browser page is present in Faz 1. Firefox is the default and the only
+enabled browser in the current ISO payload. It provides broad compatibility,
+privacy controls, and sustained Arch support from accepted repository trust
+domains.
+
+LibreWolf, Zen Browser, and Brave are approved browser candidates in the UI
+architecture but remain disabled until SchweisOS can ship reviewed, signed,
+offline-available packages for them. Chromium, Chrome, Edge, Opera, and other
+unowned external binary channels are not part of the approved browser set.
+Disabled entries must explain why they cannot be selected; they must not
+silently map to AUR helpers, vendor binaries, or network downloads.
+
+### Kernel
+
+The Kernel page is a required single-choice QML page:
+
+- Linux Zen — default and visibly recommended for desktop responsiveness and
+  gaming workloads.
+- Linux — standard Arch kernel and the closest path to Arch's default.
+- Linux LTS — reduced kernel churn and conservative hardware support.
+- Linux Hardened — additional hardening with an explicit compatibility
+  tradeoff.
+
+Exactly one kernel remains installed. systemd-boot entries and initramfs
+generation use the selected kernel name.
 
 ### Installation Profile
 
-The profile page is a required single-choice step that selects a reviewed
+The profile page is a required single-choice QML step that selects a reviewed
 starting point. The following profiles are package-owned data, not hardcoded
 launcher behavior:
 
@@ -91,22 +110,10 @@ The next page still lets the user add optional feature groups. If a feature is
 selected by both the profile and the optional page, the reconciliation helper
 treats it idempotently and installs it once.
 
-### Kernel
-
-- Linux Zen — default and visibly recommended for desktop responsiveness and
-  gaming workloads.
-- Linux — standard Arch kernel and the closest path to Arch's default.
-- Linux LTS — reduced kernel churn and conservative hardware support.
-- Linux Hardened — additional hardening with an explicit compatibility
-  tradeoff.
-
-Exactly one kernel remains installed. systemd-boot entries and initramfs
-generation use the selected kernel name.
-
 ## Optional Feature Groups
 
-The optional page exposes named groups rather than hundreds of individual
-packages:
+The Optional Features page exposes named groups rather than hundreds of
+individual packages:
 
 - Privacy: Tor Browser launcher.
 - Security: firewalld and Plasma firewall integration.
@@ -129,7 +136,7 @@ packages:
 - Recovery Tools: GParted and TestDisk.
 - Maintenance Tools: pacman-contrib and Reflector.
 
-Groups default to unselected in Faz 1 unless the selected installation profile
+Groups default to unselected unless the selected installation profile
 pulls them in. Their descriptions state why the group exists and any important
 limitation. Core hardware firmware, NetworkManager, Plasma, pacman trust, and
 the SchweisOS identity packages remain required and are not presented as
@@ -147,7 +154,7 @@ on connectivity.
 
 A maintainer must update all of the following in one reviewed change:
 
-- the relevant `packagechooser-*.conf` item and user-facing explanation;
+- the relevant `packagechooser-*.conf` and QML user-facing explanation;
 - the reconciliation allowlist and package mapping;
 - the ISO package set so the choice is physically available offline;
 - desktop/session and screenshot licensing evidence if the choice changes the

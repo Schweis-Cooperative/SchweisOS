@@ -53,7 +53,10 @@ The accepted MVP path is:
 Live ISO
   -> Calamares
   -> UEFI validation
-  -> kernel and optional-feature selection
+  -> storage choices
+  -> KDE Plasma desktop confirmation
+  -> browser, kernel, installation-profile, and optional-feature selection
+  -> user account and summary
   -> partition and mount target
   -> unpack the verified live root
   -> reconcile packages and remove exact live-only state
@@ -72,12 +75,15 @@ future/alternative installed-system path and is not activated by this package.
 
 ## Software Selection Contract
 
-Firefox is the fixed Faz 1 installed browser. The installer does not expose a
-separate browser page until additional browser packages are owned by accepted
-Arch or SchweisOS repository sources. The installation-profile and kernel
-pages are mandatory single-choice steps. The profile page provides reviewed
-starting points such as Privacy, Gaming, Developer, Creator, Office, and
-Minimal. Linux Zen is the SchweisOS default kernel and is visibly marked
+The Desktop Environment page is mandatory but intentionally has one selectable
+option: KDE Plasma, the only qualified Faz 1 desktop. The Browser page is also
+mandatory. Firefox is the enabled default; LibreWolf, Zen Browser, and Brave
+are approved architecture entries that remain disabled until reviewed signed
+offline payload packages exist. Chromium, Chrome, Edge, Opera, and unowned
+vendor binary channels are not approved choices. The installation-profile and
+kernel pages are mandatory single-choice steps. The profile page provides
+reviewed starting points such as Privacy, Gaming, Developer, Creator, Office,
+and Minimal. Linux Zen is the SchweisOS default kernel and is visibly marked
 recommended; standard, LTS, and hardened Arch kernels remain explicit
 alternatives. Unselected kernels and unsupported browser payload are removed
 from the copied payload.

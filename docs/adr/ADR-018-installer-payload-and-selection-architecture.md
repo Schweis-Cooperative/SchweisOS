@@ -29,12 +29,12 @@ network access because the live image does not carry an installation package
 pool. Removing Calamares' generic internet requirement prevents a false UI
 blocker, but it does not create an offline installation source.
 
-Faz 1 now requires both a working offline installation and user-selectable
-software. Browser, kernel, and optional-feature choices must be deterministic,
-must not mix AUR or arbitrary third-party trust into the installer, and must
-not leave packages that the user explicitly rejected. A new unsigned local
-repository, build-time signing key, or silent network fallback would violate
-the repository and trust architecture.
+Faz 1 now requires both a working offline installation and a professional
+guided software-selection flow. Desktop, browser, kernel, profile, and
+optional-feature choices must be deterministic, must not mix AUR or arbitrary
+third-party trust into the installer, and must not leave packages that the user
+explicitly rejected. A new unsigned local repository, build-time signing key,
+or silent network fallback would violate the repository and trust architecture.
 
 The current live SquashFS already contains a package-owned Arch system whose
 packages were resolved and signature-verified by the canonical ISO build. The
@@ -51,9 +51,8 @@ installation.
 
 The reconciliation helper is fail-closed and declarative:
 
-1. It accepts the fixed Firefox browser identifier plus only enumerated kernel
-   and feature-set identifiers produced by packaged Calamares chooser
-   instances.
+1. It accepts only enumerated desktop, browser, kernel, profile, and
+   feature-set identifiers produced by packaged Calamares chooser instances.
 2. It removes the exact, reviewed Archiso-only package set and exact
    profile-owned live paths.
 3. It removes unsupported browser payload, unselected kernels, and unselected
@@ -71,34 +70,39 @@ frontend. A choice may be displayed only when all of its packages come from
 the official Arch repositories or the signed SchweisOS repository used by the
 ISO build.
 
-Browser selection is not exposed as a separate Faz 1 page. Firefox is the fixed
-installed browser because it is available from the accepted repository trust
-domains and has broad compatibility. Chromium, Chrome, Edge, Opera, and
-unowned external binary channels are not presented. LibreWolf, Floorp, Zen
-Browser, Waterfox, Mullvad Browser, and Brave are not exposed until SchweisOS
-has a separately accepted, maintainable package source for them. The installer
-must not silently translate those names to AUR helpers or third-party binary
+Desktop-environment selection is exposed as a separate QML page, but it has
+exactly one selectable option: KDE Plasma. KDE Plasma is the first official and
+only qualified installed desktop. The page exists to make the installer flow
+professional and to reserve a documented extension point. Additional desktops
+and window managers require package manifests, unselected-payload cleanup,
+session and portal validation, screenshot or preview license records, and a
+larger QA matrix before they may appear as selectable Calamares options. The
+installer must not show selectable placeholder choices that the offline payload
+cannot actually install and reconcile.
+
+Browser selection is exposed as a separate QML page. Firefox is the default
+and the only enabled browser in the current ISO payload because it is available
+from the accepted repository trust domains and has broad compatibility.
+LibreWolf, Zen Browser, and Brave are approved architecture entries but are
+disabled until SchweisOS has separately accepted, maintainable, signed package
+sources for them. Chromium, Chrome, Edge, Opera, and unowned external binary
+channels are not approved browser choices. The installer must not silently
+translate disabled browser names to AUR helpers or third-party binary
 downloads.
 
-Desktop-environment selection is not exposed in Faz 1. KDE Plasma is the first
-official and only qualified installed desktop. Additional desktops and window
-managers require package manifests, unselected-payload cleanup, session and
-portal validation, screenshot license records, and a larger QA matrix before
-they may appear in Calamares. The installer must not show placeholder choices
-that the offline payload cannot actually install and reconcile.
+Kernel selection is a single-choice QML page. `linux-zen` is the default and
+is labelled recommended for desktop responsiveness and gaming. `linux`,
+`linux-lts`, and `linux-hardened` remain supported alternatives.
+Installed-system bootloader generation reads the recorded selection rather
+than assuming the `linux` package name.
 
-Kernel selection is single-choice. `linux-zen` is the default and is labelled
-recommended for desktop responsiveness and gaming. `linux`, `linux-lts`, and
-`linux-hardened` remain supported alternatives. Installed-system bootloader
-generation reads the recorded selection rather than assuming the `linux`
-package name.
-
-Installation-profile selection is single-choice. Profiles are implemented as a
-package-owned mapping from profile identifiers to optional feature identifiers:
-`privacy`, `gaming`, `developer`, `creator`, `office`, and `minimal`. The
-optional-feature page is still evaluated after the profile page, and duplicate
-profile/manual selections are idempotent. This gives new users a safe starting
-point without hiding the exact package groups that will remain in the target.
+Installation-profile selection is a single-choice QML page. Profiles are
+implemented as a package-owned mapping from profile identifiers to optional
+feature identifiers: `privacy`, `gaming`, `developer`, `creator`, `office`,
+and `minimal`. The optional-feature page is still evaluated after the profile
+page, and duplicate profile/manual selections are idempotent. This gives new
+users a safe starting point without hiding the exact package groups that will
+remain in the target.
 
 Optional feature sets are multi-choice and package-level descriptions explain
 why each top-level package is present. Hardware-critical firmware, networking,
@@ -121,7 +125,8 @@ the installer starts.
 
 ## Ownership
 
-- `packages/calamares/` owns enabling the reviewed upstream Calamares modules.
+- `packages/calamares/` owns enabling the reviewed upstream Calamares modules,
+  including `packagechooser` and `packagechooserq`.
 - `packages/schweisos-calamares-config/` owns chooser configuration, the
   required target manifest, the selection reconciliation helper, the
   `unpackfs` contract, installed selection evidence, and installer UI.
@@ -191,9 +196,12 @@ Validation must fail if:
   missing from the Calamares binary;
 - a chooser identifier or package appears outside the declared allowlist;
 - a displayed package is absent from the live ISO package universe;
-- browser or kernel selection permits zero or multiple choices;
-- desktop-environment selection is exposed before non-KDE package manifests,
-  cleanup rules, licensed screenshots, and QA evidence exist;
+- browser, kernel, profile, or desktop selection permits an unknown identifier;
+- disabled browser choices become selectable before their packages are
+  admitted to the ISO payload;
+- desktop-environment selection exposes selectable non-KDE options before
+  package manifests, cleanup rules, licensed screenshots or preview assets,
+  and QA evidence exist;
 - the selected kernel is not used by systemd-boot generation;
 - live-only packages, live authorization, Archiso hooks, live Plymouth units,
   the `live` account, or the installer itself remain in the target contract;

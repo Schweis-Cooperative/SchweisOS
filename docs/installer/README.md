@@ -36,8 +36,8 @@ Implemented in source:
 - Active live-boot-media filtering so the USB or file-backed medium that
   started the live system is not exposed as an installation target.
 - Target package manifest for a minimal KDE Plasma daily-use system.
-- Fixed Firefox browser payload, mandatory installation-profile selection, and
-  mandatory kernel selection, with Privacy and Linux Zen as the documented
+- Guided desktop, browser, installation-profile, kernel, and optional-feature
+  selection, with KDE Plasma, Firefox, Privacy, and Linux Zen as the documented
   defaults.
 - Optional, described software groups backed entirely by packages already on
   the live medium.
@@ -57,9 +57,10 @@ Not yet fully qualified:
 
 - Graphical installation in the complete VM and hardware matrix.
 - First boot of an installed system across the documented storage scenarios.
-- Runtime qualification of every kernel and optional-feature combination. The
-  source contract and offline payload are implemented, but a static validator
-  is not installation-completion evidence.
+- Runtime qualification of every desktop, browser, kernel, installation
+  profile, and optional-feature combination that is selectable. The source
+  contract and offline payload are implemented, but a static validator is not
+  installation-completion evidence.
 
 ## Runbooks
 
@@ -78,7 +79,10 @@ Live ISO
   -> exact-path Polkit / XWayland bridge
   -> Calamares
   -> UEFI preflight
-  -> kernel and optional-feature selection
+  -> storage choices
+  -> KDE Plasma desktop confirmation
+  -> browser, kernel, installation-profile, and optional-feature selection
+  -> user account and summary
   -> partition and mount
   -> unpack the signature-verified live root
   -> reconcile packages and remove exact live-only state
@@ -112,6 +116,14 @@ Live ISO
   requirement.
   Package choice and target creation work offline from the ISO payload; later
   repository access remains governed by pacman trust policy.
+- The Desktop Environment page is intentionally KDE-only in Faz 1. Non-KDE
+  selectable desktop choices require package manifests, cleanup rules, preview
+  licensing records, and runtime QA evidence before they can enter the flow.
+- The Browser page is present but fail-closed. Firefox is the enabled default.
+  LibreWolf, Zen Browser, and Brave are approved architecture entries that stay
+  disabled until their reviewed signed packages are available in the offline
+  payload. Chromium, Chrome, Edge, Opera, and unowned vendor binary channels are
+  not approved browser choices.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future
   decisions.
 

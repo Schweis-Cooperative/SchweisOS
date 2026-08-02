@@ -1,6 +1,6 @@
 # DDR-002 Installer Experience
 
-Version: 1.3
+Version: 1.4
 Status: Accepted for Faz 1 source implementation
 Date: 2026-08-02
 
@@ -31,8 +31,9 @@ from a slow application start.
 - Preserve UEFI-only Faz 1 limits before the user reaches destructive steps.
 - Use the canonical SchweisOS icon without copying artwork.
 - Explain connectivity without blocking offline installation.
-- Let users choose one supported browser, one supported kernel, and bounded
-  optional feature groups from the verified ISO payload.
+- Let users choose the supported desktop target, browser, kernel,
+  installation profile, and bounded optional feature groups from the verified
+  ISO payload.
 
 ## Non-Goals
 
@@ -146,20 +147,35 @@ boot architecture.
 
 ### Offline Software Selection
 
-The ISO carries Firefox as the fixed Faz 1 browser plus the complete supported
-kernel and optional-feature universe. The installer does not show a separate
-browser page until additional browser packages are owned by accepted Arch or
-SchweisOS repository sources. A required single-choice page selects exactly
-one kernel. Linux Zen is the desktop/gaming-focused default and is visibly
-marked recommended; standard, LTS, and hardened Arch kernels remain
-alternatives.
+The installer flow includes SchweisOS-owned guided selection pages for the
+supported desktop target, browser, kernel, installation profile, and optional
+features. These pages are not placeholders: every enabled selection must map to
+packages already present in the verified ISO payload and must be reconciled in
+the installed target.
 
-A required installation-profile page appears before the kernel and optional
-feature pages. The profile selects a reviewed starting point such as Privacy,
-Gaming, Developer, Creator, Office, or Minimal. The following optional-feature
-page remains available for manual additions. Reconciliation merges the profile
-and manual choices idempotently so the UI can be approachable without becoming
-a hidden package manager.
+The Desktop Environment page intentionally has exactly one selectable option:
+KDE Plasma. KDE Plasma is the first official and only qualified installed
+desktop. The page exists to make the guided flow explicit and to reserve a
+maintainable extension point for future desktops without pretending that they
+are already supported.
+
+The Browser page is present. Firefox is the default and only enabled Faz 1
+browser. LibreWolf, Zen Browser, and Brave are approved architectural entries
+but remain disabled until reviewed, signed, offline-available packages are
+admitted to the Arch or SchweisOS trust boundary used by the ISO. Disabled
+entries explain their status and cannot be selected; the installer must not map
+them to AUR helpers, vendor binaries, or network downloads.
+
+A required single-choice Kernel page selects exactly one kernel. Linux Zen is
+the desktop/gaming-focused default and is visibly marked recommended; standard,
+LTS, and hardened Arch kernels remain alternatives.
+
+A required installation-profile page appears after the kernel page and before
+optional features. The profile selects a reviewed starting point such as
+Privacy, Gaming, Developer, Creator, Office, or Minimal. The following
+Optional Features page remains available for manual additions. Reconciliation
+merges the profile and manual choices idempotently so the UI can be
+approachable without becoming a hidden package manager.
 
 Optional feature groups are bounded, repository-backed, and described in terms
 of purpose and important limitations. They do not expose AUR, Flatpak, or
@@ -199,7 +215,9 @@ Plasma live session
   -> SchweisOS launcher preflight
   -> exact-path Polkit authorization
   -> Calamares over XWayland
-  -> kernel and optional-feature selection
+  -> language, keyboard, timezone, and storage choices
+  -> KDE Plasma desktop confirmation
+  -> browser, kernel, installation-profile, and optional-feature selection
   -> unpack verified live payload and reconcile target
   -> close or complete installation
   -> no automatic reopen
@@ -255,7 +273,12 @@ Static validation must reject:
 - a welcome component that makes internet connectivity required;
 - a slideshow without the SchweisOS welcome message or project-maintainer
   identity;
-- browser or kernel selection without exactly one supported default;
+- desktop, browser, kernel, or installation-profile selection without exactly
+  one supported default;
+- disabled browser choices that can be selected before their packages are
+  admitted to the offline payload;
+- selectable non-KDE desktop choices before package manifests, cleanup rules,
+  licensed preview assets, and runtime QA evidence exist;
 - a selectable package absent from the offline ISO payload;
 - an installation flow that copies the live root without mandatory target
   reconciliation;

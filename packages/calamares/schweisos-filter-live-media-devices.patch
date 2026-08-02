@@ -173,6 +173,10 @@ index 2f8f1dd2a..2bf1d60b4 100644
 +        appendUnique( candidates, matches.next().captured( 1 ) );
 +    }
 +
++    for ( const QString& mountSource : mountSourcesForPath( QStringLiteral( "/run/archiso/img_dev" ) ) )
++    {
++        appendUnique( candidates, mountSource );
++    }
 +    for ( const QString& mountSource : mountSourcesForPath( QStringLiteral( "/run/archiso/bootmnt" ) ) )
 +    {
 +        appendUnique( candidates, mountSource );

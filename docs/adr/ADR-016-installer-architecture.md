@@ -94,8 +94,10 @@ an ISO file or device-mapper mapping. That allows the booted USB itself to
 appear as an installation target and fail destructively during partition-table
 creation. SchweisOS therefore filters the parent disk of the active Archiso
 media from the Calamares partition device model when the SchweisOS live marker
-is present. The filter derives the media from `img_dev`, `archisodevice`, and
-`/run/archiso/bootmnt` runtime evidence; it does not hide ordinary removable
+is present. The filter derives the media from kernel `img_dev` and
+`archisodevice` arguments and from Archiso's `/run/archiso/img_dev` and
+`/run/archiso/bootmnt` mount sources. This covers both ordinary Archiso
+mounting and Ventoy/file-based loopback handoff without hiding removable
 target disks that are not the current boot medium.
 
 The live ISO must let the autologged-in `live` user start the installer and

@@ -176,6 +176,7 @@ for patch_fragment in \
   'schweisosLiveMediaDevices' \
   '/usr/lib/schweisos-live/session' \
   'img_dev|archisodevice' \
+  '/run/archiso/img_dev' \
   '/run/archiso/bootmnt' \
   'lsblk' \
   'Removing SchweisOS live boot media device'; do

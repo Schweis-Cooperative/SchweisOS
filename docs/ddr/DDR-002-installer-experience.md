@@ -182,8 +182,11 @@ session and fail later during `sfdisk` partition-table creation.
 
 SchweisOS treats that as a UX and safety failure, not a user mistake. The
 booted medium is removed from the Calamares target-device list before the user
-reaches partitioning. Installing from one USB drive to a different removable
-target remains allowed; installing over the active live medium does not.
+reaches partitioning. The filter uses the active Archiso `img_dev`,
+`archisodevice`, `/run/archiso/img_dev`, and `/run/archiso/bootmnt` evidence
+instead of a broad "all USB devices" rule. Installing from one USB drive to a
+different removable target remains allowed; installing over the active live
+medium does not.
 
 ## User Flow
 

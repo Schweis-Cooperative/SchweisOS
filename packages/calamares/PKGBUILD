@@ -2,7 +2,7 @@
 
 pkgname=calamares
 pkgver=3.4.2
-pkgrel=5
+pkgrel=6
 pkgdesc='Distribution-independent installer framework'
 arch=('x86_64')
 url='https://codeberg.org/Calamares/calamares'
@@ -33,7 +33,7 @@ source=(
 )
 sha256sums=(
   '733bbbb00dc9f84874bd5c22960952f317ea2537565431179fa2152b2fbfdccc'
-  '34066a77ec9793c16a08547da94815d82734af0b4a5decd6a0be138166f186d2'
+  '528a3049f55d0fb7aeb076ddc2c4087e453301c9e45c418ec66d452c406363a2'
 )
 
 prepare() {

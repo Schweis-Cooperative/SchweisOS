@@ -118,8 +118,8 @@ grep -Fxq $'\tarch = any' <<<"$srcinfo" || \
 grep -Fxq $'\turl = https://schweisos.org' <<<"$srcinfo" || \
   fail 'installer config package URL is not canonical'
 for dependency in \
-  arch-install-scripts bash calamares dosfstools efibootmgr e2fsprogs kdialog pacman \
-  polkit schweisos-branding schweisos-keyring schweisos-mirrorlist \
+  arch-install-scripts bash calamares curl dosfstools efibootmgr e2fsprogs \
+  iproute2 kdialog networkmanager pacman polkit schweisos-branding schweisos-keyring schweisos-mirrorlist \
   schweisos-pacman-config schweisos-release systemd tzdata util-linux xorg-xwayland; do
   grep -Fxq $'\tdepends = '"$dependency" <<<"$srcinfo" || \
     fail "installer config package dependency is missing: ${dependency}"

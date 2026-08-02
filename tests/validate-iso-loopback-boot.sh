@@ -146,8 +146,8 @@ for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
         fail "${entry_name} is missing the Archiso base directory"
     [[ " $entry_options " == *" archisosearchuuid=${iso_uuid} "* ]] || \
         fail "${entry_name} archisosearchuuid does not match the ISO UUID marker"
-    [[ " $entry_options " == *' checksum=y '* ]] || \
-        fail "${entry_name} must request Archiso rootfs checksum verification"
+    [[ " $entry_options " != *' checksum=y '* ]] || \
+        fail "${entry_name} must not enable boot-time Archiso checksum self-test by default"
     [[ " $entry_options " != *' archisolabel='* ]] || \
         fail "${entry_name} must not mix archisolabel with the native archisosearchuuid contract"
     [[ " $entry_options " == *' systemd.firstboot=no '* ]] || \
@@ -214,8 +214,8 @@ for linux_line in "$normal_linux" "$debug_linux"; do
         fail 'loopback entry is missing the img_dev UUID handoff'
     [[ " $linux_line " == *' img_loop="${iso_path}" '* ]] || \
         fail 'loopback entry is missing the img_loop handoff'
-    [[ " $linux_line " == *' checksum=y '* ]] || \
-        fail 'loopback entry must request Archiso rootfs checksum verification'
+    [[ " $linux_line " != *' checksum=y '* ]] || \
+        fail 'loopback entry must not enable boot-time Archiso checksum self-test by default'
     [[ " $linux_line " == *' systemd.firstboot=no '* ]] || \
         fail 'loopback entry must disable interactive systemd-firstboot'
 done

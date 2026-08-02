@@ -93,14 +93,14 @@ timeout --foreground "$timeout_seconds" qemu-system-x86_64 \
     -cdrom "$iso_path" \
     -kernel "${tmp_dir}/vmlinuz-linux" \
     -initrd "${tmp_dir}/initramfs-linux.img" \
-    -append "archisobasedir=${install_dir} archisosearchuuid=${iso_uuid} checksum=y systemd.firstboot=no loglevel=7 systemd.show_status=yes console=ttyS0" \
+    -append "archisobasedir=${install_dir} archisosearchuuid=${iso_uuid} systemd.firstboot=no loglevel=7 systemd.show_status=yes console=ttyS0" \
     -display none \
     -serial "file:${log_file}" \
     -no-reboot
 qemu_status=$?
 set -e
 
-if grep -Eq 'Checksum is OK|Reached target Graphical Interface|Started.*Display Manager|Starting.*Display Manager' \
+if grep -Eq 'Reached target Graphical Interface|Started.*Display Manager|Starting.*Display Manager' \
     "$log_file"; then
     printf 'QEMU smoke test: PASS\n'
     printf '  ISO: %s\n' "$iso_path"

@@ -116,11 +116,15 @@ Static inspection of the tested local ISO proved that `airootfs.sfs` itself
 matched its embedded `airootfs.sha512`, passed a SquashFS stream test, and
 contained a real SquashFS xattr table at the end of the image. Local kernel
 loop-mounting of the same extracted file succeeded. The same hardware logs also
-showed a dirty exFAT Ventoy partition warning before the Archiso search. This
-changes the safety contract: SchweisOS must request Archiso's built-in
-`checksum=y` rootfs verification on every native and loopback live entry so a
-bad media read or stale/corrupt copy fails before the kernel tries to mount a
-partially read SquashFS image.
+showed a dirty exFAT Ventoy partition warning before the Archiso search.
+Further Ventoy Normal Mode testing then showed the downside of boot-time
+`checksum=y`: after the ISO file was found and the Ventoy partition was
+mounted, Archiso entered “Self-test requested” and did not reliably reach the
+desktop on the tested hardware. The safety contract is therefore split:
+SchweisOS must keep `airootfs.sha512`, post-build SquashFS verification, and
+copied-media byte validation as mandatory evidence, but default native and
+loopback live entries must not request boot-time `checksum=y`. A tester may
+add `checksum=y` manually for a focused media-corruption investigation.
 
 The same evidence also changes the live-SquashFS metadata contract. The Faz 1
 installed system is not cloned from the live root; it is produced by `pacstrap`
@@ -167,8 +171,8 @@ The profile-owned loopback file will:
   the ISO file;
 - pass `img_loop="${iso_path}"` so the Archiso initramfs can mount the ISO
   file provided by the multiboot tool;
-- pass `checksum=y` so Archiso verifies `airootfs.sfs` against the embedded
-  SHA512 before mounting the live root;
+- omit boot-time `checksum=y` by default; built-ISO and copied-media
+  validation own `airootfs.sfs` integrity evidence;
 - preserve `systemd.firstboot=no` on both entries;
 - preserve the quiet Plymouth default and the visible debug fallback entry;
 - provide only small utility entries that are safe in GRUB loopback context.
@@ -177,7 +181,7 @@ The live initramfs hook list will include `archiso_loop_mnt` immediately after
 `archiso` and SchweisOS' ISO-file fallback hook immediately after
 `archiso_loop_mnt`. The native systemd-boot entries continue to use
 `archisosearchuuid=%ARCHISO_UUID%`, matching upstream Archiso's native
-search-marker behavior, and also request `checksum=y`.
+search-marker behavior, without requesting boot-time `checksum=y` by default.
 
 The SchweisOS fallback hook is intentionally narrow:
 
@@ -371,7 +375,7 @@ Pre-build validation must fail closed if:
   contract;
 - the loopback normal/debug entries stop using the reviewed kernel or initramfs
   paths;
-- either entry omits `archisobasedir`, `img_dev`, `img_loop`, `checksum=y`, or
+- either entry omits `archisobasedir`, `img_dev`, `img_loop`, or
   `systemd.firstboot=no`;
 - the live mkinitcpio hook list omits `archiso_loop_mnt` after `archiso` or
   `schweisos_iso_file_fallback` after `archiso_loop_mnt`;
@@ -394,7 +398,7 @@ Completed ISO validation must fail closed if:
   catalog, or exactly one Archiso UUID marker;
 - the ISO volume label, `grubenv` label, native `archisosearchuuid`, and UUID
   marker metadata no longer agree;
-- any native or loopback live entry omits `checksum=y`;
+- any native or loopback live entry enables boot-time `checksum=y` by default;
 - the ISO UUID marker is not raw-discoverable by the initramfs fallback scan;
 - the live initramfs omits `archiso_loop_mnt` or
   `schweisos_iso_file_fallback`;

@@ -13,6 +13,30 @@
 
 _schweisos_search_mount=/run/schweisos/iso-file-search
 
+_schweisos_try_explicit_archiso_device() {
+    local search_dev
+
+    install -dm755 "${_schweisos_search_mount}"
+
+    for search_dev in "${archisodevice:-}" "$(getarg 'archisodevice')" "$(getarg 'img_dev')"; do
+        [ -n "${search_dev}" ] || continue
+
+        msg ":: Checking explicit Archiso device '${search_dev}' for '${archisosearchfilename}'"
+        umount "${_schweisos_search_mount}" 2>/dev/null
+
+        if mount -o 'x-initrd.mount' -r "${search_dev}" "${_schweisos_search_mount}" 2>/dev/null; then
+            if [ -e "${_schweisos_search_mount}${archisosearchfilename}" ]; then
+                umount "${_schweisos_search_mount}" 2>/dev/null
+                archisodevice="${search_dev}"
+                return 0
+            fi
+        fi
+    done
+
+    umount "${_schweisos_search_mount}" 2>/dev/null
+    return 1
+}
+
 _schweisos_scan_direct_marker_on_removable() {
     local search_dev
 
@@ -77,8 +101,9 @@ run_hook() {
 
     [ -n "${archisosearchuuid:-}" ] || return 0
     [ -n "${archisosearchfilename:-}" ] || return 0
-    [ -z "$(getarg 'img_dev')" ] || return 0
-    [ -z "$(getarg 'img_loop')" ] || return 0
+    if [ -n "$(getarg 'img_dev')" ] && [ -n "$(getarg 'img_loop')" ]; then
+        return 0
+    fi
 
     export mount_handler='schweisos_iso_file_mount_handler'
 }
@@ -86,6 +111,14 @@ run_hook() {
 schweisos_iso_file_mount_handler() {
     local newroot="${1}"
     local loopdev
+
+    if _schweisos_try_explicit_archiso_device; then
+        export archisodevice
+        export archisosearchuuid=''
+        export archisosearchfilename=''
+        archiso_mount_handler "${newroot}"
+        return
+    fi
 
     if _schweisos_scan_direct_marker_on_removable; then
         export archisodevice

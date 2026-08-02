@@ -151,8 +151,8 @@ directory is the ADR-017 `loopback.cfg` compatibility contract that upstream
 `mkarchiso` copies into `/boot/grub/loopback.cfg` for outer GRUB launchers that
 consume Archiso's loopback contract. It loads the same live kernel and
 initramfs paths as the native systemd-boot entries and passes Archiso's
-ISO-file handoff parameters plus the same `checksum=y` rootfs verification
-used by the native entries. The profile's initramfs inputs also include
+ISO-file handoff parameters while keeping boot-time `checksum=y` disabled by
+default. The profile's initramfs inputs also include
 ADR-017's narrow ISO-file fallback for multiboot paths that supply the native
 Archiso search contract without that handoff. A Ventoy mode label does not
 prove which loader or handoff path was selected; the resulting kernel command

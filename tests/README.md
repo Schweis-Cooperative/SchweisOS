@@ -78,8 +78,9 @@ passwordless local live-session administration policy, package-owned installer
 launcher boundary, permissions, symlinks, and absence of signing material. It
 also proves that the branding package source resolves to
 `branding/assets/logo/schweisos.png` and that the theme has no second image
-dependency. Native systemd-boot entries and GRUB loopback entries must request
-Archiso `checksum=y` rootfs verification. Pacman parsing uses a disposable
+dependency. Native systemd-boot entries and GRUB loopback entries must not
+enable boot-time Archiso `checksum=y` by default; post-build and media-copy
+validators own the rootfs integrity evidence. Pacman parsing uses a disposable
 sysroot populated from the real bootstrap configuration files; it does not
 modify `/etc`, contact repositories, or invent endpoints. Repository
 availability remains a separate build-host preflight.
@@ -176,10 +177,10 @@ marker, compares the built loopback file to the reviewed profile source after
 Archiso token substitution, rejects unresolved template tokens, validates the
 `archisobasedir`, `img_dev`, and `img_loop` handoff, and confirms that the live
 initramfs contains `archiso_loop_mnt` so the handoff can be consumed after the
-kernel starts. It also confirms that every native and loopback live entry
-requests `checksum=y`, and that the ISO marker is raw-discoverable by the
-SchweisOS initramfs fallback used when a multiboot command line supplies native
-Archiso search without `img_dev/img_loop`.
+kernel starts. It also confirms that every native and loopback live entry keeps
+boot-time `checksum=y` disabled by default, and that the ISO marker is
+raw-discoverable by the SchweisOS initramfs fallback used when a multiboot
+command line supplies native Archiso search without `img_dev/img_loop`.
 
 Ventoy's mode label does not prove that this loopback file was consumed; the
 resulting `/proc/cmdline` distinguishes an `img_dev`/`img_loop` handoff from

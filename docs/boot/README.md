@@ -25,11 +25,14 @@ The normal `SchweisOS Live` entry is quiet and splash-enabled. The visible
 Both entries disable interactive `systemd-firstboot`; the live root provides
 the upstream Archiso `C.UTF-8` and UTC defaults. A healthy boot therefore
 continues through SDDM autologin directly to Plasma without a timezone,
-keymap, or root-password wizard. Both entries also pass `checksum=y`, so
-Archiso verifies the embedded `airootfs.sfs` SHA512 before mounting the live
-root. This is deliberate: corrupted USB copies, stale media, or unreliable
-file-based multiboot reads should fail as integrity evidence rather than as a
-late SquashFS mount symptom.
+keymap, or root-password wizard. Default entries do not pass `checksum=y`;
+that Archiso self-test is intentionally kept out of the normal boot path
+because real Ventoy hardware testing showed it can turn a valid file-based
+boot into a long or stalled “Self-test requested” stage before the desktop.
+Integrity remains mandatory build evidence: the ISO carries `airootfs.sha512`,
+and `scripts/schweisos-doctor` plus built-ISO validators verify the embedded
+SquashFS bytes before an artifact is accepted. A tester may add `checksum=y`
+manually from a debug boot prompt when diagnosing suspected media corruption.
 
 Emergency mode, SDDM failure, a propagated Plymouth service failure, a bounded
 quit-wait timeout, or a detected unexpected Plymouth daemon exit triggers the
@@ -68,9 +71,9 @@ systemd-boot entries:
 ```
 
 They also pass `archisobasedir=schweis`, `img_dev`, and `img_loop` so the
-Archiso initramfs can mount the ISO file on the outer filesystem. They also
-pass `checksum=y` for the same rootfs integrity check used by the native
-entries. The live initramfs therefore includes Archiso's
+Archiso initramfs can mount the ISO file on the outer filesystem. The default
+loopback entries keep boot-time `checksum=y` disabled for the same Ventoy
+compatibility reason as native entries. The live initramfs therefore includes Archiso's
 `archiso_loop_mnt` hook in addition to the native `archiso` hook; the loopback
 kernel parameters are not useful unless the initramfs contains the hook that
 turns `img_dev/img_loop` into the loop device Archiso mounts.
@@ -90,7 +93,10 @@ clears the native search variables, and delegates back to upstream
 loop-module loading; the normal successful path is `losetup` plus upstream
 Archiso delegation. This keeps the initramfs output free of misleading
 module-loader diagnostics such as the observed repeated `Invalid ELF header
-magic` lines.
+magic` lines. If a multiboot loader supplies `img_dev` without `img_loop`, the
+fallback first checks that explicit device for the native Archiso marker before
+falling back to removable-media ISO-file search; this avoids treating a partial
+handoff as a failed native UUID search.
 
 This is intentionally narrower than enabling a native GRUB live bootloader:
 there is still no live ISO `grub.cfg`, no live GRUB package, no BIOS path, and

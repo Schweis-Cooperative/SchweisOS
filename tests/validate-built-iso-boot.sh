@@ -134,8 +134,8 @@ for entry_name in 01-schweisos-linux.conf 02-schweisos-linux-debug.conf; do
     firstboot_options="$(tr ' ' '\n' <<<"$options" | grep '^systemd\.firstboot=' || true)"
     [[ "$firstboot_options" == systemd.firstboot=no ]] || \
         fail "${entry_name} does not disable interactive systemd-firstboot exactly once"
-    [[ " $options " == *' checksum=y '* ]] || \
-        fail "${entry_name} must request Archiso rootfs checksum verification"
+    [[ " $options " != *' checksum=y '* ]] || \
+        fail "${entry_name} must not enable boot-time Archiso checksum self-test by default"
     case "$entry_name" in
         01-schweisos-linux.conf)
             [[ " $options " == *' quiet '* && " $options " == *' splash '* \

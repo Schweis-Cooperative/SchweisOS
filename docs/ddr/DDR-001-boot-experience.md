@@ -120,8 +120,11 @@ handoff, while `archisosearchuuid` without them identifies the native search
 and fallback path. Before either path is tested, the copied ISO must be the
 only SchweisOS ISO on the medium and must match the validated source by
 basename, size, SHA256, and byte comparison. All live entries request
-Archiso `checksum=y` verification so a bad media read is reported as rootfs
-integrity evidence before the kernel attempts to mount the SquashFS live root.
+post-build and media-copy integrity verification so a bad ISO or copied media
+is reported as evidence before the artifact is treated as bootable. Default
+boot entries keep Archiso's `checksum=y` self-test disabled because Ventoy
+hardware testing showed that boot-time self-test can stall file-based
+multiboot paths before the desktop.
 
 ### Branded Plymouth Splash
 
@@ -164,10 +167,10 @@ Both entries use `systemd.firstboot=no`. The live root supplies the same neutral
 `LANG=C.UTF-8` and UTC defaults as upstream Archiso. This prevents the generic
 systemd locale, keymap, timezone, and root-password questionnaire from blocking
 the graphical live session; those choices belong to the Calamares installer
-flow. Both entries also use `checksum=y`, which keeps the polished boot
-experience honest: if the USB copy or multiboot read path corrupts
-`airootfs.sfs`, Archiso stops with integrity evidence instead of presenting a
-later ambiguous SquashFS mount failure.
+flow. Boot-time `checksum=y` is not enabled by default; SchweisOS instead
+requires built-ISO and copied-media validation to verify `airootfs.sfs` before
+the artifact is accepted. This keeps the polished boot path compatible with
+file-based multiboot launchers while preserving explicit integrity evidence.
 
 ### Automatic Failure Reveal
 

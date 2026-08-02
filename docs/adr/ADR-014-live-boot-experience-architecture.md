@@ -62,7 +62,8 @@ The profile will:
   boot entry;
 - keep a separate debug entry without `quiet` or `splash`, with verbose kernel
   logging and visible systemd status;
-- set `checksum=y` and `systemd.firstboot=no` on both entries, provide the
+- set `systemd.firstboot=no` on both entries, leave boot-time `checksum=y`
+  disabled by default for Ventoy/file-based multiboot compatibility, provide the
   upstream Archiso `LANG=C.UTF-8` and UTC live defaults, and reserve locale,
   timezone, keymap, account, and storage choices for the installer;
 - include the upstream Arch `plymouth` package in the live package set;

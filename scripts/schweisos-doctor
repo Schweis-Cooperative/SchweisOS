@@ -224,9 +224,9 @@ if [[ -n "$install_dir" && -n "$iso_uuid" ]]; then
         [[ " $options " == *" archisosearchuuid=${iso_uuid} "* ]] \
             && pass "${entry_name}: archisosearchuuid matches marker" \
             || fail "${entry_name}: archisosearchuuid mismatch"
-        [[ " $options " == *' checksum=y '* ]] \
-            && pass "${entry_name}: Archiso checksum self-test enabled" \
-            || fail "${entry_name}: checksum=y missing"
+        [[ " $options " != *' checksum=y '* ]] \
+            && pass "${entry_name}: boot-time Archiso checksum self-test disabled" \
+            || fail "${entry_name}: checksum=y must not be enabled in default boot entries"
     done
 
     loopback_file="${tmp_dir}/loopback.cfg"
@@ -236,12 +236,16 @@ if [[ -n "$install_dir" && -n "$iso_uuid" ]]; then
         for token in \
             "archisobasedir=${install_dir}" \
             'img_dev=UUID=${archiso_img_dev_uuid}' \
-            'img_loop="${iso_path}"' \
-            'checksum=y'; do
+            'img_loop="${iso_path}"'; do
             grep -Fq "$token" "$loopback_file" \
                 && pass "loopback.cfg contains ${token}" \
                 || fail "loopback.cfg is missing ${token}"
         done
+        if grep -Fq 'checksum=y' "$loopback_file"; then
+            fail 'loopback.cfg must not enable boot-time Archiso checksum self-test'
+        else
+            pass 'loopback.cfg keeps boot-time Archiso checksum self-test disabled'
+        fi
     fi
 fi
 

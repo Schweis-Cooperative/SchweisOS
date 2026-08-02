@@ -11,8 +11,7 @@ Item {
     readonly property color backgroundBottom: "#071a32"
     readonly property color accent: "#0b8fe8"
     readonly property color foreground: "#f4f8fc"
-    readonly property url logoSource: "file:///usr/share/schweisos/branding/schweisos.png"
-    readonly property var contributors: ["Marijua"]
+    readonly property string maintainerName: "Marijua"
 
     Rectangle {
         anchors.fill: parent
@@ -94,7 +93,7 @@ Item {
                 Text {
                     width: parent.width
                     color: root.foreground
-                    text: "Contributors"
+                    text: "Project Maintainer"
                     font.pixelSize: 16
                     font.weight: Font.Medium
                     horizontalAlignment: Text.AlignHCenter
@@ -104,7 +103,7 @@ Item {
                 Text {
                     width: parent.width
                     color: "#a9bed2"
-                    text: root.contributors.join(" · ")
+                    text: "Maintained by " + root.maintainerName
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap

@@ -43,6 +43,7 @@ required_files=(
   "${package_dir}/settings.conf"
   "${package_dir}/branding.desc"
   "${package_dir}/show.qml"
+  "${package_dir}/welcomeq.qml"
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
@@ -52,7 +53,7 @@ required_files=(
   "${package_dir}/partition.conf"
   "${package_dir}/unpackfs.conf"
   "${package_dir}/users.conf"
-  "${package_dir}/welcome.conf"
+  "${package_dir}/welcomeq.conf"
   "${package_dir}/shellprocess-preflight.conf"
   "${package_dir}/shellprocess-reconcile.conf"
   "${package_dir}/shellprocess-pacman.conf"
@@ -205,6 +206,10 @@ grep -Fq 'install -Dm644 "${srcdir}/show.qml"' "${package_dir}/PKGBUILD" || \
   fail 'Calamares slideshow QML resource must be package-owned'
 grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/show.qml"' \
   "${package_dir}/PKGBUILD" || fail 'Calamares slideshow QML resource must be installed beside branding.desc'
+grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/welcomeq.qml"' \
+  "${package_dir}/PKGBUILD" || fail 'custom welcome QML must be installed in the branding directory'
+grep -Fq '"${pkgdir}/etc/calamares/modules/welcomeq.conf"' \
+  "${package_dir}/PKGBUILD" || fail 'custom welcome configuration must be package-owned'
 grep -Fq "  version: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
   fail 'Calamares branding version must match schweisos-release pkgver'
 grep -Fq "  shortVersion: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
@@ -395,7 +400,6 @@ for policy_fragment in \
     fail "installer Polkit policy is missing: ${policy_fragment}"
 done
 for branding_fragment in \
-  'productBanner: "/usr/share/schweisos/branding/schweisos.png"' \
   'productLogo: "/usr/share/schweisos/branding/schweisos.png"' \
   'productIcon: "/usr/share/schweisos/branding/schweisos.png"' \
   'slideshow: "show.qml"' \
@@ -406,35 +410,46 @@ for branding_fragment in \
 done
 ! grep -Fq 'productWelcome:' "${package_dir}/branding.desc" || \
   fail 'Calamares welcome page must not display the large centered productWelcome logo'
-grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' \
-  "${package_dir}/show.qml" || fail 'Calamares slideshow must reference the canonical runtime logo'
-grep -Fq 'readonly property var contributors: ["Marijua"]' "${package_dir}/show.qml" || \
-  fail 'Calamares slideshow must expose the current contributors list'
+! grep -Fq 'productBanner:' "${package_dir}/branding.desc" || \
+  fail 'text-first welcome must not render a product banner'
+grep -Fq 'readonly property string maintainerName: "Marijua"' "${package_dir}/show.qml" || \
+  fail 'Calamares slideshow must expose the project maintainer identity'
+grep -Fq 'Project Maintainer' "${package_dir}/show.qml" || \
+  fail 'Calamares slideshow must label Marijua as maintainer, not contributor'
+! grep -Fq 'Contributor' "${package_dir}/show.qml" || \
+  fail 'Calamares slideshow must not mislabel the maintainer as a contributor'
 grep -Fq 'Welcome to SchweisOS' "${package_dir}/show.qml" || \
   fail 'Calamares slideshow must include the SchweisOS welcome message'
-noncanonical_qml_source="$(
-  grep -E 'source:[[:space:]]*"' "${package_dir}/show.qml" \
-    | grep -Fv 'file:///usr/share/schweisos/branding/schweisos.png' || true
-)"
-[[ -z "$noncanonical_qml_source" ]] || \
-  fail 'Calamares slideshow must not reference non-canonical image sources'
+for welcome_fragment in \
+  'Welcome to SchweisOS' \
+  'Offline installation is fully available.' \
+  'Maintained by Marijua' \
+  'Network.hasInternet' \
+  'config.languagesModel'; do
+  grep -Fq "$welcome_fragment" "${package_dir}/welcomeq.qml" || \
+    fail "custom installer welcome is missing: ${welcome_fragment}"
+done
+! grep -Eq 'Image[[:space:]]*\{' "${package_dir}/welcomeq.qml" || \
+  fail 'text-first welcome must not contain a centered logo image'
 ! grep -Eq '^[[:space:]]+(sidebarBackground|sidebarText|sidebarTextSelect):' \
   "${package_dir}/branding.desc" || fail 'Calamares branding uses invalid case-sensitive style keys'
 for required_welcome_condition in storage ram root; do
-  grep -A5 '^[[:space:]]*required:' "${package_dir}/welcome.conf" \
+  grep -A5 '^[[:space:]]*required:' "${package_dir}/welcomeq.conf" \
     | grep -Fxq "    - ${required_welcome_condition}" || \
     fail "installer welcome gate is not required: ${required_welcome_condition}"
 done
-if grep -A8 '^[[:space:]]*required:' "${package_dir}/welcome.conf" \
+if grep -A8 '^[[:space:]]*required:' "${package_dir}/welcomeq.conf" \
     | grep -Fxq '    - internet'; then
   fail 'installer welcome gate must not require internet access'
 fi
-if grep -A10 '^[[:space:]]*check:' "${package_dir}/welcome.conf" \
-    | grep -Fxq '    - internet'; then
-  fail 'installer welcome gate must not block on Calamares internet probing'
-fi
-! grep -Fq 'internetCheckUrl:' "${package_dir}/welcome.conf" || \
-  fail 'installer welcome gate must not configure a Calamares internet probe'
+grep -A10 '^[[:space:]]*check:' "${package_dir}/welcomeq.conf" \
+  | grep -Fxq '    - internet' || \
+  fail 'installer welcome must expose informative network state'
+grep -Fxq '  internetCheckUrl: "https://schweisos.org/"' \
+  "${package_dir}/welcomeq.conf" || \
+  fail 'installer network probe must use the privacy-bounded SchweisOS endpoint'
+grep -Fxq 'qmlSearch: branding' "${package_dir}/welcomeq.conf" || \
+  fail 'welcomeq must load only the package-owned branding implementation'
 
 sed 's/[[:space:]]*#.*$//' "${package_dir}/target-packages.x86_64" \
   | awk 'NF { print }' >"${tmp_dir}/target-packages.normalized"

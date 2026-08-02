@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=8
+pkgrel=9
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -36,6 +36,7 @@ source=(
   'settings.conf'
   'branding.desc'
   'show.qml'
+  'welcomeq.qml'
   'finished.conf'
   'fstab.conf'
   'locale.conf'
@@ -45,7 +46,7 @@ source=(
   'partition.conf'
   'unpackfs.conf'
   'users.conf'
-  'welcome.conf'
+  'welcomeq.conf'
   'shellprocess-preflight.conf'
   'shellprocess-reconcile.conf'
   'shellprocess-pacman.conf'
@@ -67,8 +68,9 @@ source=(
 )
 sha256sums=('4103462a2e4866bd531b481ccb9e6b2f7cee11f27f27bcee35142c78cfb8f5b5'
             '72671ad5771a0d3e3154247cfa6021ab23afd79a1d42c9dd8b3be712b50eec66'
-            'edad8d70497f700ac59094ffc047432f7e7d36a253733e75bfe49e5747b6179d'
-            '243b118803da91303502967e404e64587acfdecf1562d001894a2f5309748a85'
+            'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
+            '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
+            '18cf3c64c429c821334a9bc1c6e9a754b99eff2f98363eff5362acaf07bed522'
             '58679cfdf40dff6d54c35b413a32a255ea01312dfb0e599e776579d485c55558'
             '3369159a1c71b745f21689dad6358fbde23a2437f1839d520e098bb34eec2f75'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
@@ -78,7 +80,7 @@ sha256sums=('4103462a2e4866bd531b481ccb9e6b2f7cee11f27f27bcee35142c78cfb8f5b5'
             '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
             '54496f0e30b18e32ccb2a4860ca2ad07976f57d5e8513d31d48c9e15e48b66b1'
             '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
-            'e2961bdb6846ba7e6fb98b09d0ce840b088ba4ec2b4731bc6b598cc129caf786'
+            '37610d934a204b1d64b92112769bafa32ff7c0615c9b3350a08aefe9b804892c'
             '6709e001d4e1bc291d82b52ade98915c3a10934d0a68c05ab970b4f4bd4110e1'
             '2151a92180acd0570286347a0092e98fa3d125a077d1e967c02eb03ab7333db2'
             '438d4f4456ab0a038990a4ca1688f7df9ada7a7c51935e4b537dc7fcd6167642'
@@ -105,6 +107,8 @@ package() {
     "${pkgdir}/etc/calamares/branding/schweisos/branding.desc"
   install -Dm644 "${srcdir}/show.qml" \
     "${pkgdir}/etc/calamares/branding/schweisos/show.qml"
+  install -Dm644 "${srcdir}/welcomeq.qml" \
+    "${pkgdir}/etc/calamares/branding/schweisos/welcomeq.qml"
 
   install -Dm644 "${srcdir}/finished.conf" \
     "${pkgdir}/etc/calamares/modules/finished.conf"
@@ -124,8 +128,8 @@ package() {
     "${pkgdir}/etc/calamares/modules/unpackfs.conf"
   install -Dm644 "${srcdir}/users.conf" \
     "${pkgdir}/etc/calamares/modules/users.conf"
-  install -Dm644 "${srcdir}/welcome.conf" \
-    "${pkgdir}/etc/calamares/modules/welcome.conf"
+  install -Dm644 "${srcdir}/welcomeq.conf" \
+    "${pkgdir}/etc/calamares/modules/welcomeq.conf"
 
   install -Dm644 "${srcdir}/shellprocess-preflight.conf" \
     "${pkgdir}/etc/calamares/modules/shellprocess-preflight.conf"

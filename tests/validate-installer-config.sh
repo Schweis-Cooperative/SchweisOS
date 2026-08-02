@@ -191,6 +191,8 @@ grep -Fq 'unlink -- "$upstream_launcher"' "${calamares_package_dir}/PKGBUILD" ||
 if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)packagechooser(;|$)'; then
   fail 'Calamares package must build the upstream packagechooser module'
 fi
+grep -Eq "^[[:space:]]*'rsync'[[:space:]]*$" "${calamares_package_dir}/PKGBUILD" || \
+  fail 'Calamares package must declare rsync for the unpackfs file-copy path'
 [[ ! -e "${profile_airootfs}/usr/local/share/applications/calamares.desktop" \
     && ! -L "${profile_airootfs}/usr/local/share/applications/calamares.desktop" ]] || \
   fail 'the ISO profile must not retain a second-layer Calamares launcher mask'

@@ -100,9 +100,6 @@ desktop-file-validate "${package_dir}/schweisos-installer-autostart.desktop"
 if ! (cd -- "$package_dir" && makepkg --verifysource >/dev/null); then
   fail 'installer config package source checksums do not verify'
 fi
-if ! (cd -- "$calamares_package_dir" && makepkg --verifysource >/dev/null); then
-  fail 'Calamares package source checksums do not verify'
-fi
 srcinfo="$(cd -- "$package_dir" && makepkg --printsrcinfo)"
 calamares_srcinfo="$(cd -- "$calamares_package_dir" && makepkg --printsrcinfo)"
 release_srcinfo="$(cd -- "$release_package_dir" && makepkg --printsrcinfo)"
@@ -152,8 +149,21 @@ grep -Fq '"${pkgdir}/usr/share/polkit-1/actions/org.schweisos.installer.policy"'
 
 grep -Fxq 'pkgname = calamares' <<<"$calamares_srcinfo" || \
   fail 'unexpected Calamares package source name'
+grep -Fxq $'\tsource = calamares-3.4.2.tar.gz::https://codeberg.org/Calamares/calamares/releases/download/v3.4.2/calamares-3.4.2.tar.gz' \
+  <<<"$calamares_srcinfo" || fail 'Calamares package must use the reviewed upstream release tarball'
 grep -Fxq $'\tsource = schweisos-filter-live-media-devices.patch' <<<"$calamares_srcinfo" || \
   fail 'Calamares package must carry the SchweisOS live-media target filter patch'
+grep -Fxq $'\tsha256sums = 733bbbb00dc9f84874bd5c22960952f317ea2537565431179fa2152b2fbfdccc' \
+  <<<"$calamares_srcinfo" || fail 'Calamares upstream release tarball checksum changed unexpectedly'
+calamares_patch_checksum_expected="$(
+  awk -F ' = ' '$1 == "\tsha256sums" { count++; if (count == 2) { print $2; exit } }' \
+    <<<"$calamares_srcinfo"
+)"
+calamares_patch_checksum_actual="$(sha256sum -- "$calamares_live_media_patch")"
+calamares_patch_checksum_actual="${calamares_patch_checksum_actual%% *}"
+[[ -n "$calamares_patch_checksum_expected" \
+    && "$calamares_patch_checksum_expected" == "$calamares_patch_checksum_actual" ]] || \
+  fail 'Calamares live-media target filter patch checksum does not match PKGBUILD'
 grep -Fq 'patch -Np1 -i "${srcdir}/schweisos-filter-live-media-devices.patch"' \
   "${calamares_package_dir}/PKGBUILD" || \
   fail 'Calamares package must apply the live-media target filter patch in prepare()'

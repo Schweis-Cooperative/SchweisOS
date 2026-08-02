@@ -39,6 +39,30 @@ Any missing selected package or unknown identifier stops installation.
 
 ## Required Payload and Choices
 
+### Desktop Environment
+
+Faz 1 installs KDE Plasma. SchweisOS deliberately does not expose a desktop
+environment chooser yet. The current ISO, offline payload, installed boot
+workflow, SDDM session policy, screenshots, and validation matrix are qualified
+only for Plasma.
+
+Future desktop choices such as GNOME, XFCE, LXQt, Cinnamon, MATE, Budgie,
+COSMIC, Hyprland, Sway, Wayfire, Niri, Openbox, Qtile, i3, bspwm, River,
+Enlightenment, UKUI, and Deepin require separate package ownership and QA
+before they can appear in the installer. A maintainer adding desktop selection
+must provide:
+
+- an accepted package-set manifest for each desktop or window manager;
+- installed-session, display-manager, portal, audio, network, and update
+  validation for each choice;
+- licensed screenshot assets and source/license metadata;
+- reconciliation rules that remove unselected desktop payload cleanly;
+- QEMU, raw USB, Ventoy Normal, Ventoy GRUB2, and hardware qualification
+  evidence for the expanded matrix.
+
+Until that work exists, displaying non-KDE choices would be a false promise and
+is forbidden by validation.
+
 ### Browser
 
 Firefox is the fixed Faz 1 installed browser. It provides broad compatibility,
@@ -126,6 +150,8 @@ A maintainer must update all of the following in one reviewed change:
 - the relevant `packagechooser-*.conf` item and user-facing explanation;
 - the reconciliation allowlist and package mapping;
 - the ISO package set so the choice is physically available offline;
+- desktop/session and screenshot licensing evidence if the choice changes the
+  installed desktop environment;
 - source, profile, runtime-payload, and built-ISO validators;
 - this contract and any affected runbook;
 - package release metadata and checksums.

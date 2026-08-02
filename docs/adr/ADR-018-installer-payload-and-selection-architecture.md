@@ -80,6 +80,13 @@ has a separately accepted, maintainable package source for them. The installer
 must not silently translate those names to AUR helpers or third-party binary
 downloads.
 
+Desktop-environment selection is not exposed in Faz 1. KDE Plasma is the first
+official and only qualified installed desktop. Additional desktops and window
+managers require package manifests, unselected-payload cleanup, session and
+portal validation, screenshot license records, and a larger QA matrix before
+they may appear in Calamares. The installer must not show placeholder choices
+that the offline payload cannot actually install and reconcile.
+
 Kernel selection is single-choice. `linux-zen` is the default and is labelled
 recommended for desktop responsiveness and gaming. `linux`, `linux-lts`, and
 `linux-hardened` remain supported alternatives. Installed-system bootloader
@@ -185,6 +192,8 @@ Validation must fail if:
 - a chooser identifier or package appears outside the declared allowlist;
 - a displayed package is absent from the live ISO package universe;
 - browser or kernel selection permits zero or multiple choices;
+- desktop-environment selection is exposed before non-KDE package manifests,
+  cleanup rules, licensed screenshots, and QA evidence exist;
 - the selected kernel is not used by systemd-boot generation;
 - live-only packages, live authorization, Archiso hooks, live Plymouth units,
   the `live` account, or the installer itself remain in the target contract;

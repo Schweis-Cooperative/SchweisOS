@@ -230,6 +230,8 @@ for required_sequence in \
 done
 ! grep -Fq 'packagechooser@browser' "${package_dir}/settings.conf" || \
   fail 'browser selection must not be a separate installer page in Phase 1'
+! grep -Fq 'packagechooser@desktop' "${package_dir}/settings.conf" || \
+  fail 'desktop-environment selection must not be exposed before non-KDE payloads are qualified'
 grep -Fq 'shellprocess@systemd-boot' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must install systemd-boot'
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(displaymanager|networkcfg)[[:space:]]*$' \

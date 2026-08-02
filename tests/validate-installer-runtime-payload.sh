@@ -81,6 +81,7 @@ fi
 require_absent_path usr/share/applications/calamares.desktop
 require_absent_path usr/local/share/applications/calamares.desktop
 require_absent_path etc/calamares/modules/packagechooser-browser.conf
+require_absent_path etc/calamares/modules/packagechooser-desktop.conf
 
 calamares_bin="$(relative_file usr/bin/calamares)"
 installer_launcher="$(relative_file usr/share/applications/schweisos-installer.desktop)"
@@ -223,6 +224,9 @@ for module in \
 done
 if grep -Fq 'packagechooser@browser' "$calamares_settings"; then
     fail 'runtime Calamares settings must not expose a separate browser page'
+fi
+if grep -Fq 'packagechooser@desktop' "$calamares_settings"; then
+    fail 'runtime Calamares settings must not expose unqualified desktop-environment selection'
 fi
 grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'

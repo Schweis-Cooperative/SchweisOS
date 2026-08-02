@@ -481,9 +481,14 @@ done
 if grep -Fq 'packagechooser@browser' "$installer_settings"; then
     fail 'built Calamares settings expose a removed browser page'
 fi
-if [[ -e "${rootfs}/etc/calamares/modules/packagechooser-browser.conf" ]]; then
-    fail 'built live root retains removed browser chooser configuration'
+if grep -Fq 'packagechooser@desktop' "$installer_settings"; then
+    fail 'built Calamares settings expose unqualified desktop-environment selection'
 fi
+for unsupported_chooser in browser desktop; do
+    if [[ -e "${rootfs}/etc/calamares/modules/packagechooser-${unsupported_chooser}.conf" ]]; then
+        fail "built live root retains unsupported ${unsupported_chooser} chooser configuration"
+    fi
+done
 grep -Fxq 'default: privacy' "$installer_profile_chooser" || \
     fail 'built installer profile default is not Privacy'
 for profile_id in privacy gaming developer creator office minimal; do

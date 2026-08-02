@@ -80,11 +80,11 @@ payload.
 
 The optional-feature page exposes package groups for privacy, security,
 gaming, development, virtualization, multimedia, office, international fonts,
-printing, Bluetooth, accessibility, Wayland diagnostics, power management,
-network tools, rootless containers, storage diagnostics, recovery, and
-maintenance. Every description explains the purpose and material limitation of
-the group. The complete choice universe is present on the ISO, so selections
-do not depend on network access.
+printing, Bluetooth, accessibility, Wayland diagnostics, X11 compatibility,
+power management, network tools, rootless containers, storage diagnostics,
+recovery, and maintenance. Every description explains the purpose and material
+limitation of the group. The complete choice universe is present on the ISO,
+so selections do not depend on network access.
 
 Reconciliation fails closed if a required or selected package is missing from
 the copied payload. It removes Calamares, Archiso construction packages, the

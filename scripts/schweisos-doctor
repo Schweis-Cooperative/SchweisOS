@@ -451,6 +451,8 @@ if (( installer_payload_complete )); then
         || fail 'Linux Zen is not visibly marked recommended'
     grep -Fxq 'mode: optionalmultiple' "$extras_chooser" \
         || fail 'optional feature chooser does not allow multiple choices'
+    grep -Fq 'id: x11-compatibility' "$extras_chooser" \
+        || fail 'optional feature chooser omits X11 compatibility'
     grep -Fq 'source: "/run/archiso/airootfs/"' "$unpackfs_file" \
         && pass 'Calamares unpackfs consumes the verified Archiso live root' \
         || fail 'Calamares unpackfs does not consume the verified Archiso live root'
@@ -461,6 +463,8 @@ if (( installer_payload_complete )); then
     grep -Fq 'PAYLOAD=archiso-airootfs' "$reconcile_helper" \
         && pass 'target reconciliation records the offline payload' \
         || fail 'target reconciliation does not record the offline payload'
+    grep -Fq "[x11-compatibility]='xorg-xwayland'" "$reconcile_helper" \
+        || fail 'target reconciliation omits X11 compatibility mapping'
     grep -Fq '${ROOT}' "$preflight_file" \
         && fail 'Calamares preflight runs before mount and consumes ROOT' \
         || pass 'Calamares preflight does not consume the pre-mount ROOT variable'

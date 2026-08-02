@@ -50,8 +50,10 @@ plasma-firewall
 git
 cmake
 ninja
+xorg-xwayland
 EOF
 sort -u -o "${target_root}/var/lib/mock/installed" "${target_root}/var/lib/mock/installed"
+: >"${target_root}/var/lib/mock/explicit"
 
 cat >"${mock_bin}/findmnt" <<'EOF'
 #!/usr/bin/bash
@@ -77,9 +79,17 @@ case "$operation" in
     for package in "$@"; do
       sed -i "/^${package//\//\\/}$/d" "${root}/var/lib/mock/installed"
     done
+    if printf '%s\n' "$@" | grep -Fxq schweisos-calamares-config \
+        && grep -Fxq xorg-xwayland "${root}/var/lib/mock/installed" \
+        && ! grep -Fxq xorg-xwayland "${root}/var/lib/mock/explicit"; then
+      sed -i '/^xorg-xwayland$/d' "${root}/var/lib/mock/installed"
+    fi
     ;;
   -D)
-    exit 0
+    [[ ${1-} == --asexplicit ]] && shift
+    [[ ${1-} == -- ]] && shift
+    printf '%s\n' "$@" >>"${root}/var/lib/mock/explicit"
+    sort -u -o "${root}/var/lib/mock/explicit" "${root}/var/lib/mock/explicit"
     ;;
   *)
     printf 'unexpected mock pacman operation: %s\n' "$operation" >&2
@@ -101,20 +111,22 @@ sed "s#/usr/share/schweisos/calamares#${runtime_share}#" "$helper" >"$test_helpe
 chmod 0755 -- "$test_helper"
 
 PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen \
-  security,development
+  security,development,x11-compatibility
 
 selection="${target_root}/var/lib/schweisos/installer/selection.conf"
 [[ -f "$selection" && ! -L "$selection" ]] || fail 'selection evidence was not created'
 grep -Fxq 'BROWSER=firefox' "$selection" || fail 'browser evidence is incorrect'
 grep -Fxq 'KERNEL=linux-zen' "$selection" || fail 'kernel evidence is incorrect'
-grep -Fxq 'OPTIONAL_FEATURES=security,development' "$selection" || \
+grep -Fxq 'OPTIONAL_FEATURES=security,development,x11-compatibility' "$selection" || \
   fail 'optional-feature evidence is incorrect'
 [[ ! -e "${target_root}/usr/lib/schweisos-live" ]] || fail 'live-only path remains'
 ! grep -q '^live:' "${target_root}/etc/passwd" || fail 'live account remains'
-for retained in firefox linux-zen firewalld plasma-firewall git cmake ninja; do
+for retained in firefox linux-zen firewalld plasma-firewall git cmake ninja xorg-xwayland; do
   grep -Fxq "$retained" "${target_root}/var/lib/mock/installed" || \
     fail "selected package was removed: ${retained}"
 done
+grep -Fxq xorg-xwayland "${target_root}/var/lib/mock/explicit" || \
+  fail 'selected dependency was not made explicit before live-package removal'
 for removed in chromium falkon linux linux-lts linux-hardened calamares plymouth; do
   ! grep -Fxq "$removed" "${target_root}/var/lib/mock/installed" || \
     fail "unselected or live-only package remains: ${removed}"

@@ -76,6 +76,8 @@ packages:
 - Bluetooth: BlueZ and command-line utilities.
 - Accessibility: Orca and Speech Dispatcher.
 - Wayland Tools: Wayland protocol diagnostics.
+- X11 Compatibility: XWayland for supported legacy applications inside the
+  default Wayland session.
 - Power Management: power-profiles-daemon.
 - Network Tools: OpenSSH and rsync.
 - Containers: Distrobox and rootless Podman; Distrobox is not a sandbox.

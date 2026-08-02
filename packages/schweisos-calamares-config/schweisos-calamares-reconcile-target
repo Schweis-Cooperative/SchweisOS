@@ -50,6 +50,7 @@ declare -Ar feature_packages=(
   [bluetooth]='bluez bluez-utils'
   [accessibility]='orca speech-dispatcher'
   [wayland-tools]='wayland-utils'
+  [x11-compatibility]='xorg-xwayland'
   [power-management]='power-profiles-daemon'
   [network-tools]='openssh rsync'
   [containers]='distrobox podman'
@@ -108,6 +109,17 @@ live_only_packages=(
 )
 unselected_packages+=("${live_only_packages[@]}")
 
+# Mark the complete retained set explicit before removing live-only packages.
+# Otherwise pacman -Rns may treat a selected package that was installed only as
+# a live-installer dependency as an orphan and remove it in the same cleanup
+# transaction.
+for package in "${required_packages[@]}" "${selected_packages[@]}"; do
+  arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1 || \
+    die "required or selected package is absent from the offline payload: ${package}"
+done
+arch-chroot "$target_root" pacman -D --asexplicit -- \
+  "${required_packages[@]}" "${selected_packages[@]}" >/dev/null
+
 installed_removals=()
 for package in "${unselected_packages[@]}"; do
   if arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1; then
@@ -120,10 +132,8 @@ fi
 
 for package in "${required_packages[@]}" "${selected_packages[@]}"; do
   arch-chroot "$target_root" pacman -Qq -- "$package" >/dev/null 2>&1 || \
-    die "required or selected package is absent from the offline payload: ${package}"
+    die "required or selected package was removed during reconciliation: ${package}"
 done
-arch-chroot "$target_root" pacman -D --asexplicit -- \
-  "${required_packages[@]}" "${selected_packages[@]}" >/dev/null
 
 remove_target_path() {
   local relative_path=$1

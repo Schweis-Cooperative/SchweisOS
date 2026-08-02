@@ -292,6 +292,8 @@ for reconciliation_fragment in \
   'arch-install-scripts' \
   'schweisos-calamares-config' \
   'pacman -Rns --noconfirm' \
+  "[x11-compatibility]='xorg-xwayland'" \
+  'pacman -D --asexplicit' \
   '/usr/lib/schweisos-live' \
   'selection.conf' \
   'PAYLOAD=archiso-airootfs'; do
@@ -481,7 +483,7 @@ for target_package in \
 done
 for dynamic_target_package in \
   firefox chromium falkon linux linux-lts linux-zen linux-hardened \
-  distrobox podman firewalld plasma-firewall; do
+  distrobox podman firewalld plasma-firewall xorg-xwayland; do
   ! grep -Fxq "$dynamic_target_package" "${tmp_dir}/target-packages.normalized" || \
     fail "dynamic target package must be owned by a chooser: ${dynamic_target_package}"
 done
@@ -493,7 +495,7 @@ done
 for live_package in \
   arch-install-scripts btrfs-progs calamares dosfstools efibootmgr \
   schweisos-calamares-config chromium falkon firefox linux linux-lts linux-zen \
-  linux-hardened firewalld plasma-firewall distrobox podman; do
+  linux-hardened firewalld plasma-firewall distrobox podman xorg-xwayland; do
   grep -Fxq "$live_package" "$profile_packages" || \
     fail "installer live package is missing from ISO profile: ${live_package}"
 done

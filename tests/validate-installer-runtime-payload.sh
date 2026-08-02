@@ -263,6 +263,8 @@ grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
 require_contains "$calamares_kernel_chooser" 'Linux Zen (Recommended)'
 grep -Fxq 'mode: optionalmultiple' "$calamares_extras_chooser" || \
     fail 'runtime optional-feature chooser does not allow multiple choices'
+require_contains "$calamares_extras_chooser" 'id: x11-compatibility'
+require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
 require_contains "$calamares_unpackfs" 'sourcefs: "file"'
 for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do

@@ -87,6 +87,7 @@ torbrowser-launcher
 virt-manager
 vlc
 wayland-utils
+xorg-xwayland
 
 # Container tooling
 distrobox

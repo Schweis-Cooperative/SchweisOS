@@ -484,6 +484,10 @@ grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
     fail 'built installer does not expose the recommended kernel label'
 grep -Fxq 'mode: optionalmultiple' "$installer_extras_chooser" || \
     fail 'built installer optional features are not a multiple-choice group'
+grep -Fq 'id: x11-compatibility' "$installer_extras_chooser" || \
+    fail 'built installer does not expose X11 compatibility choice'
+grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || \
+    fail 'built target reconciliation omits X11 compatibility mapping'
 grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
     fail 'built installer does not copy the verified Archiso root'
 for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do

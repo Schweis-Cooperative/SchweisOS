@@ -3,7 +3,7 @@
 
 pkgname=schweisos-calamares-config
 pkgver=0.1.0
-pkgrel=11
+pkgrel=12
 pkgdesc='SchweisOS Calamares installer configuration'
 arch=('any')
 url='https://schweisos.org'
@@ -67,7 +67,7 @@ source=(
   'schweisos-calamares-enable-services'
   'schweisos-installer.desktop'
 )
-sha256sums=('749c9162ab2362f8d77cb0bae4b5701096d389e8b842c64a88097a4395d31405'
+sha256sums=('a36ac13aac71ef826f48f90e91189a9b8e67fb31c66bc37ed3e4215bfb2deac1'
             '72671ad5771a0d3e3154247cfa6021ab23afd79a1d42c9dd8b3be712b50eec66'
             'd3e8657cc8f4598a3db7649f6b9f7d4898fbc7b4dd1f3862e63f484681b45bb2'
             '4920a85b79e23067ad7be1c607f3a869f2fc9f27fc11bfe72e9000963f2415a2'
@@ -77,7 +77,7 @@ sha256sums=('749c9162ab2362f8d77cb0bae4b5701096d389e8b842c64a88097a4395d31405'
             '183415c84fcbf3a9ff8d3ef91fa4d6ec932ecedab0104a19506401cbec280a65'
             'c0d74f0b6ea79ff8e6eed34be1c491cfb7b347e67b33faf2b120ce8080b757c7'
             '8bbb588f9cca61d630ba583015fda992877806dbeff72e8e00cb7861201d7ae2'
-            '105fec2717f839a2a3fbf2e798cda888db7949be6be180f5d613f6d18587514c'
+            'f512dfa1bc32b997849136f18d6437f131cac7d0a2a9a7a67abad50a5237d55a'
             '5f7c6ab0e7f186364bcb4a3c0b84123be2a97265f39551c4668515d65d23d51b'
             '54496f0e30b18e32ccb2a4860ca2ad07976f57d5e8513d31d48c9e15e48b66b1'
             '86ca43d96f61f718e86d66573e7ea7d5a71b30d086822c68fa0745b22a5248b5'
@@ -95,7 +95,7 @@ sha256sums=('749c9162ab2362f8d77cb0bae4b5701096d389e8b842c64a88097a4395d31405'
             '6ed84cd19e64b72c53d70a105a5f22bcf3818d02a8c22d917edf000301a2c309'
             '8a97207832fcc28277b1f563dbbc3f79e5ba50f4c9063985ed9f20bc6dd50b03'
             'c514fe7d3578e27623bf6655f56037830bcb699d08b517e64dfac5088f851213'
-            'fdec471edd74fdc4404a6ce3361fd336ba253e1659ff83c33d33fb271f84773f'
+            '6fc07f5f72a3d204db8f855c2ca80a471c72b47f5e1aa5105a550f752c26fc35'
             '15bf6036dd11a1f6bcb0862dd0ad8ad11d298a5b1410ee3cd333e769980df4be'
             '402bd743b7583b900bc6c0c82e6de5d2af08f082393c6cf729c092efad199c0f'
             '797adf182bffb4c500cc1d34fdabbc6a0ab86f797e7504326c0801102d72e45f'

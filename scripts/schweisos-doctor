@@ -373,9 +373,13 @@ extract_sfs_member() {
 welcome_file="${tmp_dir}/welcomeq.conf"
 welcome_qml="${tmp_dir}/welcomeq.qml"
 settings_file="${tmp_dir}/settings.conf"
+desktop_chooser="${tmp_dir}/packagechooser-desktop.conf"
 browser_chooser="${tmp_dir}/packagechooser-browser.conf"
 kernel_chooser="${tmp_dir}/packagechooser-kernel.conf"
-extras_chooser="${tmp_dir}/packagechooser-extras.conf"
+profile_chooser="${tmp_dir}/packagechooser-profile.conf"
+kernel_qml="${tmp_dir}/packagechooser-kernel.qml"
+optionalfeatures_config="${tmp_dir}/optionalfeatures.conf"
+optionalfeatures_qml="${tmp_dir}/optionalfeatures.qml"
 unpackfs_file="${tmp_dir}/unpackfs.conf"
 reconcile_config="${tmp_dir}/shellprocess-reconcile.conf"
 reconcile_helper="${tmp_dir}/reconcile-target"
@@ -386,9 +390,13 @@ declare -A installer_members=(
     ["$welcome_file"]='etc/calamares/modules/welcomeq.conf'
     ["$welcome_qml"]='etc/calamares/branding/schweisos/welcomeq.qml'
     ["$settings_file"]='etc/calamares/settings.conf'
+    ["$desktop_chooser"]='etc/calamares/modules/packagechooser-desktop.conf'
     ["$browser_chooser"]='etc/calamares/modules/packagechooser-browser.conf'
     ["$kernel_chooser"]='etc/calamares/modules/packagechooser-kernel.conf'
-    ["$extras_chooser"]='etc/calamares/modules/packagechooser-extras.conf'
+    ["$profile_chooser"]='etc/calamares/modules/packagechooser-profile.conf'
+    ["$kernel_qml"]='etc/calamares/branding/schweisos/packagechooser-kernel.qml'
+    ["$optionalfeatures_config"]='etc/calamares/modules/optionalfeatures.conf'
+    ["$optionalfeatures_qml"]='etc/calamares/branding/schweisos/optionalfeatures.qml'
     ["$unpackfs_file"]='etc/calamares/modules/unpackfs.conf'
     ["$reconcile_config"]='etc/calamares/modules/shellprocess-reconcile.conf'
     ["$reconcile_helper"]='usr/lib/schweisos-calamares/reconcile-target'
@@ -433,30 +441,48 @@ if (( installer_payload_complete )); then
         || pass 'Calamares welcome remains text-first'
     for module in \
         welcomeq \
-        packagechooser@browser \
-        packagechooser@kernel \
-        packagechooser@extras \
+        packagechooserq@desktop \
+        packagechooserq@browser \
+        packagechooserq@kernel \
+        packagechooserq@profile \
+        notesqml@extras \
         unpackfs \
         shellprocess@reconcile; do
         grep -Fxq "      - ${module}" "$settings_file" \
             || fail "Calamares settings omit required module: ${module}"
     done
-    grep -Fxq 'default: firefox' "$browser_chooser" \
+    grep -Fq 'packagechooser@extras' "$settings_file" \
+        && fail 'Calamares settings still use the legacy optional-feature widget' \
+        || pass 'Calamares optional features use SchweisOS notesqml'
+    grep -Fxq 'packageChoice: kde-plasma' "$desktop_chooser" \
+        && pass 'KDE Plasma is the only desktop choice' \
+        || fail 'KDE Plasma is not the default desktop choice'
+    grep -Fxq 'packageChoice: firefox' "$browser_chooser" \
         && pass 'Firefox is the default browser choice' \
         || fail 'Firefox is not the default browser choice'
-    grep -Fxq 'default: linux-zen' "$kernel_chooser" \
+    grep -Fxq 'packageChoice: linux-zen' "$kernel_chooser" \
         && pass 'Linux Zen is the default kernel choice' \
         || fail 'Linux Zen is not the default kernel choice'
-    grep -Fq 'Linux Zen (Recommended)' "$kernel_chooser" \
+    grep -Fxq 'packageChoice: privacy' "$profile_chooser" \
+        && pass 'Privacy is the default installation profile' \
+        || fail 'Privacy is not the default installation profile'
+    grep -Fq 'Linux Zen (Recommended)' "$kernel_qml" \
         || fail 'Linux Zen is not visibly marked recommended'
-    grep -Fxq 'mode: optionalmultiple' "$extras_chooser" \
-        || fail 'optional feature chooser does not allow multiple choices'
-    grep -Fq 'id: x11-compatibility' "$extras_chooser" \
-        || fail 'optional feature chooser omits X11 compatibility'
+    grep -Fxq 'qmlSearch: branding' "$optionalfeatures_config" \
+        && pass 'Optional Features QML is package-owned branding content' \
+        || fail 'Optional Features QML is not constrained to package-owned branding'
+    grep -Fxq 'qmlFilename: optionalfeatures' "$optionalfeatures_config" \
+        || fail 'Optional Features config does not load optionalfeatures.qml'
+    grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML does not write packagechooser_extras'
+    grep -Fq 'ToolTip.text: modelData.why' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML omits feature rationale tooltips'
+    grep -Fq 'id: "x11-compatibility"' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML omits X11 compatibility'
     grep -Fq 'source: "/run/archiso/airootfs/"' "$unpackfs_file" \
         && pass 'Calamares unpackfs consumes the verified Archiso live root' \
         || fail 'Calamares unpackfs does not consume the verified Archiso live root'
-    for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+    for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
         grep -Fq "\${gs[${selection_key}]}" "$reconcile_config" \
             || fail "target reconciliation omits selection: ${selection_key}"
     done

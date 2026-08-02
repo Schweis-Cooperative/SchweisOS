@@ -16,7 +16,7 @@ _schweisos_search_mount=/run/schweisos/iso-file-search
 _schweisos_try_explicit_archiso_device() {
     local search_dev
 
-    install -dm755 "${_schweisos_search_mount}"
+    mkdir -p "${_schweisos_search_mount}"
 
     for search_dev in "${archisodevice:-}" "$(getarg 'archisodevice')" "$(getarg 'img_dev')"; do
         [ -n "${search_dev}" ] || continue
@@ -40,7 +40,7 @@ _schweisos_try_explicit_archiso_device() {
 _schweisos_scan_direct_marker_on_removable() {
     local search_dev
 
-    install -dm755 "${_schweisos_search_mount}"
+    mkdir -p "${_schweisos_search_mount}"
 
     for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
         [ -b "${search_dev}" ] || continue
@@ -65,7 +65,7 @@ _schweisos_scan_iso_file_on_removable() {
     local candidate marker search_dev
 
     marker="${archisosearchuuid}.uuid"
-    install -dm755 "${_schweisos_search_mount}"
+    mkdir -p "${_schweisos_search_mount}"
 
     for search_dev in $(lsblk -no PATH -Q 'RM == 1 && ( TYPE == "part" || TYPE == "rom" )'); do
         [ -b "${search_dev}" ] || continue

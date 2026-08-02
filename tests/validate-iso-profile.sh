@@ -507,6 +507,7 @@ for required_fallback_fragment in \
   "getarg 'img_loop'" \
   "Checking explicit Archiso device" \
   "mount_handler='schweisos_iso_file_mount_handler'" \
+  "mkdir -p \"\${_schweisos_search_mount}\"" \
   "RM == 1 && ( TYPE == \"part\" || TYPE == \"rom\" )" \
   "grep -a -m 1 -F" \
   "losetup --find --show --read-only" \
@@ -532,7 +533,9 @@ for required_install_fragment in \
   'add_binary grep' \
   'add_binary losetup' \
   'add_binary lsblk' \
+  'add_binary mkdir' \
   'add_binary mount' \
+  'add_binary rmdir' \
   'add_binary umount'; do
   grep -Fq "$required_install_fragment" "$iso_file_fallback_install" || \
     fail "ISO-file fallback install hook is missing: ${required_install_fragment}"

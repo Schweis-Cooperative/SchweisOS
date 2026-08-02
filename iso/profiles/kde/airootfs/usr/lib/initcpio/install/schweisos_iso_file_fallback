@@ -10,7 +10,9 @@ build() {
     add_binary grep
     add_binary losetup
     add_binary lsblk
+    add_binary mkdir
     add_binary mount
+    add_binary rmdir
     add_binary umount
 }
 

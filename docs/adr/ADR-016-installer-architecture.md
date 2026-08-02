@@ -1,6 +1,6 @@
 # ADR-016 Installer Architecture
 
-Version: 0.4
+Version: 0.5
 
 ## Status
 
@@ -21,6 +21,7 @@ Accepted for Faz 1 source implementation
 - ADR-012 ISO Build Architecture
 - ADR-014 Live Boot Experience Architecture
 - ADR-015 GRUB Theme Architecture
+- ADR-018 Installer Payload and Selection Architecture
 - DDR-001 Boot Experience
 - DDR-002 Installer Experience
 
@@ -148,22 +149,15 @@ case. The marker is profile-owned because it is live-only; the reusable
 predicate remains package-owned and combines the marker with runtime evidence
 so copying the marker alone cannot authorize an installed system.
 
-The installer must not clone the live root filesystem into the target system.
-Live-root cloning would copy Archiso-only mkinitcpio configuration, live
-autologin, Plymouth live fallback units, installer payload, and other
-ephemeral state into the installed system and then rely on cleanup. The MVP
-instead uses upstream Arch installation primitives through `pacstrap` with a
-SchweisOS-owned target package manifest. This keeps the installed system
-package-owned from the start and avoids live-only state migration.
+The original Faz 1 payload decision used `pacstrap` and prohibited live-root
+deployment. ADR-018 supersedes that payload decision after offline installation
+and deterministic package selection became accepted Faz 1 requirements. The
+Calamares choice, launcher, privilege bridge, storage safety, UEFI,
+systemd-boot, trust, and ownership decisions in this ADR remain active.
 
 The Calamares welcome page must not make internet access a required minimum
-condition. That check is not the owner of SchweisOS package availability and
-has produced false-negative runtime blockers while the live desktop itself had
-network access. Repository availability remains enforced by the signed
-`pacstrap` step. The MVP therefore does not claim a complete offline install
-until SchweisOS accepts and implements a dedicated offline package source
-strategy, such as an ISO-contained signed installation repository or a
-separately reviewed live-root deployment model with strict live-state cleanup.
+condition. ADR-018 owns the accepted offline payload and package-selection
+architecture.
 
 ## Installed-System Policy
 
@@ -252,7 +246,7 @@ mirrors, or temporary keys.
 - `packages/schweisos-calamares-config/` owns reusable Calamares configuration,
   Calamares branding and slideshow resources, the single visible installer
   launcher, live-session autostart, exact-path privilege bridge, target package
-  manifest, pacstrap pacman configuration, and installer helper scripts.
+  and selection manifests, and installer helper scripts.
 - `packages/calamares/` owns the reviewed upstream binary package, omission of
   its generic launcher, and the narrow live-media target filter patch; it does
   not own SchweisOS desktop presentation.
@@ -277,11 +271,9 @@ desktop GUI goal for users arriving from Windows or macOS.
 
 ### Clone the Live Root with Calamares `unpackfs`
 
-This is common in some distributions, but it is the wrong first SchweisOS
-contract. It would require cleanup for live autologin, Archiso initramfs
-configuration, live Plymouth behavior, installer payload, and ephemeral
-services. Such cleanup is fragile and easy to miss. `pacstrap` produces a
-clean package-owned installed system.
+This alternative was originally rejected. ADR-018 records why the accepted
+offline and selection requirements changed the tradeoff and defines the
+bounded reconciliation contract that makes this path reviewable.
 
 ### Write a Custom Installer
 
@@ -301,8 +293,8 @@ Positive:
 
 - SchweisOS gets a graphical installer architecture without forking Archiso,
   pacman, KDE, or systemd.
-- Installed systems are created through signed package installation, not live
-  root cloning.
+- Installed systems preserve signed package state and are reconciled according
+  to ADR-018's offline payload contract.
 - systemd-boot policy becomes a real installed-system workflow.
 - The target pacman include is installer-owned, preserving package boundaries.
 - The package-owned configuration can be versioned, signed, tested, removed,
@@ -324,12 +316,8 @@ Negative:
   user-facing claims.
 - The first MVP has no BIOS, Secure Boot, full-disk encryption, snapshots,
   rollback, or GRUB activation.
-- `pacstrap` from the live environment requires the live system to have a
-  complete trusted SchweisOS repository configuration and package availability.
-- Full offline installation is not provided by the current `pacstrap`
-  architecture unless the ISO also carries a complete signed installation
-  repository; otherwise package retrieval still requires reachable configured
-  repositories.
+- The offline payload increases ISO size and requires strict live-state cleanup
+  under ADR-018.
 - The live ISO has broad local administrative authority by design. This is
   acceptable only because it is ephemeral, local/active-session scoped, and not
   installed to target systems.
@@ -359,7 +347,7 @@ The installer configuration validator must fail closed if:
 - target package entries are duplicated, unordered within groups, or omit
   SchweisOS identity/trust packages;
 - target packages include live-only installer, Archiso, or Plymouth payloads;
-- the installer does not use `pacstrap` with the packaged pacman configuration;
+- the installer payload or selection contract diverges from ADR-018;
 - the Calamares welcome page blocks installation on a generic internet probe;
 - the target pacman include is not installed by an installer helper;
 - the default filesystem is not ext4 or the ESP policy changes without an ADR;
@@ -390,3 +378,6 @@ release. Before SchweisOS advertises installation support, the project must:
 7. Verify first boot, user login, pacman repository policy, systemd-boot entry,
    SDDM, NetworkManager, KDE session, and basic update behavior.
 8. Repeat on at least one real UEFI machine before hardware claims.
+
+Payload and package-selection details are governed by
+[ADR-018](ADR-018-installer-payload-and-selection-architecture.md).

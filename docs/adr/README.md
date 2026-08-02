@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Version: 0.7
+Version: 0.8
 Status: Active
 Date: 2026-07-29
 
@@ -25,3 +25,4 @@ ADRs record important SchweisOS technical decisions. Each ADR must include Conte
 - [ADR-015 GRUB Theme Architecture](ADR-015-grub-theme-architecture.md)
 - [ADR-016 Installer Architecture](ADR-016-installer-architecture.md)
 - [ADR-017 Live ISO Loopback Boot Compatibility](ADR-017-live-iso-loopback-boot-compatibility.md)
+- [ADR-018 Installer Payload and Selection Architecture](ADR-018-installer-payload-and-selection-architecture.md)

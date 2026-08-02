@@ -168,8 +168,8 @@ Initial package categories:
 - `schweisos-grub-theme`: optional, inert GRUB theme for future
   installer-owned activation.
 - `schweisos-calamares-config`: Calamares installer configuration, branding
-  and slideshow resources, launcher, target package manifest, pacstrap policy,
-  and installer-owned target integration helpers.
+  and slideshow resources, launcher, offline payload reconciliation, package
+  selection manifests, and installer-owned target integration helpers.
 - `schweisos-kde-settings`: KDE defaults through configuration files, not patched Plasma packages.
 - `schweisos-gaming-meta`: optional gaming package set.
 - `schweisos-flatpak-meta`: optional Flatpak integration package set.
@@ -403,10 +403,14 @@ configuration. GRUB remains an installed-system alternative for a later
 installer-owned path; the MVP must not run `grub-install` or activate the GRUB
 theme.
 
-The target system is installed with `pacstrap` from signed Arch and SchweisOS
-repositories using a package-owned target manifest. The live root filesystem is
-not cloned into the target, preventing live-only Archiso, autologin, Plymouth,
-or installer payload from becoming installed-system state.
+The target system is populated from the signature-verified live SquashFS with
+Calamares' upstream `unpackfs` module. A package-owned, fail-closed
+reconciliation step removes the exact Archiso-only package and file allowlist,
+the ephemeral live account, unselected browser and kernel alternatives, and
+unselected optional feature sets. This provides an offline installation
+payload without adding an unsigned repository or a second package manager.
+The complete contract and rollback are defined in
+[ADR-018 Installer Payload and Selection Architecture](../adr/ADR-018-installer-payload-and-selection-architecture.md).
 
 Faz 1 automated partitioning is constrained to GPT with a 512 MiB recommended
 EFI system partition at `/boot`, ext4 by default, and Btrfs as the documented
@@ -520,9 +524,9 @@ Detailed policy: [Security Model](../security/security-model.md).
 The documentation, identity package set, trust bootstrap, signed local
 repository, minimal KDE profile, and ISO build/validation source are available
 as engineering foundations. Faz 1 now adds the Calamares installer source
-architecture, package-owned configuration, target package manifest, manual
-installation runbook, recovery runbook, and static installer validation. The
-next dependency-ordered sequence is:
+architecture, package-owned configuration, offline payload and selection
+contract, manual installation runbook, recovery runbook, and static installer
+validation. The next dependency-ordered sequence is:
 
 1. Build, sign, and publish a reviewed Calamares binary package in the
    SchweisOS repository, or admit an audited upstream-compatible Calamares

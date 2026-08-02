@@ -93,6 +93,17 @@ live_profile_marker="$(relative_file usr/lib/schweisos-live/session)"
 calamares_settings="$(relative_file etc/calamares/settings.conf)"
 calamares_branding="$(relative_file etc/calamares/branding/schweisos/branding.desc)"
 calamares_slideshow="$(relative_file etc/calamares/branding/schweisos/show.qml)"
+calamares_welcome_qml="$(relative_file etc/calamares/branding/schweisos/welcomeq.qml)"
+calamares_welcome_config="$(relative_file etc/calamares/modules/welcomeq.conf)"
+calamares_browser_chooser="$(relative_file etc/calamares/modules/packagechooser-browser.conf)"
+calamares_kernel_chooser="$(relative_file etc/calamares/modules/packagechooser-kernel.conf)"
+calamares_extras_chooser="$(relative_file etc/calamares/modules/packagechooser-extras.conf)"
+calamares_unpackfs="$(relative_file etc/calamares/modules/unpackfs.conf)"
+calamares_reconcile_config="$(relative_file etc/calamares/modules/shellprocess-reconcile.conf)"
+calamares_reconcile_helper="$(relative_file usr/lib/schweisos-calamares/reconcile-target)"
+calamares_target_manifest="$(relative_file usr/share/schweisos/calamares/target-packages.x86_64)"
+timezone_index="$(relative_file usr/share/zoneinfo/zone1970.tab)"
+istanbul_timezone="$(relative_file usr/share/zoneinfo/Europe/Istanbul)"
 runtime_logo="$(relative_file usr/share/schweisos/branding/schweisos.png)"
 
 require_mode "$calamares_bin" 755
@@ -107,6 +118,17 @@ require_mode "$live_profile_marker" 644
 require_mode "$calamares_settings" 644
 require_mode "$calamares_branding" 644
 require_mode "$calamares_slideshow" 644
+require_mode "$calamares_welcome_qml" 644
+require_mode "$calamares_welcome_config" 644
+require_mode "$calamares_browser_chooser" 644
+require_mode "$calamares_kernel_chooser" 644
+require_mode "$calamares_extras_chooser" 644
+require_mode "$calamares_unpackfs" 644
+require_mode "$calamares_reconcile_config" 644
+require_mode "$calamares_reconcile_helper" 755
+require_mode "$calamares_target_manifest" 644
+require_mode "$timezone_index" 644
+require_mode "$istanbul_timezone" 644
 require_mode "$runtime_logo" 644
 
 desktop-file-validate "$installer_launcher"
@@ -187,24 +209,70 @@ require_contains "$installer_policy" 'org.freedesktop.policykit.exec.allow_gui">
 
 grep -Fxq 'branding: schweisos' "$calamares_settings" || \
     fail 'runtime Calamares settings do not select SchweisOS branding'
+for module in \
+    welcomeq \
+    packagechooser@browser \
+    packagechooser@kernel \
+    packagechooser@extras \
+    unpackfs \
+    shellprocess@reconcile; do
+    grep -Fxq "      - ${module}" "$calamares_settings" || \
+        fail "runtime Calamares settings omit required module: ${module}"
+done
 grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'
 require_contains "$calamares_branding" 'productLogo: "/usr/share/schweisos/branding/schweisos.png"'
 require_contains "$calamares_branding" 'productIcon: "/usr/share/schweisos/branding/schweisos.png"'
-require_contains "$calamares_branding" 'productBanner: "/usr/share/schweisos/branding/schweisos.png"'
-if grep -Fq 'productWelcome:' "$calamares_branding"; then
-    fail 'runtime Calamares branding must not display the large centered productWelcome logo'
+if grep -Eq '^[[:space:]]*product(Banner|Welcome):' "$calamares_branding"; then
+    fail 'runtime Calamares branding must not display a centered welcome logo or banner'
 fi
-require_contains "$calamares_slideshow" 'file:///usr/share/schweisos/branding/schweisos.png'
-require_contains "$calamares_slideshow" 'readonly property var contributors: ["Marijua"]'
+require_contains "$calamares_slideshow" 'readonly property string maintainerName: "Marijua"'
+require_contains "$calamares_slideshow" 'text: "Project Maintainer"'
+require_contains "$calamares_slideshow" 'text: "Maintained by " + root.maintainerName'
 require_contains "$calamares_slideshow" 'Welcome to SchweisOS'
-noncanonical_qml_source="$(
-    grep -E 'source:[[:space:]]*"' "$calamares_slideshow" \
-        | grep -Fv 'file:///usr/share/schweisos/branding/schweisos.png' || true
-)"
-if [[ -n "$noncanonical_qml_source" ]]; then
-    fail 'runtime Calamares slideshow references a non-canonical image source'
+if grep -Fq 'Contributor' "$calamares_slideshow"; then
+    fail 'runtime Calamares slideshow labels the project maintainer as a contributor'
 fi
+for welcome_fragment in \
+    'Welcome to SchweisOS' \
+    'Network.hasInternet' \
+    'Offline installation is fully available.' \
+    'Maintained by Marijua'; do
+    require_contains "$calamares_welcome_qml" "$welcome_fragment"
+done
+if grep -Eq 'Image[[:space:]]*\{' "$calamares_welcome_qml"; then
+    fail 'runtime Calamares welcome page must remain text-first'
+fi
+if awk '
+    /^[[:space:]]*required:/ { in_required=1; next }
+    in_required && /^[^[:space:]]/ { in_required=0 }
+    in_required && /^[[:space:]]*-[[:space:]]*internet[[:space:]]*$/ { found=1 }
+    END { exit !found }
+' "$calamares_welcome_config"; then
+    fail 'runtime Calamares welcome page makes internet connectivity mandatory'
+fi
+require_contains "$calamares_welcome_config" 'internetCheckUrl: "https://schweisos.org/"'
+grep -Fxq 'mode: required' "$calamares_browser_chooser" || \
+    fail 'runtime browser chooser is not mandatory'
+grep -Fxq 'default: firefox' "$calamares_browser_chooser" || \
+    fail 'runtime browser chooser default is not Firefox'
+grep -Fxq 'mode: required' "$calamares_kernel_chooser" || \
+    fail 'runtime kernel chooser is not mandatory'
+grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
+    fail 'runtime kernel chooser default is not Linux Zen'
+require_contains "$calamares_kernel_chooser" 'Linux Zen (Recommended)'
+grep -Fxq 'mode: optionalmultiple' "$calamares_extras_chooser" || \
+    fail 'runtime optional-feature chooser does not allow multiple choices'
+require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
+require_contains "$calamares_unpackfs" 'sourcefs: "file"'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+    require_contains "$calamares_reconcile_config" "\${gs[${selection_key}]}"
+done
+require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT}'
+require_contains "$calamares_reconcile_helper" 'PAYLOAD=archiso-airootfs'
+require_contains "$calamares_reconcile_helper" '/var/lib/schweisos/installer'
+grep -Fq $'TR\tEurope/Istanbul' "$timezone_index" || \
+    fail 'runtime IANA timezone index omits Europe/Istanbul'
 
 mapfile -t installer_records < <(
     find "${rootfs}/var/lib/pacman/local" -mindepth 1 -maxdepth 1 -type d \
@@ -217,12 +285,21 @@ for owned_path in \
     etc/calamares/settings.conf \
     etc/calamares/branding/schweisos/branding.desc \
     etc/calamares/branding/schweisos/show.qml \
+    etc/calamares/branding/schweisos/welcomeq.qml \
+    etc/calamares/modules/packagechooser-browser.conf \
+    etc/calamares/modules/packagechooser-kernel.conf \
+    etc/calamares/modules/packagechooser-extras.conf \
+    etc/calamares/modules/unpackfs.conf \
+    etc/calamares/modules/welcomeq.conf \
+    etc/calamares/modules/shellprocess-reconcile.conf \
     etc/xdg/autostart/schweisos-installer-autostart.desktop \
     usr/bin/schweisos-installer \
     usr/lib/schweisos-calamares/autostart \
     usr/lib/schweisos-calamares/is-live-session \
     usr/lib/schweisos-calamares/launch-root \
+    usr/lib/schweisos-calamares/reconcile-target \
     usr/share/applications/schweisos-installer.desktop \
+    usr/share/schweisos/calamares/target-packages.x86_64 \
     usr/share/polkit-1/actions/org.schweisos.installer.policy; do
     grep -Fxq "$owned_path" "$installer_files" || \
         fail "schweisos-calamares-config does not own ${owned_path}"
@@ -244,4 +321,5 @@ printf 'Installer runtime payload validation passed.\n'
 printf '  rootfs: %s\n' "$rootfs"
 printf '  launcher: single visible Install SchweisOS entry\n'
 printf '  autostart: hidden once-only live-session helper\n'
-printf '  branding: slideshow key and show.qml verified\n'
+printf '  presentation: text-first welcome and maintainer identity verified\n'
+printf '  target: offline chooser, unpackfs, and reconciliation payload verified\n'

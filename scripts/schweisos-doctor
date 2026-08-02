@@ -17,7 +17,7 @@ Read-only ISO diagnostics:
   - ISO root layout, kernel, initramfs, EFI, GRUB loopback, and UUID marker
   - Archiso native and loopback kernel command line contracts
   - airootfs.sfs SHA512 and SquashFS superblock/no-xattrs policy
-  - installed Calamares package versions and offline welcome policy
+  - installed Calamares versions, offline selection, reconciliation, and timezone data
 
 This is static forensic evidence. It does not replace QEMU, Ventoy, dd, or
 real-hardware boot validation.
@@ -348,47 +348,125 @@ PY
     fi
 fi
 
-welcome_file="${tmp_dir}/welcome.conf"
-preflight_file="${tmp_dir}/shellprocess-preflight.conf"
-if [[ -s "${tmp_dir}/airootfs.sfs" ]]; then
-    if type -P 7z >/dev/null 2>&1; then
-        rm -rf -- "${tmp_dir}/sfs-select"
-        mkdir -p -- "${tmp_dir}/sfs-select"
-        if 7z x -y -o"${tmp_dir}/sfs-select" "${tmp_dir}/airootfs.sfs" \
-            etc/calamares/modules/welcome.conf >/dev/null; then
-            cp -- "${tmp_dir}/sfs-select/etc/calamares/modules/welcome.conf" "$welcome_file"
-        fi
-        if 7z x -y -o"${tmp_dir}/sfs-select" "${tmp_dir}/airootfs.sfs" \
-            etc/calamares/modules/shellprocess-preflight.conf >/dev/null; then
-            cp -- "${tmp_dir}/sfs-select/etc/calamares/modules/shellprocess-preflight.conf" "$preflight_file"
-        fi
+extract_sfs_member() {
+    local member=$1
+    local output=$2
+    rm -f -- "$output"
+    if [[ ! -s "${tmp_dir}/airootfs.sfs" ]]; then
+        return 1
+    elif type -P 7z >/dev/null 2>&1; then
+        7z x -so "${tmp_dir}/airootfs.sfs" "$member" >"$output" 2>/dev/null || {
+            rm -f -- "$output"
+            return 1
+        }
     elif type -P unsquashfs >/dev/null 2>&1; then
-        unsquashfs -cat "${tmp_dir}/airootfs.sfs" etc/calamares/modules/welcome.conf \
-            >"$welcome_file" 2>/dev/null || true
-        unsquashfs -cat "${tmp_dir}/airootfs.sfs" etc/calamares/modules/shellprocess-preflight.conf \
-            >"$preflight_file" 2>/dev/null || true
-    fi
-fi
-if [[ -s "$welcome_file" ]]; then
-    pass 'Calamares welcome.conf extracted from SquashFS'
-    if grep -Eq '^[[:space:]]*internetCheckUrl:|^[[:space:]]*-[[:space:]]*internet[[:space:]]*$' \
-        "$welcome_file"; then
-        fail 'Calamares welcome.conf still blocks offline installation through internet probing'
+        unsquashfs -cat "${tmp_dir}/airootfs.sfs" "$member" >"$output" 2>/dev/null || {
+            rm -f -- "$output"
+            return 1
+        }
     else
-        pass 'Calamares welcome.conf does not require internet access'
+        return 1
     fi
-else
-    warn 'Calamares welcome.conf could not be extracted; run completed built-ISO validator on build host'
-fi
-if [[ -s "$preflight_file" ]]; then
-    pass 'Calamares preflight shellprocess extracted from SquashFS'
-    if grep -Fq '${ROOT}' "$preflight_file"; then
-        fail 'Calamares preflight runs before mount and must not consume ${ROOT}'
+    [[ -s "$output" ]]
+}
+
+welcome_file="${tmp_dir}/welcomeq.conf"
+welcome_qml="${tmp_dir}/welcomeq.qml"
+settings_file="${tmp_dir}/settings.conf"
+browser_chooser="${tmp_dir}/packagechooser-browser.conf"
+kernel_chooser="${tmp_dir}/packagechooser-kernel.conf"
+extras_chooser="${tmp_dir}/packagechooser-extras.conf"
+unpackfs_file="${tmp_dir}/unpackfs.conf"
+reconcile_config="${tmp_dir}/shellprocess-reconcile.conf"
+reconcile_helper="${tmp_dir}/reconcile-target"
+preflight_file="${tmp_dir}/shellprocess-preflight.conf"
+timezone_index="${tmp_dir}/zone1970.tab"
+
+declare -A installer_members=(
+    ["$welcome_file"]='etc/calamares/modules/welcomeq.conf'
+    ["$welcome_qml"]='etc/calamares/branding/schweisos/welcomeq.qml'
+    ["$settings_file"]='etc/calamares/settings.conf'
+    ["$browser_chooser"]='etc/calamares/modules/packagechooser-browser.conf'
+    ["$kernel_chooser"]='etc/calamares/modules/packagechooser-kernel.conf'
+    ["$extras_chooser"]='etc/calamares/modules/packagechooser-extras.conf'
+    ["$unpackfs_file"]='etc/calamares/modules/unpackfs.conf'
+    ["$reconcile_config"]='etc/calamares/modules/shellprocess-reconcile.conf'
+    ["$reconcile_helper"]='usr/lib/schweisos-calamares/reconcile-target'
+    ["$preflight_file"]='etc/calamares/modules/shellprocess-preflight.conf'
+    ["$timezone_index"]='usr/share/zoneinfo/zone1970.tab'
+)
+installer_payload_complete=1
+for output in "${!installer_members[@]}"; do
+    member=${installer_members[$output]}
+    if extract_sfs_member "$member" "$output"; then
+        pass "SquashFS installer payload extracted: ${member}"
     else
-        pass 'Calamares preflight does not consume the pre-mount ROOT variable'
+        fail "SquashFS installer payload is missing: ${member}"
+        installer_payload_complete=0
     fi
-else
-    warn 'Calamares preflight shellprocess could not be extracted; run completed built-ISO validator on build host'
+done
+
+if (( installer_payload_complete )); then
+    if awk '
+        /^[[:space:]]*required:/ { in_required=1; next }
+        in_required && /^[^[:space:]]/ { in_required=0 }
+        in_required && /^[[:space:]]*-[[:space:]]*internet[[:space:]]*$/ { found=1 }
+        END { exit !found }
+    ' "$welcome_file"; then
+        fail 'Calamares welcome requirements still block offline installation'
+    else
+        pass 'Calamares welcome keeps internet connectivity informational'
+    fi
+    grep -Fq 'internetCheckUrl: "https://schweisos.org/"' "$welcome_file" \
+        && pass 'Calamares connectivity check uses the SchweisOS endpoint' \
+        || fail 'Calamares connectivity check does not use the SchweisOS endpoint'
+    for fragment in \
+        'Welcome to SchweisOS' \
+        'Network.hasInternet' \
+        'Offline installation is fully available.' \
+        'Maintained by Marijua'; do
+        grep -Fq "$fragment" "$welcome_qml" \
+            || fail "Calamares text-first welcome omits: ${fragment}"
+    done
+    grep -Eq 'Image[[:space:]]*\{' "$welcome_qml" \
+        && fail 'Calamares welcome contains a centered image component' \
+        || pass 'Calamares welcome remains text-first'
+    for module in \
+        welcomeq \
+        packagechooser@browser \
+        packagechooser@kernel \
+        packagechooser@extras \
+        unpackfs \
+        shellprocess@reconcile; do
+        grep -Fxq "      - ${module}" "$settings_file" \
+            || fail "Calamares settings omit required module: ${module}"
+    done
+    grep -Fxq 'default: firefox' "$browser_chooser" \
+        && pass 'Firefox is the default browser choice' \
+        || fail 'Firefox is not the default browser choice'
+    grep -Fxq 'default: linux-zen' "$kernel_chooser" \
+        && pass 'Linux Zen is the default kernel choice' \
+        || fail 'Linux Zen is not the default kernel choice'
+    grep -Fq 'Linux Zen (Recommended)' "$kernel_chooser" \
+        || fail 'Linux Zen is not visibly marked recommended'
+    grep -Fxq 'mode: optionalmultiple' "$extras_chooser" \
+        || fail 'optional feature chooser does not allow multiple choices'
+    grep -Fq 'source: "/run/archiso/airootfs/"' "$unpackfs_file" \
+        && pass 'Calamares unpackfs consumes the verified Archiso live root' \
+        || fail 'Calamares unpackfs does not consume the verified Archiso live root'
+    for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+        grep -Fq "\${gs[${selection_key}]}" "$reconcile_config" \
+            || fail "target reconciliation omits selection: ${selection_key}"
+    done
+    grep -Fq 'PAYLOAD=archiso-airootfs' "$reconcile_helper" \
+        && pass 'target reconciliation records the offline payload' \
+        || fail 'target reconciliation does not record the offline payload'
+    grep -Fq '${ROOT}' "$preflight_file" \
+        && fail 'Calamares preflight runs before mount and consumes ROOT' \
+        || pass 'Calamares preflight does not consume the pre-mount ROOT variable'
+    grep -Fq $'TR\tEurope/Istanbul' "$timezone_index" \
+        && pass 'IANA timezone index contains Europe/Istanbul' \
+        || fail 'IANA timezone index omits Europe/Istanbul'
 fi
 
 if type -P lsinitcpio >/dev/null 2>&1 && [[ -n "$install_dir" ]]; then

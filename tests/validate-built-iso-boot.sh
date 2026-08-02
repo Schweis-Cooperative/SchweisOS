@@ -173,6 +173,22 @@ unsquashfs -no-progress -no-xattrs -d "${tmp_dir}/rootfs" \
     "${tmp_dir}/airootfs.sfs" >/dev/null
 rootfs="${tmp_dir}/rootfs"
 
+mapfile -t installed_package_names < <(
+    for package_desc in "${rootfs}"/var/lib/pacman/local/*/desc; do
+        [[ -f "$package_desc" ]] || continue
+        awk '$0 == "%NAME%" { getline; print; exit }' "$package_desc"
+    done | sort -u
+)
+(( ${#installed_package_names[@]} > 0 )) || \
+    fail 'built live root does not contain readable pacman package records'
+while IFS= read -r profile_package; do
+    profile_package=${profile_package%%#*}
+    profile_package=${profile_package//[[:space:]]/}
+    [[ -n "$profile_package" ]] || continue
+    printf '%s\n' "${installed_package_names[@]}" | grep -Fxq "$profile_package" || \
+        fail "built live root is missing profile package: ${profile_package}"
+done <"${profile_dir}/packages.x86_64"
+
 mapfile -t branding_records < <(
     find "${rootfs}/var/lib/pacman/local" -mindepth 1 -maxdepth 1 -type d \
         -name 'schweisos-branding-*' -print | sort
@@ -213,23 +229,54 @@ installed_installer_config_version="$(awk '$0 == "%VERSION%" { getline; print; e
 [[ "$installed_installer_config_version" == "$expected_installer_config_version" ]] || \
     fail "ISO contains schweisos-calamares-config ${installed_installer_config_version}; source requires ${expected_installer_config_version}"
 
-installer_welcome="${rootfs}/etc/calamares/modules/welcome.conf"
-[[ -f "$installer_welcome" && ! -L "$installer_welcome" ]] || \
-    fail 'built live root is missing Calamares welcome.conf'
-cmp -s "${installer_config_dir}/welcome.conf" "$installer_welcome" || \
-    fail 'built Calamares welcome.conf differs from the package source'
-if grep -Eq '^[[:space:]]*internetCheckUrl:|^[[:space:]]*-[[:space:]]*internet[[:space:]]*$' \
-    "$installer_welcome"; then
+for installer_module in \
+    welcomeq.conf \
+    packagechooser-browser.conf \
+    packagechooser-kernel.conf \
+    packagechooser-extras.conf \
+    unpackfs.conf \
+    shellprocess-preflight.conf \
+    shellprocess-reconcile.conf; do
+    built_module="${rootfs}/etc/calamares/modules/${installer_module}"
+    [[ -f "$built_module" && ! -L "$built_module" ]] || \
+        fail "built live root is missing Calamares module: ${installer_module}"
+    cmp -s "${installer_config_dir}/${installer_module}" "$built_module" || \
+        fail "built Calamares ${installer_module} differs from the package source"
+done
+installer_welcome="${rootfs}/etc/calamares/modules/welcomeq.conf"
+if awk '
+    /^[[:space:]]*required:/ { in_required=1; next }
+    in_required && /^[^[:space:]]/ { in_required=0 }
+    in_required && /^[[:space:]]*-[[:space:]]*internet[[:space:]]*$/ { found=1 }
+    END { exit !found }
+' "$installer_welcome"; then
     fail 'built Calamares welcome requirements still block offline installation'
 fi
+grep -Fq 'internetCheckUrl: "https://schweisos.org/"' "$installer_welcome" || \
+    fail 'built Calamares welcome module does not use the SchweisOS connectivity endpoint'
 installer_preflight="${rootfs}/etc/calamares/modules/shellprocess-preflight.conf"
-[[ -f "$installer_preflight" && ! -L "$installer_preflight" ]] || \
-    fail 'built live root is missing Calamares preflight shellprocess'
-cmp -s "${installer_config_dir}/shellprocess-preflight.conf" "$installer_preflight" || \
-    fail 'built Calamares preflight shellprocess differs from the package source'
 if grep -Fq '${ROOT}' "$installer_preflight"; then
     fail 'built Calamares preflight runs before mount and must not consume ${ROOT}'
 fi
+for branding_resource in welcomeq.qml show.qml; do
+    built_resource="${rootfs}/etc/calamares/branding/schweisos/${branding_resource}"
+    [[ -f "$built_resource" && ! -L "$built_resource" ]] || \
+        fail "built live root is missing Calamares branding resource: ${branding_resource}"
+    cmp -s "${installer_config_dir}/${branding_resource}" "$built_resource" || \
+        fail "built Calamares ${branding_resource} differs from the package source"
+done
+installer_reconcile_helper="${rootfs}/usr/lib/schweisos-calamares/reconcile-target"
+[[ -f "$installer_reconcile_helper" && ! -L "$installer_reconcile_helper" \
+    && -x "$installer_reconcile_helper" ]] || \
+    fail 'built live root is missing executable target reconciliation'
+cmp -s "${installer_config_dir}/schweisos-calamares-reconcile-target" \
+    "$installer_reconcile_helper" || \
+    fail 'built target reconciliation differs from the package source'
+[[ -s "${rootfs}/usr/share/zoneinfo/zone1970.tab" \
+    && -f "${rootfs}/usr/share/zoneinfo/Europe/Istanbul" ]] || \
+    fail 'built live root does not contain the complete timezone-data contract'
+grep -Fq $'TR\tEurope/Istanbul' "${rootfs}/usr/share/zoneinfo/zone1970.tab" || \
+    fail 'built IANA timezone index omits Europe/Istanbul'
 
 rootfs_payloads=(
     etc/hostname
@@ -327,6 +374,13 @@ installer_root_helper="${rootfs}/usr/lib/schweisos-calamares/launch-root"
 installer_policy="${rootfs}/usr/share/polkit-1/actions/org.schweisos.installer.policy"
 installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
 installer_slideshow="${rootfs}/etc/calamares/branding/schweisos/show.qml"
+installer_welcome_qml="${rootfs}/etc/calamares/branding/schweisos/welcomeq.qml"
+installer_settings="${rootfs}/etc/calamares/settings.conf"
+installer_browser_chooser="${rootfs}/etc/calamares/modules/packagechooser-browser.conf"
+installer_kernel_chooser="${rootfs}/etc/calamares/modules/packagechooser-kernel.conf"
+installer_extras_chooser="${rootfs}/etc/calamares/modules/packagechooser-extras.conf"
+installer_unpackfs="${rootfs}/etc/calamares/modules/unpackfs.conf"
+installer_reconcile_config="${rootfs}/etc/calamares/modules/shellprocess-reconcile.conf"
 for installer_payload in \
     "$installer_desktop" \
     "$installer_autostart" \
@@ -336,7 +390,15 @@ for installer_payload in \
     "$installer_root_helper" \
     "$installer_policy" \
     "$installer_branding" \
-    "$installer_slideshow"; do
+    "$installer_slideshow" \
+    "$installer_welcome_qml" \
+    "$installer_settings" \
+    "$installer_browser_chooser" \
+    "$installer_kernel_chooser" \
+    "$installer_extras_chooser" \
+    "$installer_unpackfs" \
+    "$installer_reconcile_config" \
+    "$installer_reconcile_helper"; do
     [[ -f "$installer_payload" && ! -L "$installer_payload" ]] || \
         fail "built live root is missing installer experience payload: ${installer_payload#"$rootfs"/}"
 done
@@ -384,17 +446,52 @@ grep -Fq 'org.freedesktop.policykit.exec.allow_gui">true</annotate>' "$installer
     fail 'built installer Polkit policy cannot carry display authorization'
 grep -Fxq 'slideshow: "show.qml"' "$installer_branding" || \
     fail 'built installer branding omits the Calamares slideshow contract'
-grep -Fq 'productBanner: "/usr/share/schweisos/branding/schweisos.png"' "$installer_branding" || \
-    fail 'built installer branding must use the canonical logo as a small welcome banner'
-if grep -Fq 'productWelcome:' "$installer_branding"; then
-    fail 'built installer branding must not display the large centered productWelcome logo'
+if grep -Eq '^[[:space:]]*product(Banner|Welcome):' "$installer_branding"; then
+    fail 'built installer branding must not display a centered welcome logo or banner'
 fi
-grep -Fq 'file:///usr/share/schweisos/branding/schweisos.png' "$installer_slideshow" || \
-    fail 'built installer slideshow does not reference the canonical runtime logo'
-grep -Fq 'readonly property var contributors: ["Marijua"]' "$installer_slideshow" || \
-    fail 'built installer slideshow does not expose the current contributors list'
+grep -Fq 'readonly property string maintainerName: "Marijua"' "$installer_slideshow" || \
+    fail 'built installer slideshow does not expose project-maintainer data'
+grep -Fq 'text: "Project Maintainer"' "$installer_slideshow" || \
+    fail 'built installer slideshow does not label the project maintainer correctly'
 grep -Fq 'Welcome to SchweisOS' "$installer_slideshow" || \
     fail 'built installer slideshow omits the SchweisOS welcome message'
+for welcome_fragment in \
+    'Welcome to SchweisOS' \
+    'Network.hasInternet' \
+    'Offline installation is fully available.' \
+    'Maintained by Marijua'; do
+    grep -Fq "$welcome_fragment" "$installer_welcome_qml" || \
+        fail "built text-first welcome omits: ${welcome_fragment}"
+done
+if grep -Eq 'Image[[:space:]]*\{' "$installer_welcome_qml"; then
+    fail 'built installer welcome page must not contain a centered logo image'
+fi
+for module in \
+    welcomeq \
+    packagechooser@browser \
+    packagechooser@kernel \
+    packagechooser@extras \
+    unpackfs \
+    shellprocess@reconcile; do
+    grep -Fxq "      - ${module}" "$installer_settings" || \
+        fail "built Calamares settings omit required module: ${module}"
+done
+grep -Fxq 'default: firefox' "$installer_browser_chooser" || \
+    fail 'built installer browser default is not Firefox'
+grep -Fxq 'default: linux-zen' "$installer_kernel_chooser" || \
+    fail 'built installer kernel default is not Linux Zen'
+grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
+    fail 'built installer does not expose the recommended kernel label'
+grep -Fxq 'mode: optionalmultiple' "$installer_extras_chooser" || \
+    fail 'built installer optional features are not a multiple-choice group'
+grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
+    fail 'built installer does not copy the verified Archiso root'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_extras; do
+    grep -Fq "\${gs[${selection_key}]}" "$installer_reconcile_config" || \
+        fail "built target reconciliation omits selection: ${selection_key}"
+done
+grep -Fq 'PAYLOAD=archiso-airootfs' "$installer_reconcile_helper" || \
+    fail 'built target reconciliation does not record its offline payload'
 generic_installer_entry="$(grep -RIl --include='*.desktop' \
     '^Name=Install System$' "${rootfs}/usr/share/applications" \
     "${rootfs}/usr/local/share/applications" 2>/dev/null || true)"

@@ -74,9 +74,11 @@ future/alternative installed-system path and is not activated by this package.
 
 Firefox is the fixed Faz 1 installed browser. The installer does not expose a
 separate browser page until additional browser packages are owned by accepted
-Arch or SchweisOS repository sources. The kernel page is a mandatory
-single-choice step. Linux Zen is the SchweisOS default kernel and is visibly
-marked recommended; standard, LTS, and hardened Arch kernels remain explicit
+Arch or SchweisOS repository sources. The installation-profile and kernel
+pages are mandatory single-choice steps. The profile page provides reviewed
+starting points such as Privacy, Gaming, Developer, Creator, Office, and
+Minimal. Linux Zen is the SchweisOS default kernel and is visibly marked
+recommended; standard, LTS, and hardened Arch kernels remain explicit
 alternatives. Unselected kernels and unsupported browser payload are removed
 from the copied payload.
 

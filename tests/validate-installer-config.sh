@@ -47,6 +47,7 @@ required_files=(
   "${package_dir}/finished.conf"
   "${package_dir}/fstab.conf"
   "${package_dir}/locale.conf"
+  "${package_dir}/packagechooser-profile.conf"
   "${package_dir}/packagechooser-kernel.conf"
   "${package_dir}/packagechooser-extras.conf"
   "${package_dir}/partition.conf"
@@ -221,7 +222,7 @@ grep -Fq "  versionedName: \"SchweisOS ${release_pkgver}\"" "${package_dir}/bran
 grep -Fq 'shellprocess@preflight' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must include preflight'
 for required_sequence in \
-  welcomeq packagechooser@kernel packagechooser@extras \
+  welcomeq packagechooser@profile packagechooser@kernel packagechooser@extras \
   unpackfs shellprocess@reconcile; do
   grep -Fq -- "- ${required_sequence}" "${package_dir}/settings.conf" || \
     fail "Calamares sequence is missing: ${required_sequence}"
@@ -268,9 +269,17 @@ for mounted_shellprocess in reconcile pacman systemd-boot services; do
     fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
 done
 
-for chooser in kernel extras; do
+for chooser in profile kernel extras; do
   grep -Fxq 'method: legacy' "${package_dir}/packagechooser-${chooser}.conf" || \
     fail "package chooser must use the audited legacy GlobalStorage contract: ${chooser}"
+done
+grep -Fxq 'mode: required' "${package_dir}/packagechooser-profile.conf" || \
+  fail 'installation profile chooser must require exactly one selection'
+grep -Fxq 'default: privacy' "${package_dir}/packagechooser-profile.conf" || \
+  fail 'Privacy must remain the recommended Phase 1 installation profile'
+for profile_id in privacy gaming developer creator office minimal; do
+  grep -Fq "  - id: ${profile_id}" "${package_dir}/packagechooser-profile.conf" || \
+    fail "installation profile chooser is missing: ${profile_id}"
 done
 grep -Fxq 'mode: required' "${package_dir}/packagechooser-kernel.conf" || \
   fail 'kernel chooser must require exactly one selection'
@@ -284,16 +293,19 @@ grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must treat the mounted Archiso root as a directory payload'
 ! grep -Fq '${gs[packagechooser_browser]}' "${package_dir}/shellprocess-reconcile.conf" || \
   fail 'reconciliation must not depend on a removed browser GlobalStorage key'
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}' \
   "${package_dir}/shellprocess-reconcile.conf" || \
   fail 'reconciliation must pass the fixed Phase 1 Firefox browser contract'
-for selection_key in packagechooser_kernel packagechooser_extras; do
+for selection_key in packagechooser_profile packagechooser_kernel packagechooser_extras; do
   grep -Fq "\${gs[${selection_key}]}" "${package_dir}/shellprocess-reconcile.conf" || \
     fail "reconciliation shellprocess is missing GlobalStorage selection: ${selection_key}"
 done
 for reconciliation_fragment in \
   'firefox) ;;' \
   'linux|linux-lts|linux-zen|linux-hardened' \
+  'declare -Ar profile_features=' \
+  "[privacy]='security,maintenance,x11-compatibility'" \
+  'PROFILE=%s' \
   'arch-install-scripts' \
   'schweisos-calamares-config' \
   'pacman -Rns --noconfirm' \

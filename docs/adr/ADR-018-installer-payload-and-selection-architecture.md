@@ -86,6 +86,13 @@ recommended for desktop responsiveness and gaming. `linux`, `linux-lts`, and
 generation reads the recorded selection rather than assuming the `linux`
 package name.
 
+Installation-profile selection is single-choice. Profiles are implemented as a
+package-owned mapping from profile identifiers to optional feature identifiers:
+`privacy`, `gaming`, `developer`, `creator`, `office`, and `minimal`. The
+optional-feature page is still evaluated after the profile page, and duplicate
+profile/manual selections are idempotent. This gives new users a safe starting
+point without hiding the exact package groups that will remain in the target.
+
 Optional feature sets are multi-choice and package-level descriptions explain
 why each top-level package is present. Hardware-critical firmware, networking,
 the Plasma session, package trust, boot support, and accessibility required to

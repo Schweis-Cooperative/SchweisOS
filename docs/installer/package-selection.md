@@ -50,6 +50,23 @@ ownership or a documented accepted repository before they can become selectable.
 Browser projects that are not available from an accepted repository are not
 presented as fictitious choices.
 
+### Installation Profile
+
+The profile page is a required single-choice step that selects a reviewed
+starting point. The following profiles are package-owned data, not hardcoded
+launcher behavior:
+
+- Privacy (Recommended): Security, Maintenance Tools, and X11 Compatibility.
+- Gaming: Gaming, Power Management, and X11 Compatibility.
+- Developer: Development, Containers, Network Tools, and Storage Diagnostics.
+- Creator: Multimedia and International Fonts.
+- Office: Office, Printing, International Fonts, and Bluetooth.
+- Minimal: no optional feature groups.
+
+The next page still lets the user add optional feature groups. If a feature is
+selected by both the profile and the optional page, the reconciliation helper
+treats it idempotently and installs it once.
+
 ### Kernel
 
 - Linux Zen — default and visibly recommended for desktop responsiveness and
@@ -88,10 +105,11 @@ packages:
 - Recovery Tools: GParted and TestDisk.
 - Maintenance Tools: pacman-contrib and Reflector.
 
-Groups default to unselected in Faz 1. Their descriptions state why the group
-exists and any important limitation. Core hardware firmware, NetworkManager,
-Plasma, pacman trust, and the SchweisOS identity packages remain required and
-are not presented as optional toggles.
+Groups default to unselected in Faz 1 unless the selected installation profile
+pulls them in. Their descriptions state why the group exists and any important
+limitation. Core hardware firmware, NetworkManager, Plasma, pacman trust, and
+the SchweisOS identity packages remain required and are not presented as
+optional toggles.
 
 ## Connectivity Behavior
 

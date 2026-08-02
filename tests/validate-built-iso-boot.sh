@@ -231,6 +231,7 @@ installed_installer_config_version="$(awk '$0 == "%VERSION%" { getline; print; e
 
 for installer_module in \
     welcomeq.conf \
+    packagechooser-profile.conf \
     packagechooser-kernel.conf \
     packagechooser-extras.conf \
     unpackfs.conf \
@@ -375,6 +376,7 @@ installer_branding="${rootfs}/etc/calamares/branding/schweisos/branding.desc"
 installer_slideshow="${rootfs}/etc/calamares/branding/schweisos/show.qml"
 installer_welcome_qml="${rootfs}/etc/calamares/branding/schweisos/welcomeq.qml"
 installer_settings="${rootfs}/etc/calamares/settings.conf"
+installer_profile_chooser="${rootfs}/etc/calamares/modules/packagechooser-profile.conf"
 installer_kernel_chooser="${rootfs}/etc/calamares/modules/packagechooser-kernel.conf"
 installer_extras_chooser="${rootfs}/etc/calamares/modules/packagechooser-extras.conf"
 installer_unpackfs="${rootfs}/etc/calamares/modules/unpackfs.conf"
@@ -391,6 +393,7 @@ for installer_payload in \
     "$installer_slideshow" \
     "$installer_welcome_qml" \
     "$installer_settings" \
+    "$installer_profile_chooser" \
     "$installer_kernel_chooser" \
     "$installer_extras_chooser" \
     "$installer_unpackfs" \
@@ -465,6 +468,7 @@ if grep -Eq 'Image[[:space:]]*\{' "$installer_welcome_qml"; then
 fi
 for module in \
     welcomeq \
+    packagechooser@profile \
     packagechooser@kernel \
     packagechooser@extras \
     unpackfs \
@@ -478,6 +482,12 @@ fi
 if [[ -e "${rootfs}/etc/calamares/modules/packagechooser-browser.conf" ]]; then
     fail 'built live root retains removed browser chooser configuration'
 fi
+grep -Fxq 'default: privacy' "$installer_profile_chooser" || \
+    fail 'built installer profile default is not Privacy'
+for profile_id in privacy gaming developer creator office minimal; do
+    grep -Fq "  - id: ${profile_id}" "$installer_profile_chooser" || \
+        fail "built installer profile chooser omits: ${profile_id}"
+done
 grep -Fxq 'default: linux-zen' "$installer_kernel_chooser" || \
     fail 'built installer kernel default is not Linux Zen'
 grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_chooser" || \
@@ -493,10 +503,10 @@ grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
 if grep -Fq '${gs[packagechooser_browser]}' "$installer_reconcile_config"; then
     fail 'built target reconciliation depends on a removed browser GlobalStorage key'
 fi
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}' \
     "$installer_reconcile_config" || \
     fail 'built target reconciliation does not pass the fixed Phase 1 Firefox browser contract'
-for selection_key in packagechooser_kernel packagechooser_extras; do
+for selection_key in packagechooser_kernel packagechooser_profile packagechooser_extras; do
     grep -Fq "\${gs[${selection_key}]}" "$installer_reconcile_config" || \
         fail "built target reconciliation omits selection: ${selection_key}"
 done

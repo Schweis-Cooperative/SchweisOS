@@ -14,7 +14,8 @@ die() {
 target_root=${1:?target root argument is required}
 browser=${2:?browser selection is required}
 kernel=${3:?kernel selection is required}
-extras_csv=${4-}
+profile=${4:?installation profile selection is required}
+extras_csv=${5-}
 required_manifest=/usr/share/schweisos/calamares/target-packages.x86_64
 
 [[ "$target_root" == /* && "$target_root" != / && "$target_root" != *'/../'* ]] || \
@@ -59,13 +60,33 @@ declare -Ar feature_packages=(
   [maintenance]='pacman-contrib reflector'
 )
 
+declare -Ar profile_features=(
+  [privacy]='security,maintenance,x11-compatibility'
+  [gaming]='gaming,power-management,x11-compatibility'
+  [developer]='development,containers,network-tools,diagnostics'
+  [creator]='multimedia,fonts'
+  [office]='office,printing,fonts,bluetooth'
+  [minimal]=''
+)
+
+[[ -v "profile_features[$profile]" ]] || die "unknown installation profile selection: ${profile}"
+
 declare -A selected_features=()
+profile_csv=${profile_features[$profile]}
+if [[ -n "$profile_csv" ]]; then
+  IFS=',' read -r -a profile_defaults <<<"$profile_csv"
+  for feature in "${profile_defaults[@]}"; do
+    [[ -n "$feature" ]] || die "empty profile-feature identifier"
+    [[ -v "feature_packages[$feature]" ]] || die "unknown profile-feature selection: ${feature}"
+    selected_features[$feature]=1
+  done
+fi
+
 if [[ -n "$extras_csv" ]]; then
   IFS=',' read -r -a extras <<<"$extras_csv"
   for feature in "${extras[@]}"; do
     [[ -n "$feature" ]] || die 'empty optional-feature identifier'
     [[ -v "feature_packages[$feature]" ]] || die "unknown optional-feature selection: ${feature}"
-    [[ ! -v "selected_features[$feature]" ]] || die "duplicate optional-feature selection: ${feature}"
     selected_features[$feature]=1
   done
 fi
@@ -214,10 +235,11 @@ evidence="${evidence_dir}/selection.conf"
   printf 'FORMAT_VERSION=1\n'
   printf 'BROWSER=%s\n' "$browser"
   printf 'KERNEL=%s\n' "$kernel"
+  printf 'PROFILE=%s\n' "$profile"
   printf 'OPTIONAL_FEATURES=%s\n' "$extras_csv"
   printf 'PAYLOAD=archiso-airootfs\n'
 } >"$evidence"
 chmod 0644 -- "$evidence"
 
-printf 'schweisos target reconciliation: browser=%s kernel=%s optional=%s\n' \
-  "$browser" "$kernel" "${extras_csv:-none}"
+printf 'schweisos target reconciliation: browser=%s kernel=%s profile=%s optional=%s\n' \
+  "$browser" "$kernel" "$profile" "${extras_csv:-none}"

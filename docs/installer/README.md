@@ -36,8 +36,9 @@ Implemented in source:
 - Active live-boot-media filtering so the USB or file-backed medium that
   started the live system is not exposed as an installation target.
 - Target package manifest for a minimal KDE Plasma daily-use system.
-- Fixed Firefox browser payload and mandatory kernel selection, with Linux Zen
-  as the documented default.
+- Fixed Firefox browser payload, mandatory installation-profile selection, and
+  mandatory kernel selection, with Privacy and Linux Zen as the documented
+  defaults.
 - Optional, described software groups backed entirely by packages already on
   the live medium.
 - Target pacman include configuration for the SchweisOS signed repository.

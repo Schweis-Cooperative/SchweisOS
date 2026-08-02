@@ -152,6 +152,13 @@ one kernel. Linux Zen is the desktop/gaming-focused default and is visibly
 marked recommended; standard, LTS, and hardened Arch kernels remain
 alternatives.
 
+A required installation-profile page appears before the kernel and optional
+feature pages. The profile selects a reviewed starting point such as Privacy,
+Gaming, Developer, Creator, Office, or Minimal. The following optional-feature
+page remains available for manual additions. Reconciliation merges the profile
+and manual choices idempotently so the UI can be approachable without becoming
+a hidden package manager.
+
 Optional feature groups are bounded, repository-backed, and described in terms
 of purpose and important limitations. They do not expose AUR, Flatpak, or
 third-party vendor trust as if those sources were equivalent to the Arch and

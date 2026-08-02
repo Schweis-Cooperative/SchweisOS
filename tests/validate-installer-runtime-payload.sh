@@ -97,6 +97,7 @@ calamares_branding="$(relative_file etc/calamares/branding/schweisos/branding.de
 calamares_slideshow="$(relative_file etc/calamares/branding/schweisos/show.qml)"
 calamares_welcome_qml="$(relative_file etc/calamares/branding/schweisos/welcomeq.qml)"
 calamares_welcome_config="$(relative_file etc/calamares/modules/welcomeq.conf)"
+calamares_profile_chooser="$(relative_file etc/calamares/modules/packagechooser-profile.conf)"
 calamares_kernel_chooser="$(relative_file etc/calamares/modules/packagechooser-kernel.conf)"
 calamares_extras_chooser="$(relative_file etc/calamares/modules/packagechooser-extras.conf)"
 calamares_unpackfs="$(relative_file etc/calamares/modules/unpackfs.conf)"
@@ -121,6 +122,7 @@ require_mode "$calamares_branding" 644
 require_mode "$calamares_slideshow" 644
 require_mode "$calamares_welcome_qml" 644
 require_mode "$calamares_welcome_config" 644
+require_mode "$calamares_profile_chooser" 644
 require_mode "$calamares_kernel_chooser" 644
 require_mode "$calamares_extras_chooser" 644
 require_mode "$calamares_unpackfs" 644
@@ -211,6 +213,7 @@ grep -Fxq 'branding: schweisos' "$calamares_settings" || \
     fail 'runtime Calamares settings do not select SchweisOS branding'
 for module in \
     welcomeq \
+    packagechooser@profile \
     packagechooser@kernel \
     packagechooser@extras \
     unpackfs \
@@ -264,6 +267,13 @@ if awk '
     fail 'runtime Calamares welcome page makes internet connectivity mandatory'
 fi
 require_contains "$calamares_welcome_config" 'internetCheckUrl: "https://schweisos.org/"'
+grep -Fxq 'mode: required' "$calamares_profile_chooser" || \
+    fail 'runtime installation profile chooser is not mandatory'
+grep -Fxq 'default: privacy' "$calamares_profile_chooser" || \
+    fail 'runtime installation profile default is not Privacy'
+for profile_id in privacy gaming developer creator office minimal; do
+    require_contains "$calamares_profile_chooser" "  - id: ${profile_id}"
+done
 grep -Fxq 'mode: required' "$calamares_kernel_chooser" || \
     fail 'runtime kernel chooser is not mandatory'
 grep -Fxq 'default: linux-zen' "$calamares_kernel_chooser" || \
@@ -278,8 +288,8 @@ require_contains "$calamares_unpackfs" 'sourcefs: "file"'
 if grep -Fq '${gs[packagechooser_browser]}' "$calamares_reconcile_config"; then
     fail 'runtime reconciliation depends on a removed browser GlobalStorage key'
 fi
-require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_extras]}'
-for selection_key in packagechooser_kernel packagechooser_extras; do
+require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} firefox ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]}'
+for selection_key in packagechooser_kernel packagechooser_profile packagechooser_extras; do
     require_contains "$calamares_reconcile_config" "\${gs[${selection_key}]}"
 done
 require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT}'
@@ -300,6 +310,7 @@ for owned_path in \
     etc/calamares/branding/schweisos/branding.desc \
     etc/calamares/branding/schweisos/show.qml \
     etc/calamares/branding/schweisos/welcomeq.qml \
+    etc/calamares/modules/packagechooser-profile.conf \
     etc/calamares/modules/packagechooser-kernel.conf \
     etc/calamares/modules/packagechooser-extras.conf \
     etc/calamares/modules/unpackfs.conf \

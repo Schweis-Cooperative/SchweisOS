@@ -1,6 +1,6 @@
 # DDR-002 Installer Experience
 
-Version: 1.2
+Version: 1.3
 Status: Accepted for Faz 1 source implementation
 Date: 2026-08-02
 
@@ -30,6 +30,9 @@ from a slow application start.
 - Explain launch failures in the desktop and preserve a local diagnostic log.
 - Preserve UEFI-only Faz 1 limits before the user reaches destructive steps.
 - Use the canonical SchweisOS icon without copying artwork.
+- Explain connectivity without blocking offline installation.
+- Let users choose one supported browser, one supported kernel, and bounded
+  optional feature groups from the verified ISO payload.
 
 ## Non-Goals
 
@@ -111,22 +114,45 @@ failure in the journal when `systemd-cat` is available. No log is uploaded.
 ### Installer Presentation
 
 Calamares uses its native, upstream-maintained widget layout with a centered
-1000x680 window. Its welcome, window, and sidebar colors use Calamares 3.4's
-case-sensitive schema. Product icon, sidebar logo, and compact welcome banner
-all refer to `/usr/share/schweisos/branding/schweisos.png`, which is owned by
+1000x680 window. Its window and sidebar colors use Calamares 3.4's
+case-sensitive schema. Product icon and sidebar logo refer to
+`/usr/share/schweisos/branding/schweisos.png`, which is owned by
 `schweisos-branding` and originates from the one canonical repository logo.
-The large centered `productWelcome` image is deliberately omitted because it
-made the first screen feel like an oversized logo placeholder instead of a
-professional installer welcome.
+
+The first page is a SchweisOS-owned `welcomeq` component. It is text-first,
+describes the distribution, exposes the language selector, reports network
+state, and identifies `Maintained by Marijua`. It does not render a centered
+product logo, a compact product banner, or duplicated artwork. Network state is
+informative: a disconnected user is explicitly told that offline installation
+is fully available, and internet is absent from the required-condition list.
 
 The branding component also includes Calamares' required `slideshow` key and a
 SchweisOS-owned `show.qml` resource. The slideshow is deliberately small:
 Calamares owns the progress-page container, while SchweisOS owns only a branded
-QML presentation that uses the same canonical runtime logo path, avoids
-duplicated artwork, introduces the system in plain language, and exposes the
-current contributors list. The first contributors list contains `Marijua` and
-is package-owned so it can grow without altering the launcher or boot
-architecture.
+QML presentation that avoids duplicated artwork, introduces the system in
+plain language, and identifies `Marijua` as `Project Maintainer`. Maintainer
+identity is package data so it can be revised without altering the launcher or
+boot architecture.
+
+### Offline Software Selection
+
+The ISO carries the complete supported browser, kernel, and optional-feature
+universe. Required single-choice pages select exactly one browser and one
+kernel. Firefox is the browser default. Linux Zen is the desktop/gaming-focused
+default and is visibly marked recommended; standard, LTS, and hardened Arch
+kernels remain alternatives.
+
+Optional feature groups are bounded, repository-backed, and described in terms
+of purpose and important limitations. They do not expose AUR, Flatpak, or
+third-party vendor trust as if those sources were equivalent to the Arch and
+SchweisOS repositories.
+
+Upstream Calamares `unpackfs` copies the already mounted verified live root.
+The package-owned reconciliation step validates the choice identifiers,
+removes unselected software and exact live-only state, verifies required and
+selected packages, and records the effective selection. Unknown choices or a
+missing payload package fail installation. This makes offline installation a
+real payload contract rather than a network-probe workaround.
 
 ### Storage Target Safety
 
@@ -151,6 +177,8 @@ Plasma live session
   -> SchweisOS launcher preflight
   -> exact-path Polkit authorization
   -> Calamares over XWayland
+  -> browser, kernel, and optional-feature selection
+  -> unpack verified live payload and reconcile target
   -> close or complete installation
   -> no automatic reopen
   -> optional manual Install SchweisOS launch
@@ -200,10 +228,15 @@ Static validation must reject:
 - a Polkit action without an exact executable path and `allow_gui` annotation;
 - missing XWayland or visible-error dependencies;
 - invalid Calamares branding keys or non-canonical logo references;
-- a large `productWelcome` image on the welcome page instead of the compact
-  canonical banner;
-- a slideshow without the SchweisOS welcome message or current contributors
-  list;
+- a centered `productWelcome` or `productBanner` on the text-first welcome
+  page;
+- a welcome component that makes internet connectivity required;
+- a slideshow without the SchweisOS welcome message or project-maintainer
+  identity;
+- browser or kernel selection without exactly one supported default;
+- a selectable package absent from the offline ISO payload;
+- an installation flow that copies the live root without mandatory target
+  reconciliation;
 - a Calamares binary package that allows the active SchweisOS live boot medium
   to appear as a writable installation target;
 - launcher/autostart sources installed with the wrong package modes;
@@ -220,3 +253,4 @@ hardware qualification gates.
 - ADR-010 Licensing Policy
 - ADR-012 ISO Build Architecture
 - ADR-016 Installer Architecture
+- ADR-018 Offline Installer Payload and Package Selection

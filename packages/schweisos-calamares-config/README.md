@@ -2,45 +2,48 @@
 
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-Version: 0.4
-Status: Installer MVP configuration and runtime launch integration
-Date: 2026-07-30
+Version: 0.5
+Status: Installer MVP configuration, offline selection, and runtime launch integration
+Date: 2026-08-02
 
 `schweisos-calamares-config` provides the SchweisOS-owned configuration and
 launcher for the graphical installer selected by ADR-016.
 
-The package configures Calamares on the live ISO. It is not intended to remain
-installed in the target system. The target system is installed through
-Calamares partition and mount modules plus a SchweisOS-owned `pacstrap`
-shellprocess. This avoids copying the live root filesystem and prevents
-live-only Archiso files, autologin, Plymouth fallback units, or installer
-payload from becoming installed-system state.
+The package configures Calamares on the live ISO and must not remain installed
+in the target. Calamares copies the already mounted, signature-verified live
+root with its upstream `unpackfs` module. A SchweisOS-owned reconciliation step
+then removes unselected software and exact live-only state before installed
+system configuration begins. This gives the installer a complete offline
+payload without maintaining a second package universe or weakening pacman
+trust.
 
 The installer starts from neutral UTC/default-locale configuration and does
 not perform GeoIP lookup. Locale, timezone, keymap, hostname, and user creation
-remain explicit user choices in the graphical flow.
+remain explicit user choices in the graphical flow. The complete IANA timezone
+database comes from upstream Arch's `tzdata` package; SchweisOS does not keep a
+downstream country or timezone list.
 
 ## Ownership
 
 This package owns:
 
-- `/etc/calamares/settings.conf`
-- `/etc/calamares/branding/schweisos/branding.desc`
-- `/etc/calamares/branding/schweisos/show.qml`
-- `/etc/calamares/modules/*.conf` for SchweisOS installer policy
-- `/usr/bin/schweisos-installer`
+- `/etc/calamares/settings.conf`;
+- `/etc/calamares/branding/schweisos/branding.desc`, `show.qml`, and
+  `welcomeq.qml`;
+- `/etc/calamares/modules/*.conf` for SchweisOS installer policy and package
+  selection;
+- `/usr/bin/schweisos-installer`;
 - `/usr/lib/schweisos-calamares/*`, including the exact-path privileged
-  XWayland bridge and once-only live autostart helper
-- `/usr/share/applications/schweisos-installer.desktop`
-- `/etc/xdg/autostart/schweisos-installer-autostart.desktop`
-- `/usr/share/polkit-1/actions/org.schweisos.installer.policy`
-- `/usr/share/schweisos/calamares/target-packages.x86_64`
-- `/usr/share/schweisos/calamares/pacman.conf`
+  XWayland bridge, once-only live autostart helper, target reconciliation, and
+  installed-system configuration helpers;
+- `/usr/share/applications/schweisos-installer.desktop`;
+- `/etc/xdg/autostart/schweisos-installer-autostart.desktop`;
+- `/usr/share/polkit-1/actions/org.schweisos.installer.policy`;
+- `/usr/share/schweisos/calamares/target-packages.x86_64`.
 
-It does not own Calamares itself, fork Calamares modules, patch pacman, install
-bootloaders outside installer context, build packages, sign repositories,
-publish mirrors, configure Secure Boot, configure full-disk encryption, or
-activate the packaged GRUB theme.
+It does not own Calamares itself, fork Calamares modules, patch pacman, build or
+sign packages, publish mirrors, configure Secure Boot, configure full-disk
+encryption, or activate the packaged GRUB theme.
 
 ## MVP Install Contract
 
@@ -50,10 +53,12 @@ The accepted MVP path is:
 Live ISO
   -> Calamares
   -> UEFI validation
+  -> browser, kernel, and optional-feature selection
   -> partition and mount target
-  -> pacstrap signed Arch and SchweisOS packages
+  -> unpack the verified live root
+  -> reconcile packages and remove exact live-only state
   -> configure target pacman include
-  -> install systemd-boot
+  -> install systemd-boot for the selected kernel
   -> enable NetworkManager and SDDM
   -> user-created Plasma desktop
 ```
@@ -64,6 +69,29 @@ snapshot or rollback promise is made in this phase.
 
 The default bootloader is systemd-boot on UEFI. GRUB remains a documented
 future/alternative installed-system path and is not activated by this package.
+
+## Software Selection Contract
+
+The browser and kernel pages are mandatory single-choice steps. Firefox is the
+default browser. Linux Zen is the SchweisOS default kernel and is visibly
+marked recommended; standard, LTS, and hardened Arch kernels remain explicit
+alternatives. Unselected browsers and kernels are removed from the copied
+payload.
+
+The optional-feature page exposes package groups for privacy, security,
+gaming, development, virtualization, multimedia, office, international fonts,
+printing, Bluetooth, accessibility, Wayland diagnostics, power management,
+network tools, rootless containers, storage diagnostics, recovery, and
+maintenance. Every description explains the purpose and material limitation of
+the group. The complete choice universe is present on the ISO, so selections
+do not depend on network access.
+
+Reconciliation fails closed if a required or selected package is missing from
+the copied payload. It removes Calamares, Archiso construction packages, the
+installer configuration, unselected packages, the live account, and an exact
+allowlist of live-only files. It records the effective selection in
+`/var/lib/schweisos/installer/selection.conf` and marks required/selected
+packages explicit in pacman's local database.
 
 ## Live Launch Contract
 
@@ -91,43 +119,37 @@ Qt's `xcb` backend over packaged XWayland. The public wrapper checks UEFI and
 display authorization, prevents concurrent instances, captures a private
 launch log, and displays a KDE error dialog for launch or runtime failures.
 
-The branding component includes both the required `slideshow` key in
-`branding.desc` and a package-owned `show.qml` resource. The welcome page uses
-Calamares' compact `productBanner` image and deliberately omits the large
-centered `productWelcome` image, so the installer presents SchweisOS as a
-professional product rather than a splash screen inside the wizard. All
-installer artwork still references only the canonical runtime SchweisOS logo at
-`/usr/share/schweisos/branding/schweisos.png`.
+## Presentation and Network Status
 
-The QML slideshow is text-first, loaded by Calamares during execution pages,
-and carries the current contributors list. The initial list contains `Marijua`
-and is intentionally data-local to the package so future contributors can be
-added without duplicating artwork or changing installer launch policy.
+The first page is a SchweisOS-owned `welcomeq` component with a text-first
+layout. It describes the distribution, shows whether Calamares currently sees
+internet connectivity, exposes the language selector, and identifies
+`Maintained by Marijua`. It deliberately has no centered product logo or
+duplicated artwork. The sidebar and window icon reference the canonical runtime
+logo at `/usr/share/schweisos/branding/schweisos.png`.
 
-The welcome page deliberately does not require Calamares' internet probe.
-That probe can false-negative independently of the user's actual network
-state and would block a usable live session before any installer-owned package
-operation starts. Package retrieval remains owned by the audited `pacstrap`
-step and its signed pacman configuration, so repository availability failures
-must surface where package installation actually occurs.
+Internet status is informative, never an installation requirement. A
+disconnected machine receives a clear offline message and can complete the
+same package selection because the payload is already on the medium. A
+connected machine is told that repository-backed services are available after
+installation. The installer does not perform a hidden partial upgrade, change
+mirrors silently, or mix live-build and target-package trust domains.
 
-Full offline installation is not claimed by this package while the MVP uses
-`pacstrap` against configured repositories. A true offline contract requires a
-separate accepted architecture, such as an ISO-contained signed installation
-repository or a reviewed live-root deployment path with exhaustive live-state
-cleanup.
+The execution-page slideshow is text-first and identifies `Marijua` as
+`Project Maintainer`. Maintainer identity is package data that can be revised
+without changing launcher, storage, or boot architecture.
 
 ## Calamares Binary Package
 
-Arch official repositories do not provide Calamares in the current evaluated
-environment. SchweisOS therefore must admit a reviewed Calamares binary package
-to the signed SchweisOS repository before an installer ISO can be built from
-this configuration. This configuration package intentionally depends on
-`calamares` so package resolution fails closed until that dependency is
-available from an approved repository source.
+Arch official repositories do not provide Calamares in the evaluated package
+set. SchweisOS therefore admits a reviewed Calamares binary package to the
+signed SchweisOS repository. This configuration package depends on `calamares`
+so package resolution fails closed until the reviewed binary is available.
 
 Validation:
 
 ```bash
 tests/validate-installer-config.sh
+tests/test-installer-experience.sh
+tests/test-installer-reconciliation.sh
 ```

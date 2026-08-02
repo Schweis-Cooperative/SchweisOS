@@ -1,6 +1,6 @@
 # SchweisOS Installer
 
-Version: 0.4
+Version: 0.5
 Status: Faz 1 source implementation; runtime qualification pending
 Date: 2026-08-02
 
@@ -36,25 +36,36 @@ Implemented in source:
 - Active live-boot-media filtering so the USB or file-backed medium that
   started the live system is not exposed as an installation target.
 - Target package manifest for a minimal KDE Plasma daily-use system.
+- Mandatory browser and kernel selection, with Firefox and Linux Zen as the
+  documented defaults.
+- Optional, described software groups backed entirely by packages already on
+  the live medium.
 - Target pacman include configuration for the SchweisOS signed repository.
+- Offline target creation through upstream Calamares `unpackfs`, followed by a
+  fail-closed SchweisOS reconciliation step that removes unselected and
+  live-only state.
+- Text-first welcome presentation, informative network status, and explicit
+  `Maintained by Marijua` project identity.
+- Full upstream IANA timezone data through Arch's `tzdata` package.
 - Static installer configuration validator.
 - Behavioral launcher and autostart regression tests.
-- The welcome screen no longer blocks on Calamares' generic internet probe;
-  package availability errors are owned by the signed package installation
-  step.
+- Internet connectivity is never a requirement; offline installation uses the
+  complete signed payload already present in the live root.
 
 Not yet fully qualified:
 
 - Graphical installation in the complete VM and hardware matrix.
 - First boot of an installed system across the documented storage scenarios.
-- Complete offline installation. The current MVP uses `pacstrap` from signed
-  repositories; without an ISO-contained signed installation repository, a
-  disconnected install cannot be honestly claimed.
+- Runtime qualification of every browser, kernel, and optional-feature
+  combination. The source contract and offline payload are implemented, but a
+  static validator is not installation-completion evidence.
 
 ## Runbooks
 
 - [Manual Installation Runbook](manual-installation-runbook.md)
 - [Recovery Runbook](recovery-runbook.md)
+- [Package Selection Contract](package-selection.md)
+- [Installer Developer Guide](developer-guide.md)
 
 ## Installer Flow
 
@@ -66,8 +77,10 @@ Live ISO
   -> exact-path Polkit / XWayland bridge
   -> Calamares
   -> UEFI preflight
+  -> browser, kernel, and optional-feature selection
   -> partition and mount
-  -> pacstrap target packages
+  -> unpack the signature-verified live root
+  -> reconcile packages and remove exact live-only state
   -> configure target pacman include
   -> install systemd-boot
   -> enable NetworkManager and SDDM
@@ -76,7 +89,9 @@ Live ISO
 
 ## Important Boundaries
 
-- The live root is not cloned into the target.
+- The verified live root is copied with upstream `unpackfs`, then reconciled
+  before target configuration. Copying without the mandatory reconciliation
+  step is invalid.
 - Installer payload must not live in `airootfs/`.
 - Live passwordless sudo and polkit rules are live-media exceptions only; they
   must not be installed to the target system.
@@ -89,9 +104,9 @@ Live ISO
   boot from Ventoy or another USB, install to an internal disk or a different
   removable disk. The active boot disk must not appear in Calamares' target
   list.
-- Calamares' welcome module must not be the network gate. If package retrieval
-  is unavailable, the audited package installation step must report that real
-  failure.
+- Calamares' welcome page reports connectivity but must never make it a
+  requirement. Package choice and target creation work offline from the ISO
+  payload; later repository access remains governed by pacman trust policy.
 - Secure Boot, full-disk encryption, snapshots, and rollback are future
   decisions.
 

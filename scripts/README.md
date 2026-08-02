@@ -48,7 +48,7 @@ From the repository root:
 ```
 
 The current profile is configured to produce
-`out/iso/schweisos-2026.07.27-x86_64.iso`.
+`out/iso/schweisos-YYYY.MM.DD-x86_64.iso`.
 
 To discard only the generated `work/iso/kde/` state before building:
 
@@ -66,7 +66,7 @@ host and repository prerequisites.
 `schweisos-doctor` is a read-only forensic inspector for completed ISO bytes:
 
 ```sh
-./scripts/schweisos-doctor --iso out/iso/schweisos-2026.07.27-x86_64.iso
+./scripts/schweisos-doctor --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 It checks ISO boot layout, native and loopback command lines, embedded

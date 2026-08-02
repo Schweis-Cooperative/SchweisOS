@@ -119,8 +119,9 @@ documentation from being copied to `/README.md` in the live filesystem.
 The profile includes the graphical installer only as signed package content:
 `calamares`, `arch-install-scripts`, storage helpers, and
 `schweisos-calamares-config` appear in `packages.x86_64`. The installer
-configuration package owns `/etc/calamares`, the desktop launcher, pacstrap
-target manifest, and installed-system helpers.
+configuration package owns `/etc/calamares`, the desktop launcher, target
+manifest, package-selection policy, reconciliation, and installed-system
+helpers.
 
 No installer configuration, Calamares module payload, target package manifest,
 or SchweisOS-owned installer launcher is allowed in `airootfs/`. The profile
@@ -128,5 +129,9 @@ may carry only the live-session administration policy and inert session marker.
 The Calamares binary
 package omits its generic launcher; `schweisos-calamares-config` owns the
 visible branded launcher, hidden once-per-live-boot autostart, exact-path
-privilege bridge, and visible failure handling. The target system is installed
-with `pacstrap`; it is not cloned from the live root.
+privilege bridge, and visible failure handling. Upstream Calamares `unpackfs`
+copies the already-mounted, signature-verified live root. A mandatory
+package-owned reconciliation step removes unselected packages, the installer,
+the live account, and exact live-only paths before installed-system
+configuration continues. The ISO therefore carries the complete offline
+selection universe without maintaining a second unsigned payload.

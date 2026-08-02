@@ -40,7 +40,10 @@ The canonical target package manifest lives in:
 packages/schweisos-calamares-config/target-packages.x86_64
 ```
 
-The graphical installer uses that same list through `pacstrap`.
+The graphical installer treats that list as the required installed-system
+baseline after copying and reconciling the verified live payload. This manual
+recovery path still uses `pacstrap` directly and therefore requires repository
+access.
 
 ## Manual Outline
 

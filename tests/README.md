@@ -94,7 +94,8 @@ tests/validate-installer-config.sh
 
 It verifies the `schweisos-calamares-config` package source, exact dependency
 contract, package source checksums, Calamares sequence, UEFI systemd-boot MVP
-policy, ext4 default with optional Btrfs support, pacstrap target installation,
+policy, ext4 default with optional Btrfs support, offline unpackfs target
+installation followed by mandatory reconciliation,
 target pacman include behavior, live ISO package composition, absence of GRUB
 activation in the MVP path, one package-owned visible launcher, once-only XDG
 autostart, exact-path Polkit/XWayland bridging, private launch logs, visible KDE
@@ -165,7 +166,7 @@ file; a full live GRUB configuration remains forbidden.
 inspection for the reviewed Archiso outer-GRUB loopback contract:
 
 ```bash
-tests/validate-iso-loopback-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
+tests/validate-iso-loopback-boot.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 It does not extract SquashFS or boot the image. It proves the ISO-visible root
@@ -208,13 +209,15 @@ does not claim to validate raw whole-device writes.
 completed ISO:
 
 ```bash
-scripts/schweisos-doctor --iso out/iso/schweisos-2026.07.27-x86_64.iso
+scripts/schweisos-doctor --iso out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 It checks ISO boot layout, native and loopback command lines, embedded
 `airootfs.sfs` SHA512, SquashFS superblock metadata with live-media xattrs
 disabled, package inventory, the installed Calamares configuration version, and
-whether `welcome.conf` still contains an internet gate. `scripts/test-iso.sh`
+whether the custom `welcomeq` component keeps internet informational and
+whether chooser, unpackfs, and reconciliation contracts are present.
+`scripts/test-iso.sh`
 runs the completed-ISO bootloader, identity, boot-composition, and doctor
 checks together. It is static evidence and does not boot the image.
 
@@ -224,8 +227,8 @@ copy validator:
 ```bash
 scripts/test-ventoy.sh \
   logs/iso/build-manifest.json \
-  out/iso/schweisos-2026.07.27-x86_64.iso \
-  /path/to/read-only-ventoy/schweisos-2026.07.27-x86_64.iso
+  out/iso/schweisos-YYYY.MM.DD-x86_64.iso \
+  /path/to/read-only-ventoy/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 `scripts/test-dd.sh` performs the complementary read-only raw-device prefix
@@ -317,7 +320,7 @@ booting a VM. It proves the installed `schweisos-release` version, package
 ownership, portable `/etc/os-release` link, and effective SchweisOS fields:
 
 ```bash
-tests/validate-built-iso-identity.sh out/iso/schweisos-2026.07.27-x86_64.iso
+tests/validate-built-iso-identity.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 The validator extracts the ISO SquashFS and can need several GiB of temporary
@@ -334,7 +337,7 @@ separate explicit validator if SchweisOS adopts one.
 check without booting a VM:
 
 ```bash
-tests/validate-built-iso-boot.sh out/iso/schweisos-2026.07.27-x86_64.iso
+tests/validate-built-iso-boot.sh out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 It verifies the bootloader-visible GRUB loopback handoff, the two resolved
@@ -361,7 +364,7 @@ contract:
 tests/validate-iso-build-manifest.sh logs/iso/build-manifest.json
 tests/validate-iso-build-manifest.sh \
   logs/iso/build-manifest.json \
-  out/iso/schweisos-2026.07.27-x86_64.iso
+  out/iso/schweisos-YYYY.MM.DD-x86_64.iso
 ```
 
 The build manifest uses `schweisos.iso-build-manifest.v2` and records both

@@ -105,10 +105,14 @@ users a safe starting point without hiding the exact package groups that will
 remain in the target.
 
 Optional feature sets are multi-choice and package-level descriptions explain
-why each top-level package is present. Hardware-critical firmware, networking,
-the Plasma session, package trust, boot support, and accessibility required to
-complete installation are not optional toggles. Optional groups must remain
-coarse enough that a one-maintainer project can test every combination.
+why each top-level package is present. The Optional Features page is
+SchweisOS-owned QML loaded through Calamares `notesqml`, not the classic
+packagechooser widget. It still writes `packagechooser_extras` to Calamares
+GlobalStorage, so the reconciliation helper remains the single package-policy
+owner. Hardware-critical firmware, networking, the Plasma session, package
+trust, boot support, and accessibility required to complete installation are
+not optional toggles. Optional groups must remain coarse enough that a
+one-maintainer project can test every combination.
 
 Network detection is informative and privacy-bounded. Calamares checks
 SchweisOS-owned HTTPS endpoints as optional requirements and records
@@ -126,7 +130,7 @@ the installer starts.
 ## Ownership
 
 - `packages/calamares/` owns enabling the reviewed upstream Calamares modules,
-  including `packagechooser` and `packagechooserq`.
+  including `packagechooser`, `packagechooserq`, and `notesqml`.
 - `packages/schweisos-calamares-config/` owns chooser configuration, the
   required target manifest, the selection reconciliation helper, the
   `unpackfs` contract, installed selection evidence, and installer UI.

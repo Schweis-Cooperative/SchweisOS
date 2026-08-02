@@ -235,7 +235,7 @@ for installer_module in \
     packagechooser-browser.conf \
     packagechooser-profile.conf \
     packagechooser-kernel.conf \
-    packagechooser-extras.conf \
+    optionalfeatures.conf \
     unpackfs.conf \
     shellprocess-preflight.conf \
     shellprocess-reconcile.conf; do
@@ -251,7 +251,8 @@ for installer_qml in \
     packagechooser-desktop.qml \
     packagechooser-browser.qml \
     packagechooser-profile.qml \
-    packagechooser-kernel.qml; do
+    packagechooser-kernel.qml \
+    optionalfeatures.qml; do
     built_qml="${rootfs}/etc/calamares/branding/schweisos/${installer_qml}"
     [[ -f "$built_qml" && ! -L "$built_qml" ]] || \
         fail "built live root is missing Calamares QML resource: ${installer_qml}"
@@ -394,12 +395,13 @@ installer_desktop_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser
 installer_browser_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-browser.qml"
 installer_profile_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-profile.qml"
 installer_kernel_qml="${rootfs}/etc/calamares/branding/schweisos/packagechooser-kernel.qml"
+installer_optionalfeatures_qml="${rootfs}/etc/calamares/branding/schweisos/optionalfeatures.qml"
 installer_settings="${rootfs}/etc/calamares/settings.conf"
 installer_desktop_chooser="${rootfs}/etc/calamares/modules/packagechooser-desktop.conf"
 installer_browser_chooser="${rootfs}/etc/calamares/modules/packagechooser-browser.conf"
 installer_profile_chooser="${rootfs}/etc/calamares/modules/packagechooser-profile.conf"
 installer_kernel_chooser="${rootfs}/etc/calamares/modules/packagechooser-kernel.conf"
-installer_extras_chooser="${rootfs}/etc/calamares/modules/packagechooser-extras.conf"
+installer_optionalfeatures_config="${rootfs}/etc/calamares/modules/optionalfeatures.conf"
 installer_unpackfs="${rootfs}/etc/calamares/modules/unpackfs.conf"
 installer_reconcile_config="${rootfs}/etc/calamares/modules/shellprocess-reconcile.conf"
 for installer_payload in \
@@ -417,12 +419,13 @@ for installer_payload in \
     "$installer_browser_qml" \
     "$installer_profile_qml" \
     "$installer_kernel_qml" \
+    "$installer_optionalfeatures_qml" \
     "$installer_settings" \
     "$installer_desktop_chooser" \
     "$installer_browser_chooser" \
     "$installer_profile_chooser" \
     "$installer_kernel_chooser" \
-    "$installer_extras_chooser" \
+    "$installer_optionalfeatures_config" \
     "$installer_unpackfs" \
     "$installer_reconcile_config" \
     "$installer_reconcile_helper"; do
@@ -501,7 +504,7 @@ for module in \
     packagechooserq@browser \
     packagechooserq@kernel \
     packagechooserq@profile \
-    packagechooser@extras \
+    notesqml@extras \
     unpackfs \
     shellprocess@reconcile; do
     grep -Fxq "      - ${module}" "$installer_settings" || \
@@ -513,6 +516,9 @@ fi
 if grep -Fq 'packagechooser@desktop' "$installer_settings"; then
     fail 'built Calamares settings must use the QML desktop chooser'
 fi
+if grep -Fq 'packagechooser@extras' "$installer_settings"; then
+    fail 'built Calamares settings must use the SchweisOS QML optional-features page'
+fi
 grep -Fxq 'packageChoice: kde-plasma' "$installer_desktop_chooser" || \
     fail 'built installer desktop default is not KDE Plasma'
 grep -Fxq 'packageChoice: firefox' "$installer_browser_chooser" || \
@@ -521,6 +527,16 @@ grep -Fxq 'packageChoice: privacy' "$installer_profile_chooser" || \
     fail 'built installer profile default is not Privacy'
 grep -Fxq 'packageChoice: linux-zen' "$installer_kernel_chooser" || \
     fail 'built installer kernel default is not Linux Zen'
+grep -Fxq 'qmlSearch: branding' "$installer_optionalfeatures_config" || \
+    fail 'built optional features page does not restrict QML to package-owned branding'
+grep -Fxq 'qmlFilename: optionalfeatures' "$installer_optionalfeatures_config" || \
+    fail 'built optional features page does not load the SchweisOS QML'
+grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not write the reconciliation selection key'
+grep -Fq 'Global.contains("packagechooser_extras")' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not restore the reconciliation selection key'
+grep -Fq 'ToolTip.text: modelData.why' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not expose feature rationale tooltips'
 grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_qml" || \
     fail 'built installer does not expose the recommended kernel label'
 grep -Fq 'Officially supported' "$installer_desktop_qml" || \
@@ -541,25 +557,29 @@ for kernel_id in linux-zen linux linux-lts linux-hardened; do
     grep -Fq "id: \"${kernel_id}\"" "$installer_kernel_qml" || \
         fail "built installer kernel chooser omits: ${kernel_id}"
 done
-grep -Fxq 'mode: optionalmultiple' "$installer_extras_chooser" || \
-    fail 'built installer optional features are not a multiple-choice group'
 if grep -Fq 'screenshot:' \
     "$installer_desktop_chooser" "$installer_browser_chooser" "$installer_profile_chooser" \
-    "$installer_kernel_chooser" "$installer_extras_chooser"; then
+    "$installer_kernel_chooser" "$installer_optionalfeatures_config"; then
     fail 'built installer package choosers reuse the logo as generic selection artwork'
 fi
 for package_description in \
-    'Packages: firewalld, plasma-firewall.' \
-    'Packages: gamemode, mangohud, lutris.' \
-    'Packages: git, cmake, ninja.' \
-    'Packages: pacman-contrib, reflector.' \
+    'packages: "firewalld, plasma-firewall"' \
+    'packages: "gamemode, mangohud, lutris"' \
+    'packages: "git, cmake, ninja"' \
+    'packages: "pacman-contrib, reflector"' \
     'Package: linux-zen.'; do
-    if ! grep -Fq "$package_description" "$installer_extras_chooser" "$installer_kernel_qml"; then
+    if ! grep -Fq "$package_description" "$installer_optionalfeatures_qml" "$installer_kernel_qml"; then
         fail "built package chooser omits package-level description: ${package_description}"
     fi
 done
-grep -Fq 'id: x11-compatibility' "$installer_extras_chooser" || \
-    fail 'built installer does not expose X11 compatibility choice'
+for feature_id in privacy security gaming development virtualization multimedia office fonts \
+    printing bluetooth accessibility wayland-tools x11-compatibility power-management \
+    network-tools containers diagnostics recovery maintenance; do
+    grep -Fq "id: \"${feature_id}\"" "$installer_optionalfeatures_qml" || \
+        fail "built optional features QML omits feature id: ${feature_id}"
+    grep -Fq "[${feature_id}]=" "$installer_reconcile_helper" || \
+        fail "built target reconciliation omits optional feature mapping: ${feature_id}"
+done
 grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || \
     fail 'built target reconciliation omits X11 compatibility mapping'
 grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \

@@ -99,12 +99,13 @@ calamares_desktop_qml="$(relative_file etc/calamares/branding/schweisos/packagec
 calamares_browser_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-browser.qml)"
 calamares_profile_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-profile.qml)"
 calamares_kernel_qml="$(relative_file etc/calamares/branding/schweisos/packagechooser-kernel.qml)"
+calamares_optionalfeatures_qml="$(relative_file etc/calamares/branding/schweisos/optionalfeatures.qml)"
 calamares_welcome_config="$(relative_file etc/calamares/modules/welcomeq.conf)"
 calamares_desktop_chooser="$(relative_file etc/calamares/modules/packagechooser-desktop.conf)"
 calamares_browser_chooser="$(relative_file etc/calamares/modules/packagechooser-browser.conf)"
 calamares_profile_chooser="$(relative_file etc/calamares/modules/packagechooser-profile.conf)"
 calamares_kernel_chooser="$(relative_file etc/calamares/modules/packagechooser-kernel.conf)"
-calamares_extras_chooser="$(relative_file etc/calamares/modules/packagechooser-extras.conf)"
+calamares_optionalfeatures_config="$(relative_file etc/calamares/modules/optionalfeatures.conf)"
 calamares_unpackfs="$(relative_file etc/calamares/modules/unpackfs.conf)"
 calamares_reconcile_config="$(relative_file etc/calamares/modules/shellprocess-reconcile.conf)"
 calamares_reconcile_helper="$(relative_file usr/lib/schweisos-calamares/reconcile-target)"
@@ -130,12 +131,13 @@ require_mode "$calamares_desktop_qml" 644
 require_mode "$calamares_browser_qml" 644
 require_mode "$calamares_profile_qml" 644
 require_mode "$calamares_kernel_qml" 644
+require_mode "$calamares_optionalfeatures_qml" 644
 require_mode "$calamares_welcome_config" 644
 require_mode "$calamares_desktop_chooser" 644
 require_mode "$calamares_browser_chooser" 644
 require_mode "$calamares_profile_chooser" 644
 require_mode "$calamares_kernel_chooser" 644
-require_mode "$calamares_extras_chooser" 644
+require_mode "$calamares_optionalfeatures_config" 644
 require_mode "$calamares_unpackfs" 644
 require_mode "$calamares_reconcile_config" 644
 require_mode "$calamares_reconcile_helper" 755
@@ -228,7 +230,7 @@ for module in \
     packagechooserq@browser \
     packagechooserq@kernel \
     packagechooserq@profile \
-    packagechooser@extras \
+    notesqml@extras \
     unpackfs \
     shellprocess@reconcile; do
     grep -Fxq "      - ${module}" "$calamares_settings" || \
@@ -239,6 +241,9 @@ if grep -Fq 'packagechooser@browser' "$calamares_settings"; then
 fi
 if grep -Fq 'packagechooser@desktop' "$calamares_settings"; then
     fail 'runtime desktop selection must use the QML packagechooserq page'
+fi
+if grep -Fq 'packagechooser@extras' "$calamares_settings"; then
+    fail 'runtime optional features must use the SchweisOS QML notesqml page'
 fi
 grep -Fxq 'slideshow: "show.qml"' "$calamares_branding" || \
     fail 'runtime Calamares branding omits the slideshow key'
@@ -304,6 +309,13 @@ grep -Fxq 'packageChoice: privacy' "$calamares_profile_chooser" || \
     fail 'runtime installation profile default is not Privacy'
 grep -Fxq 'packageChoice: linux-zen' "$calamares_kernel_chooser" || \
     fail 'runtime kernel chooser default is not Linux Zen'
+grep -Fxq 'qmlSearch: branding' "$calamares_optionalfeatures_config" || \
+    fail 'runtime optional features page does not restrict QML to package-owned branding'
+grep -Fxq 'qmlFilename: optionalfeatures' "$calamares_optionalfeatures_config" || \
+    fail 'runtime optional features page does not load the SchweisOS QML'
+require_contains "$calamares_optionalfeatures_qml" 'Global.insert("packagechooser_extras", selectedIds.join(","))'
+require_contains "$calamares_optionalfeatures_qml" 'Global.contains("packagechooser_extras")'
+require_contains "$calamares_optionalfeatures_qml" 'ToolTip.text: modelData.why'
 require_contains "$calamares_desktop_qml" 'Officially supported'
 require_contains "$calamares_desktop_qml" 'KDE Plasma is the only desktop environment installed by this ISO'
 for browser_id in firefox librewolf zen-browser brave; do
@@ -316,24 +328,27 @@ done
 for kernel_id in linux-zen linux linux-lts linux-hardened; do
     require_contains "$calamares_kernel_qml" "id: \"${kernel_id}\""
 done
-grep -Fxq 'mode: optionalmultiple' "$calamares_extras_chooser" || \
-    fail 'runtime optional-feature chooser does not allow multiple choices'
 if grep -Fq 'screenshot:' \
     "$calamares_desktop_chooser" "$calamares_browser_chooser" "$calamares_profile_chooser" \
-    "$calamares_kernel_chooser" "$calamares_extras_chooser"; then
+    "$calamares_kernel_chooser" "$calamares_optionalfeatures_config"; then
     fail 'runtime package choosers must not reuse the logo as generic selection artwork'
 fi
 for package_description in \
-    'Packages: firewalld, plasma-firewall.' \
-    'Packages: gamemode, mangohud, lutris.' \
-    'Packages: git, cmake, ninja.' \
-    'Packages: pacman-contrib, reflector.' \
+    'packages: "firewalld, plasma-firewall"' \
+    'packages: "gamemode, mangohud, lutris"' \
+    'packages: "git, cmake, ninja"' \
+    'packages: "pacman-contrib, reflector"' \
     'Package: linux-zen.'; do
-    if ! grep -Fq "$package_description" "$calamares_extras_chooser" "$calamares_kernel_qml"; then
+    if ! grep -Fq "$package_description" "$calamares_optionalfeatures_qml" "$calamares_kernel_qml"; then
         fail "runtime package chooser omits package-level description: ${package_description}"
     fi
 done
-require_contains "$calamares_extras_chooser" 'id: x11-compatibility'
+for feature_id in privacy security gaming development virtualization multimedia office fonts \
+    printing bluetooth accessibility wayland-tools x11-compatibility power-management \
+    network-tools containers diagnostics recovery maintenance; do
+    require_contains "$calamares_optionalfeatures_qml" "id: \"${feature_id}\""
+    require_contains "$calamares_reconcile_helper" "[${feature_id}]="
+done
 require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
 require_contains "$calamares_unpackfs" 'sourcefs: "file"'
@@ -365,11 +380,12 @@ for owned_path in \
     etc/calamares/branding/schweisos/packagechooser-browser.qml \
     etc/calamares/branding/schweisos/packagechooser-profile.qml \
     etc/calamares/branding/schweisos/packagechooser-kernel.qml \
+    etc/calamares/branding/schweisos/optionalfeatures.qml \
     etc/calamares/modules/packagechooser-desktop.conf \
     etc/calamares/modules/packagechooser-browser.conf \
     etc/calamares/modules/packagechooser-profile.conf \
     etc/calamares/modules/packagechooser-kernel.conf \
-    etc/calamares/modules/packagechooser-extras.conf \
+    etc/calamares/modules/optionalfeatures.conf \
     etc/calamares/modules/unpackfs.conf \
     etc/calamares/modules/welcomeq.conf \
     etc/calamares/modules/shellprocess-reconcile.conf \

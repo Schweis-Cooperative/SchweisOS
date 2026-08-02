@@ -42,6 +42,14 @@ as a contributor credit.
 Use Calamares-supported QML and configuration interfaces. Do not patch
 Calamares merely to change spacing, colors, or wording.
 
+Single-choice pages use Calamares `packagechooserq` and write their
+`packagechooser_*` keys through the module's supported GlobalStorage
+contract. The Optional Features page uses SchweisOS-owned QML through
+`notesqml` because the upstream packagechooser widget is not an acceptable
+final UX for the guided installer. That QML must still write
+`packagechooser_extras`; reconciliation, not the UI, remains the canonical
+package-policy owner.
+
 ## Installation Pipeline
 
 The execution order is security-sensitive:

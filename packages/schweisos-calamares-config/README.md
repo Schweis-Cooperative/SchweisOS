@@ -88,8 +88,11 @@ recommended; standard, LTS, and hardened Arch kernels remain explicit
 alternatives. Unselected kernels and unsupported browser payload are removed
 from the copied payload.
 
-The optional-feature page exposes package groups for privacy, security,
-gaming, development, virtualization, multimedia, office, international fonts,
+The optional-feature page is a SchweisOS-owned QML page loaded by Calamares
+`notesqml`. It writes `packagechooser_extras` to GlobalStorage for the
+reconciliation helper, but it does not use the legacy `packagechooser` widget
+presentation. It exposes package groups for privacy, security, gaming,
+development, virtualization, multimedia, office, international fonts,
 printing, Bluetooth, accessibility, Wayland diagnostics, X11 compatibility,
 power management, network tools, rootless containers, storage diagnostics,
 recovery, and maintenance. Every description explains the purpose and material

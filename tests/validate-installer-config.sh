@@ -51,11 +51,12 @@ required_files=(
   "${package_dir}/packagechooser-browser.conf"
   "${package_dir}/packagechooser-profile.conf"
   "${package_dir}/packagechooser-kernel.conf"
-  "${package_dir}/packagechooser-extras.conf"
+  "${package_dir}/optionalfeatures.conf"
   "${package_dir}/packagechooser-desktop.qml"
   "${package_dir}/packagechooser-browser.qml"
   "${package_dir}/packagechooser-profile.qml"
   "${package_dir}/packagechooser-kernel.qml"
+  "${package_dir}/optionalfeatures.qml"
   "${package_dir}/partition.conf"
   "${package_dir}/unpackfs.conf"
   "${package_dir}/users.conf"
@@ -202,6 +203,9 @@ fi
 if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)packagechooserq(;|$)'; then
   fail 'Calamares package must build the upstream packagechooserq module for SchweisOS QML selection pages'
 fi
+if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)notesqml(;|$)'; then
+  fail 'Calamares package must build the upstream notesqml module for SchweisOS optional features'
+fi
 grep -Eq "^[[:space:]]*'rsync'[[:space:]]*$" "${calamares_package_dir}/PKGBUILD" || \
   fail 'Calamares package must declare rsync for the unpackfs file-copy path'
 [[ ! -e "${profile_airootfs}/usr/local/share/applications/calamares.desktop" \
@@ -221,7 +225,7 @@ grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/show.qml"' \
   "${package_dir}/PKGBUILD" || fail 'Calamares slideshow QML resource must be installed beside branding.desc'
 grep -Fq '"${pkgdir}/etc/calamares/branding/schweisos/welcomeq.qml"' \
   "${package_dir}/PKGBUILD" || fail 'custom welcome QML must be installed in the branding directory'
-for qml_resource in packagechooser-desktop packagechooser-browser packagechooser-profile packagechooser-kernel; do
+for qml_resource in packagechooser-desktop packagechooser-browser packagechooser-profile packagechooser-kernel optionalfeatures; do
   grep -Fq "'${qml_resource}.qml'" "${package_dir}/PKGBUILD" || \
     fail "selection QML resource must be a package source: ${qml_resource}.qml"
   grep -Fq "install -Dm644 \"\${srcdir}/${qml_resource}.qml\"" "${package_dir}/PKGBUILD" || \
@@ -231,12 +235,20 @@ for qml_resource in packagechooser-desktop packagechooser-browser packagechooser
 done
 grep -Fq '"${pkgdir}/etc/calamares/modules/welcomeq.conf"' \
   "${package_dir}/PKGBUILD" || fail 'custom welcome configuration must be package-owned'
-for chooser_config in desktop browser profile kernel extras; do
+for chooser_config in desktop browser profile kernel; do
   grep -Fq "'packagechooser-${chooser_config}.conf'" "${package_dir}/PKGBUILD" || \
     fail "package chooser configuration must be a package source: ${chooser_config}"
   grep -Fq "install -Dm644 \"\${srcdir}/packagechooser-${chooser_config}.conf\"" \
     "${package_dir}/PKGBUILD" || fail "package chooser configuration must be package-owned: ${chooser_config}"
 done
+grep -Fq "'optionalfeatures.conf'" "${package_dir}/PKGBUILD" || \
+  fail 'optional features QML configuration must be a package source'
+grep -Fq 'install -Dm644 "${srcdir}/optionalfeatures.conf"' "${package_dir}/PKGBUILD" || \
+  fail 'optional features QML configuration must be package-owned'
+grep -Fq '"${pkgdir}/etc/calamares/modules/optionalfeatures.conf"' \
+  "${package_dir}/PKGBUILD" || fail 'optional features QML configuration must install as a Calamares module'
+[[ ! -e "${package_dir}/packagechooser-extras.conf" && ! -L "${package_dir}/packagechooser-extras.conf" ]] || \
+  fail 'optional features must not regress to the legacy packagechooser-extras.conf widget'
 grep -Fq "  version: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
   fail 'Calamares branding version must match schweisos-release pkgver'
 grep -Fq "  shortVersion: \"${release_pkgver}\"" "${package_dir}/branding.desc" || \
@@ -247,7 +259,7 @@ grep -Fq 'shellprocess@preflight' "${package_dir}/settings.conf" || \
   fail 'Calamares sequence must include preflight'
 for required_sequence in \
   welcomeq packagechooserq@desktop packagechooserq@browser packagechooserq@kernel \
-  packagechooserq@profile packagechooser@extras \
+  packagechooserq@profile notesqml@extras \
   unpackfs shellprocess@reconcile; do
   grep -Fq -- "- ${required_sequence}" "${package_dir}/settings.conf" || \
     fail "Calamares sequence is missing: ${required_sequence}"
@@ -256,11 +268,14 @@ done
   fail 'browser selection must use the QML packagechooserq page'
 ! grep -Fq 'packagechooser@desktop' "${package_dir}/settings.conf" || \
   fail 'desktop selection must use the QML packagechooserq page'
+! grep -Fq 'packagechooser@extras' "${package_dir}/settings.conf" || \
+  fail 'optional features must use the SchweisOS QML notesqml page'
 for instance_fragment in \
   'id: desktop' 'module: packagechooserq' 'config: packagechooser-desktop.conf' \
   'id: browser' 'config: packagechooser-browser.conf' \
   'id: kernel' 'config: packagechooser-kernel.conf' \
-  'id: profile' 'config: packagechooser-profile.conf'; do
+  'id: profile' 'config: packagechooser-profile.conf' \
+  'id: extras' 'module: notesqml' 'config: optionalfeatures.conf'; do
   grep -Fq "$instance_fragment" "${package_dir}/settings.conf" || \
     fail "Calamares settings are missing QML selection instance fragment: ${instance_fragment}"
 done
@@ -304,7 +319,7 @@ for mounted_shellprocess in reconcile pacman systemd-boot services; do
     fail "post-mount shellprocess must pass the Calamares target root: ${mounted_shellprocess}"
 done
 
-for chooser in desktop browser profile kernel extras; do
+for chooser in desktop browser profile kernel; do
   grep -Fxq 'method: legacy' "${package_dir}/packagechooser-${chooser}.conf" || \
     fail "package chooser must use the audited GlobalStorage contract: ${chooser}"
 done
@@ -323,13 +338,29 @@ grep -Fxq 'packageChoice: privacy' "${package_dir}/packagechooser-profile.conf" 
   fail 'Privacy must remain the recommended installation profile'
 grep -Fxq 'packageChoice: linux-zen' "${package_dir}/packagechooser-kernel.conf" || \
   fail 'linux-zen must be the recommended default kernel'
-grep -Fxq 'mode: optionalmultiple' "${package_dir}/packagechooser-extras.conf" || \
-  fail 'optional feature chooser must allow zero or more selections'
-for chooser in desktop browser profile kernel extras; do
+grep -Fxq 'qmlSearch: branding' "${package_dir}/optionalfeatures.conf" || \
+  fail 'optional features page must load only package-owned branding QML'
+grep -Fxq 'qmlFilename: optionalfeatures' "${package_dir}/optionalfeatures.conf" || \
+  fail 'optional features page must use the SchweisOS optionalfeatures QML'
+grep -Fq 'notes: "Optional Features"' "${package_dir}/optionalfeatures.conf" || \
+  fail 'optional features page must expose a clear English label'
+grep -Fq 'notes[tr]: "İsteğe Bağlı Özellikler"' "${package_dir}/optionalfeatures.conf" || \
+  fail 'optional features page must expose a Turkish label'
+grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' \
+  "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must write the reconciliation GlobalStorage key'
+grep -Fq 'Global.contains("packagechooser_extras")' "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must restore the reconciliation GlobalStorage key'
+grep -Fq 'ToolTip.text: modelData.why' "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must expose package rationale tooltips'
+for chooser in desktop browser profile kernel; do
   if grep -Fq 'screenshot:' "${package_dir}/packagechooser-${chooser}.conf"; then
     fail "package chooser must not reuse the logo as generic selection artwork: ${chooser}"
   fi
 done
+if grep -Fq 'screenshot:' "${package_dir}/optionalfeatures.conf"; then
+  fail 'optional features page must not reuse the logo as generic selection artwork'
+fi
 for desktop_fragment in \
   'config.packageChoice = "kde-plasma"' \
   'Officially supported' \
@@ -357,15 +388,23 @@ for kernel_id in linux-zen linux linux-lts linux-hardened; do
     fail "kernel QML chooser is missing: ${kernel_id}"
 done
 for package_description in \
-  'Packages: firewalld, plasma-firewall.' \
-  'Packages: gamemode, mangohud, lutris.' \
-  'Packages: git, cmake, ninja.' \
-  'Packages: pacman-contrib, reflector.' \
+  'packages: "firewalld, plasma-firewall"' \
+  'packages: "gamemode, mangohud, lutris"' \
+  'packages: "git, cmake, ninja"' \
+  'packages: "pacman-contrib, reflector"' \
   'Package: linux-zen.'; do
   grep -Fq "$package_description" \
-    "${package_dir}/packagechooser-extras.conf" \
+    "${package_dir}/optionalfeatures.qml" \
     "${package_dir}/packagechooser-kernel.qml" || \
     fail "installer package chooser omits package-level description: ${package_description}"
+done
+for feature_id in privacy security gaming development virtualization multimedia office fonts \
+  printing bluetooth accessibility wayland-tools x11-compatibility power-management \
+  network-tools containers diagnostics recovery maintenance; do
+  grep -Fq "id: \"${feature_id}\"" "${package_dir}/optionalfeatures.qml" || \
+    fail "optional features QML omits feature id: ${feature_id}"
+  grep -Fq "[${feature_id}]=" "${package_dir}/schweisos-calamares-reconcile-target" || \
+    fail "target reconciliation omits optional feature mapping: ${feature_id}"
 done
 grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must copy the mounted, validated Archiso root'

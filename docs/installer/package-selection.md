@@ -112,8 +112,11 @@ treats it idempotently and installs it once.
 
 ## Optional Feature Groups
 
-The Optional Features page exposes named groups rather than hundreds of
-individual packages:
+The Optional Features page is a SchweisOS-owned QML page loaded through
+Calamares' `notesqml` module. It writes the same `packagechooser_extras`
+GlobalStorage key that the reconciliation helper consumes, but avoids the
+legacy widget presentation of upstream `packagechooser`. The page exposes
+named groups rather than hundreds of individual packages:
 
 - Privacy: Tor Browser launcher.
 - Security: firewalld and Plasma firewall integration.
@@ -154,7 +157,8 @@ on connectivity.
 
 A maintainer must update all of the following in one reviewed change:
 
-- the relevant `packagechooser-*.conf` and QML user-facing explanation;
+- the relevant `packagechooser-*.conf` or `optionalfeatures.conf` plus the
+  package-owned QML user-facing explanation;
 - the reconciliation allowlist and package mapping;
 - the ISO package set so the choice is physically available offline;
 - desktop/session and screenshot licensing evidence if the choice changes the

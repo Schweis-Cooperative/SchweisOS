@@ -2,7 +2,7 @@
 
 pkgname=calamares
 pkgver=3.4.2
-pkgrel=6
+pkgrel=7
 pkgdesc='Distribution-independent installer framework'
 arch=('x86_64')
 url='https://codeberg.org/Calamares/calamares'
@@ -49,7 +49,7 @@ build() {
     -DWITH_QT6=ON \
     -DINSTALL_CONFIG=ON \
     -DBUILD_TESTING=OFF \
-    -DSKIP_MODULES='dracut;dracutlukscfg;dummycpp;dummyprocess;dummypython;dummypythonqt;initramfs;initramfscfg;interactiveterminal;packagechooserq;services-openrc' \
+    -DSKIP_MODULES='dracut;dracutlukscfg;dummycpp;dummyprocess;dummypython;dummypythonqt;initramfs;initramfscfg;interactiveterminal;services-openrc' \
     -DKDE_INSTALL_LIBDIR=lib \
     -DKDE_INSTALL_LIBEXECDIR=lib \
     -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \

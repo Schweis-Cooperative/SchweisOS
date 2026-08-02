@@ -193,6 +193,9 @@ grep -Fq 'unlink -- "$upstream_launcher"' "${calamares_package_dir}/PKGBUILD" ||
 if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)packagechooser(;|$)'; then
   fail 'Calamares package must build the upstream packagechooser module'
 fi
+if grep -E 'SKIP_MODULES=' "${calamares_package_dir}/PKGBUILD" | grep -Eq '(^|;)packagechooserq(;|$)'; then
+  fail 'Calamares package must build the upstream packagechooserq module for SchweisOS QML selection pages'
+fi
 grep -Eq "^[[:space:]]*'rsync'[[:space:]]*$" "${calamares_package_dir}/PKGBUILD" || \
   fail 'Calamares package must declare rsync for the unpackfs file-copy path'
 [[ ! -e "${profile_airootfs}/usr/local/share/applications/calamares.desktop" \

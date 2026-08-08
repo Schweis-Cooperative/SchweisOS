@@ -596,6 +596,7 @@ for network_fragment in \
   'https://archlinux.org/' \
   'ip route get 1.1.1.1' \
   'nmcli -t -f CONNECTIVITY general' \
+  'SCHWEISOS_INSTALLER_STATE_DIR:-/run/schweisos-installer' \
   'networkmanager_reports_full_connectivity' \
   'watch_network "$watch_seconds" "$interval"' \
   'write_state connected https-probe' \
@@ -702,9 +703,12 @@ git -C "$project_root" diff --check -- \
   packages/calamares \
   packages/schweisos-calamares-config \
   tests/test-installer-experience.sh \
+  tests/test-installer-network-status.sh \
+  tests/test-installer-reconciliation.sh \
   tests/validate-installer-config.sh
 
 "${project_root}/tests/test-installer-experience.sh"
+bash "${project_root}/tests/test-installer-network-status.sh"
 bash "${project_root}/tests/test-installer-reconciliation.sh"
 
 printf 'Installer configuration validation passed.\n'

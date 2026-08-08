@@ -118,6 +118,15 @@ real shared live-session predicate, including a valid Archiso copy-to-RAM
 session with no `/run/archiso/bootmnt`, and rejects wrong users, missing
 `airootfs`, wrong kernel tokens, and invalid profile markers.
 
+`test-installer-network-status.sh` executes the production network-status
+helper with mocked `ip`, `nmcli`, and `curl` boundaries plus an isolated state
+directory. It proves no-route, NetworkManager full-connectivity, HTTPS probe,
+and failed-probe states without touching `/run` or the real network:
+
+```bash
+bash tests/test-installer-network-status.sh
+```
+
 `validate-installer-runtime-payload.sh` inspects the staged Archiso live root
 after package installation and before SquashFS compression:
 

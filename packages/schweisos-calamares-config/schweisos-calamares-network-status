@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-readonly state_dir=/run/schweisos-installer
+readonly state_dir="${SCHWEISOS_INSTALLER_STATE_DIR:-/run/schweisos-installer}"
 readonly state_file="${state_dir}/network-state"
 readonly probe_timeout=4
 readonly connect_timeout=2

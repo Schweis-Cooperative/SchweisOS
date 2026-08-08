@@ -106,17 +106,21 @@ launcher behavior:
 - Office: Office, Printing, International Fonts, and Bluetooth.
 - Minimal: no optional feature groups.
 
-The next page still lets the user add optional feature groups. If a feature is
-selected by both the profile and the optional page, the reconciliation helper
-treats it idempotently and installs it once.
+The next page preselects the profile's feature groups and lets the user add or
+remove optional groups before installation. After that page has been reviewed,
+the Optional Features selection is authoritative: reconciliation does not
+silently re-add profile defaults the user removed.
 
 ## Optional Feature Groups
 
 The Optional Features page is a SchweisOS-owned QML page loaded through
-Calamares' `notesqml` module. It writes the same `packagechooser_extras`
-GlobalStorage key that the reconciliation helper consumes, but avoids the
-legacy widget presentation of upstream `packagechooser`. The page exposes
-named groups rather than hundreds of individual packages:
+Calamares' `notesqml` module. It reads the selected profile, preselects that
+profile's reviewed defaults, and writes `packagechooser_extras`,
+`packagechooser_extras_mode`, and `packagechooser_extras_profile` to
+GlobalStorage for the reconciliation helper. This avoids the legacy widget
+presentation of upstream `packagechooser` while keeping target package policy
+in the audited reconciliation helper. The page exposes named groups rather than
+hundreds of individual packages:
 
 - Privacy: Tor Browser launcher.
 - Security: firewalld and Plasma firewall integration.
@@ -139,11 +143,13 @@ named groups rather than hundreds of individual packages:
 - Recovery Tools: GParted and TestDisk.
 - Maintenance Tools: pacman-contrib and Reflector.
 
-Groups default to unselected unless the selected installation profile
-pulls them in. Their descriptions state why the group exists and any important
-limitation. Core hardware firmware, NetworkManager, Plasma, pacman trust, and
-the SchweisOS identity packages remain required and are not presented as
-optional toggles.
+Groups default to the selected profile's starting point. Changing the profile
+and returning to the Optional Features page refreshes those defaults until the
+user reviews the page. Once reviewed, the exact checked groups are recorded as
+custom selection state and become the installed-system contract. Descriptions
+state why each group exists and any important limitation. Core hardware
+firmware, NetworkManager, Plasma, pacman trust, and the SchweisOS identity
+packages remain required and are not presented as optional toggles.
 
 ## Connectivity Behavior
 

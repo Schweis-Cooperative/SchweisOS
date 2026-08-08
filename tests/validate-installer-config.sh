@@ -349,8 +349,18 @@ grep -Fq 'notes[tr]: "İsteğe Bağlı Özellikler"' "${package_dir}/optionalfea
 grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' \
   "${package_dir}/optionalfeatures.qml" || \
   fail 'optional features QML must write the reconciliation GlobalStorage key'
+grep -Fq 'Global.insert("packagechooser_extras_mode", "custom")' \
+  "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must mark user-reviewed selections as custom'
+grep -Fq 'Global.insert("packagechooser_extras_profile", currentProfileId())' \
+  "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must bind defaults to the selected profile'
 grep -Fq 'Global.contains("packagechooser_extras")' "${package_dir}/optionalfeatures.qml" || \
   fail 'optional features QML must restore the reconciliation GlobalStorage key'
+grep -Fq 'readonly property var profileDefaults:' "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must expose profile defaults in the UI'
+grep -Fq 'onVisibleChanged:' "${package_dir}/optionalfeatures.qml" || \
+  fail 'optional features QML must refresh defaults after profile changes'
 grep -Fq 'ToolTip.text: modelData.why' "${package_dir}/optionalfeatures.qml" || \
   fail 'optional features QML must expose package rationale tooltips'
 for chooser in desktop browser profile kernel; do
@@ -410,10 +420,10 @@ grep -Fq 'source: "/run/archiso/airootfs/"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must copy the mounted, validated Archiso root'
 grep -Fq 'sourcefs: "file"' "${package_dir}/unpackfs.conf" || \
   fail 'unpackfs must treat the mounted Archiso root as a directory payload'
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_extras_mode]} ${gs[packagechooser_desktop]}' \
   "${package_dir}/shellprocess-reconcile.conf" || \
-  fail 'reconciliation must pass the browser, kernel, profile, optional feature, and desktop choices'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
+  fail 'reconciliation must pass the browser, kernel, profile, optional feature mode, optional feature, and desktop choices'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_extras_mode packagechooser_desktop; do
   grep -Fq "\${gs[${selection_key}]}" "${package_dir}/shellprocess-reconcile.conf" || \
     fail "reconciliation shellprocess is missing GlobalStorage selection: ${selection_key}"
 done
@@ -429,6 +439,9 @@ for reconciliation_fragment in \
   'linux|linux-lts|linux-zen|linux-hardened' \
   'declare -Ar profile_features=' \
   "[privacy]='security,maintenance,x11-compatibility'" \
+  'custom|profile-defaults' \
+  'unknown optional-feature selection mode' \
+  'OPTIONAL_FEATURE_MODE=%s' \
   'DESKTOP=%s' \
   'PROFILE=%s' \
   'arch-install-scripts' \

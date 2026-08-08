@@ -173,19 +173,23 @@ LTS, and hardened Arch kernels remain alternatives.
 A required installation-profile page appears after the kernel page and before
 optional features. The profile selects a reviewed starting point such as
 Privacy, Gaming, Developer, Creator, Office, or Minimal. The following
-Optional Features page remains available for manual additions. Reconciliation
-merges the profile and manual choices idempotently so the UI can be
-approachable without becoming a hidden package manager.
+Optional Features page preselects the profile defaults and remains available
+for manual additions or removals. After the user reviews that page, its exact
+checked state becomes authoritative. Reconciliation records
+`packagechooser_extras_mode` and must not silently restore removed profile
+defaults. This keeps the UI approachable without becoming a hidden package
+manager.
 
 Optional feature groups are bounded, repository-backed, and described in terms
 of purpose and important limitations. The page is a SchweisOS-owned QML
 component loaded with Calamares `notesqml`; it writes
-`packagechooser_extras` into GlobalStorage so the existing reconciliation
-helper remains the canonical package owner. This keeps the polished UX in
-SchweisOS-owned QML without patching Calamares or presenting the upstream
-packagechooser widget as a final design. The page does not expose AUR,
-Flatpak, or third-party vendor trust as if those sources were equivalent to
-the Arch and SchweisOS repositories.
+`packagechooser_extras`, `packagechooser_extras_mode`, and
+`packagechooser_extras_profile` into GlobalStorage so the existing
+reconciliation helper remains the canonical package owner. This keeps the
+polished UX in SchweisOS-owned QML without patching Calamares or presenting the
+upstream packagechooser widget as a final design. The page does not expose AUR,
+Flatpak, or third-party vendor trust as if those sources were equivalent to the
+Arch and SchweisOS repositories.
 
 Upstream Calamares `unpackfs` copies the already mounted verified live root.
 The package-owned reconciliation step validates the choice identifiers,

@@ -19,6 +19,14 @@ Item {
     readonly property color muted: "#53697d"
     property int activeCategoryIndex: 0
     property var selectedIds: []
+    readonly property var profileDefaults: ({
+        "privacy": ["security", "maintenance", "x11-compatibility"],
+        "gaming": ["gaming", "power-management", "x11-compatibility"],
+        "developer": ["development", "containers", "network-tools", "diagnostics"],
+        "creator": ["multimedia", "fonts"],
+        "office": ["office", "printing", "fonts", "bluetooth"],
+        "minimal": []
+    })
 
     readonly property var categories: [
         {
@@ -230,12 +238,42 @@ Item {
         setSelected(featureId, !isSelected(featureId))
     }
 
+    function currentProfileId() {
+        if (!Global.contains("packagechooser_profile"))
+            return "privacy"
+
+        var profileId = String(Global.value("packagechooser_profile"))
+        if (profileDefaults[profileId] === undefined)
+            return "privacy"
+
+        return profileId
+    }
+
+    function defaultFeaturesForProfile(profileId) {
+        var defaults = profileDefaults[profileId]
+        if (defaults === undefined)
+            return []
+
+        return defaults.slice()
+    }
+
     function syncGlobalStorage() {
         Global.insert("packagechooser_extras", selectedIds.join(","))
+        Global.insert("packagechooser_extras_mode", "custom")
+        Global.insert("packagechooser_extras_profile", currentProfileId())
     }
 
     function restoreFromGlobalStorage() {
-        if (!Global.contains("packagechooser_extras")) {
+        var profileId = currentProfileId()
+        var storedProfile = Global.contains("packagechooser_extras_profile")
+            ? String(Global.value("packagechooser_extras_profile"))
+            : ""
+        var mode = Global.contains("packagechooser_extras_mode")
+            ? String(Global.value("packagechooser_extras_mode"))
+            : ""
+
+        if (mode !== "custom" || storedProfile !== profileId || !Global.contains("packagechooser_extras")) {
+            selectedIds = defaultFeaturesForProfile(profileId)
             syncGlobalStorage()
             return
         }
@@ -258,6 +296,10 @@ Item {
     }
 
     Component.onCompleted: restoreFromGlobalStorage()
+    onVisibleChanged: {
+        if (visible)
+            restoreFromGlobalStorage()
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -285,7 +327,7 @@ Item {
             Label {
                 Layout.fillWidth: true
                 Layout.maximumWidth: 900
-                text: qsTr("Profiles provide a safe starting point. Add only the package groups you want in the installed system; every selectable feature is already available in the signed offline ISO payload.")
+                text: qsTr("Profiles provide a safe starting point and preselect matching feature groups. Adjust the selection here; every enabled item maps to signed packages already available in the offline ISO payload.")
                 color: root.muted
                 font.pixelSize: 14
                 lineHeight: 1.25

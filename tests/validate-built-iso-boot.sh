@@ -533,8 +533,16 @@ grep -Fxq 'qmlFilename: optionalfeatures' "$installer_optionalfeatures_config" |
     fail 'built optional features page does not load the SchweisOS QML'
 grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' "$installer_optionalfeatures_qml" || \
     fail 'built optional features QML does not write the reconciliation selection key'
+grep -Fq 'Global.insert("packagechooser_extras_mode", "custom")' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not mark user-reviewed selections as custom'
+grep -Fq 'Global.insert("packagechooser_extras_profile", currentProfileId())' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not bind defaults to the selected profile'
 grep -Fq 'Global.contains("packagechooser_extras")' "$installer_optionalfeatures_qml" || \
     fail 'built optional features QML does not restore the reconciliation selection key'
+grep -Fq 'readonly property var profileDefaults:' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not expose profile defaults'
+grep -Fq 'onVisibleChanged:' "$installer_optionalfeatures_qml" || \
+    fail 'built optional features QML does not refresh defaults after profile changes'
 grep -Fq 'ToolTip.text: modelData.why' "$installer_optionalfeatures_qml" || \
     fail 'built optional features QML does not expose feature rationale tooltips'
 grep -Fq 'Linux Zen (Recommended)' "$installer_kernel_qml" || \
@@ -584,15 +592,19 @@ grep -Fq "[x11-compatibility]='xorg-xwayland'" "$installer_reconcile_helper" || 
     fail 'built target reconciliation omits X11 compatibility mapping'
 grep -Fq 'source: "/run/archiso/airootfs/"' "$installer_unpackfs" || \
     fail 'built installer does not copy the verified Archiso root'
-grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}' \
+grep -Fq '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_extras_mode]} ${gs[packagechooser_desktop]}' \
     "$installer_reconcile_config" || \
     fail 'built target reconciliation does not pass the guided selection contract'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_extras_mode packagechooser_desktop; do
     grep -Fq "\${gs[${selection_key}]}" "$installer_reconcile_config" || \
         fail "built target reconciliation omits selection: ${selection_key}"
 done
 grep -Fq 'PAYLOAD=archiso-airootfs' "$installer_reconcile_helper" || \
     fail 'built target reconciliation does not record its offline payload'
+grep -Fq 'OPTIONAL_FEATURE_MODE=%s' "$installer_reconcile_helper" || \
+    fail 'built target reconciliation does not record optional-feature mode'
+grep -Fq 'custom|profile-defaults' "$installer_reconcile_helper" || \
+    fail 'built target reconciliation does not validate optional-feature mode'
 generic_installer_entry="$(grep -RIl --include='*.desktop' \
     '^Name=Install System$' "${rootfs}/usr/share/applications" \
     "${rootfs}/usr/local/share/applications" 2>/dev/null || true)"

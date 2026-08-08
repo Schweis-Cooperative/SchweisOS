@@ -113,7 +113,7 @@ sed "s#/usr/share/schweisos/calamares#${runtime_share}#" "$helper" >"$test_helpe
 chmod 0755 -- "$test_helper"
 
 PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen \
-  privacy development kde-plasma
+  privacy development custom kde-plasma
 
 selection="${target_root}/var/lib/schweisos/installer/selection.conf"
 [[ -f "$selection" && ! -L "$selection" ]] || fail 'selection evidence was not created'
@@ -121,38 +121,61 @@ grep -Fxq 'DESKTOP=kde-plasma' "$selection" || fail 'desktop evidence is incorre
 grep -Fxq 'BROWSER=firefox' "$selection" || fail 'browser evidence is incorrect'
 grep -Fxq 'KERNEL=linux-zen' "$selection" || fail 'kernel evidence is incorrect'
 grep -Fxq 'PROFILE=privacy' "$selection" || fail 'profile evidence is incorrect'
+grep -Fxq 'OPTIONAL_FEATURE_MODE=custom' "$selection" || \
+  fail 'optional-feature mode evidence is incorrect'
 grep -Fxq 'OPTIONAL_FEATURES=development' "$selection" || \
   fail 'optional-feature evidence is incorrect'
 [[ ! -e "${target_root}/usr/lib/schweisos-live" ]] || fail 'live-only path remains'
 ! grep -q '^live:' "${target_root}/etc/passwd" || fail 'live account remains'
-for retained in firefox linux-zen firewalld plasma-firewall pacman-contrib reflector git cmake ninja xorg-xwayland; do
+for retained in firefox linux-zen git cmake ninja; do
   grep -Fxq "$retained" "${target_root}/var/lib/mock/installed" || \
     fail "selected package was removed: ${retained}"
 done
-grep -Fxq xorg-xwayland "${target_root}/var/lib/mock/explicit" || \
-  fail 'selected dependency was not made explicit before live-package removal'
 for removed in chromium falkon linux linux-lts linux-hardened calamares plymouth; do
   ! grep -Fxq "$removed" "${target_root}/var/lib/mock/installed" || \
     fail "unselected or live-only package remains: ${removed}"
 done
+for removed_profile_default in firewalld plasma-firewall pacman-contrib reflector xorg-xwayland; do
+  # The selected features above intentionally include only "development". A
+  # custom optional-feature selection must therefore be authoritative and must
+  # not silently re-add the Privacy profile defaults.
+  ! grep -Fxq "$removed_profile_default" "${target_root}/var/lib/mock/installed" || \
+    fail "custom optional selection failed to remove profile default: ${removed_profile_default}"
+done
 
-if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" unknown linux-zen privacy '' \
+printf '%s\n' firewalld plasma-firewall pacman-contrib reflector xorg-xwayland \
+  >>"${target_root}/var/lib/mock/installed"
+sort -u -o "${target_root}/var/lib/mock/installed" "${target_root}/var/lib/mock/installed"
+PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen \
+  privacy '' profile-defaults kde-plasma
+for profile_default in firewalld plasma-firewall pacman-contrib reflector xorg-xwayland; do
+  grep -Fxq "$profile_default" "${target_root}/var/lib/mock/installed" || \
+    fail "profile-default mode did not retain default package: ${profile_default}"
+done
+grep -Fxq xorg-xwayland "${target_root}/var/lib/mock/explicit" || \
+  fail 'selected dependency was not made explicit before live-package removal'
+
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" unknown linux-zen privacy '' custom kde-plasma \
     >/dev/null 2>&1; then
   fail 'unknown browser selection was accepted'
 fi
-if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" librewolf linux-zen privacy '' kde-plasma \
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" librewolf linux-zen privacy '' custom kde-plasma \
     >/dev/null 2>&1; then
   fail 'disabled browser selection was accepted'
 fi
-if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen unknown '' \
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen unknown '' custom kde-plasma \
     >/dev/null 2>&1; then
   fail 'unknown installation profile selection was accepted'
 fi
-if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen privacy '' gnome \
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen privacy '' broken-mode kde-plasma \
+    >/dev/null 2>&1; then
+  fail 'unknown optional-feature mode was accepted'
+fi
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" "$target_root" firefox linux-zen privacy '' custom gnome \
     >/dev/null 2>&1; then
   fail 'unknown desktop selection was accepted'
 fi
-if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" / firefox linux-zen privacy '' \
+if PATH="${mock_bin}:/usr/bin:/bin" "$test_helper" / firefox linux-zen privacy '' custom kde-plasma \
     >/dev/null 2>&1; then
   fail 'unsafe target root was accepted'
 fi

@@ -314,7 +314,11 @@ grep -Fxq 'qmlSearch: branding' "$calamares_optionalfeatures_config" || \
 grep -Fxq 'qmlFilename: optionalfeatures' "$calamares_optionalfeatures_config" || \
     fail 'runtime optional features page does not load the SchweisOS QML'
 require_contains "$calamares_optionalfeatures_qml" 'Global.insert("packagechooser_extras", selectedIds.join(","))'
+require_contains "$calamares_optionalfeatures_qml" 'Global.insert("packagechooser_extras_mode", "custom")'
+require_contains "$calamares_optionalfeatures_qml" 'Global.insert("packagechooser_extras_profile", currentProfileId())'
 require_contains "$calamares_optionalfeatures_qml" 'Global.contains("packagechooser_extras")'
+require_contains "$calamares_optionalfeatures_qml" 'readonly property var profileDefaults:'
+require_contains "$calamares_optionalfeatures_qml" 'onVisibleChanged:'
 require_contains "$calamares_optionalfeatures_qml" 'ToolTip.text: modelData.why'
 require_contains "$calamares_desktop_qml" 'Officially supported'
 require_contains "$calamares_desktop_qml" 'KDE Plasma is the only desktop environment installed by this ISO'
@@ -352,12 +356,14 @@ done
 require_contains "$calamares_reconcile_helper" "[x11-compatibility]='xorg-xwayland'"
 require_contains "$calamares_unpackfs" 'source: "/run/archiso/airootfs/"'
 require_contains "$calamares_unpackfs" 'sourcefs: "file"'
-require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_desktop]}'
-for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
+require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT} ${gs[packagechooser_browser]} ${gs[packagechooser_kernel]} ${gs[packagechooser_profile]} ${gs[packagechooser_extras]} ${gs[packagechooser_extras_mode]} ${gs[packagechooser_desktop]}'
+for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_extras_mode packagechooser_desktop; do
     require_contains "$calamares_reconcile_config" "\${gs[${selection_key}]}"
 done
 require_contains "$calamares_reconcile_config" '/usr/lib/schweisos-calamares/reconcile-target ${ROOT}'
 require_contains "$calamares_reconcile_helper" 'PAYLOAD=archiso-airootfs'
+require_contains "$calamares_reconcile_helper" 'OPTIONAL_FEATURE_MODE=%s'
+require_contains "$calamares_reconcile_helper" 'custom|profile-defaults'
 require_contains "$calamares_reconcile_helper" 'DESKTOP=%s'
 require_contains "$calamares_reconcile_helper" 'browser selection is approved but not available in this ISO payload'
 require_contains "$calamares_reconcile_helper" '/var/lib/schweisos/installer'

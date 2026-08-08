@@ -16,7 +16,8 @@ browser=${2:?browser selection is required}
 kernel=${3:?kernel selection is required}
 profile=${4:?installation profile selection is required}
 extras_csv=${5-}
-desktop=${6:-kde-plasma}
+extras_mode=${6:-profile-defaults}
+desktop=${7:-kde-plasma}
 required_manifest=/usr/share/schweisos/calamares/target-packages.x86_64
 
 [[ "$target_root" == /* && "$target_root" != / && "$target_root" != *'/../'* ]] || \
@@ -88,9 +89,16 @@ declare -Ar profile_features=(
 )
 
 [[ -v "profile_features[$profile]" ]] || die "unknown installation profile selection: ${profile}"
+case "$extras_mode" in
+  custom|profile-defaults) ;;
+  *) die "unknown optional-feature selection mode: ${extras_mode}" ;;
+esac
 
 declare -A selected_features=()
-profile_csv=${profile_features[$profile]}
+profile_csv=''
+if [[ "$extras_mode" == profile-defaults ]]; then
+  profile_csv=${profile_features[$profile]}
+fi
 if [[ -n "$profile_csv" ]]; then
   IFS=',' read -r -a profile_defaults <<<"$profile_csv"
   for feature in "${profile_defaults[@]}"; do
@@ -261,10 +269,11 @@ evidence="${evidence_dir}/selection.conf"
   printf 'BROWSER=%s\n' "$browser"
   printf 'KERNEL=%s\n' "$kernel"
   printf 'PROFILE=%s\n' "$profile"
+  printf 'OPTIONAL_FEATURE_MODE=%s\n' "$extras_mode"
   printf 'OPTIONAL_FEATURES=%s\n' "$extras_csv"
   printf 'PAYLOAD=archiso-airootfs\n'
 } >"$evidence"
 chmod 0644 -- "$evidence"
 
-printf 'schweisos target reconciliation: browser=%s kernel=%s profile=%s optional=%s\n' \
-  "$browser" "$kernel" "$profile" "${extras_csv:-none}"
+printf 'schweisos target reconciliation: browser=%s kernel=%s profile=%s optional-mode=%s optional=%s\n' \
+  "$browser" "$kernel" "$profile" "$extras_mode" "${extras_csv:-none}"

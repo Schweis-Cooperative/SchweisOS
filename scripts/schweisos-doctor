@@ -475,6 +475,14 @@ if (( installer_payload_complete )); then
         || fail 'Optional Features config does not load optionalfeatures.qml'
     grep -Fq 'Global.insert("packagechooser_extras", selectedIds.join(","))' "$optionalfeatures_qml" \
         || fail 'Optional Features QML does not write packagechooser_extras'
+    grep -Fq 'Global.insert("packagechooser_extras_mode", "custom")' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML does not mark user-reviewed selections as custom'
+    grep -Fq 'Global.insert("packagechooser_extras_profile", currentProfileId())' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML does not bind defaults to the selected profile'
+    grep -Fq 'readonly property var profileDefaults:' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML does not expose profile defaults'
+    grep -Fq 'onVisibleChanged:' "$optionalfeatures_qml" \
+        || fail 'Optional Features QML does not refresh defaults after profile changes'
     grep -Fq 'ToolTip.text: modelData.why' "$optionalfeatures_qml" \
         || fail 'Optional Features QML omits feature rationale tooltips'
     grep -Fq 'id: "x11-compatibility"' "$optionalfeatures_qml" \
@@ -482,13 +490,17 @@ if (( installer_payload_complete )); then
     grep -Fq 'source: "/run/archiso/airootfs/"' "$unpackfs_file" \
         && pass 'Calamares unpackfs consumes the verified Archiso live root' \
         || fail 'Calamares unpackfs does not consume the verified Archiso live root'
-    for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_desktop; do
+    for selection_key in packagechooser_browser packagechooser_kernel packagechooser_profile packagechooser_extras packagechooser_extras_mode packagechooser_desktop; do
         grep -Fq "\${gs[${selection_key}]}" "$reconcile_config" \
             || fail "target reconciliation omits selection: ${selection_key}"
     done
     grep -Fq 'PAYLOAD=archiso-airootfs' "$reconcile_helper" \
         && pass 'target reconciliation records the offline payload' \
         || fail 'target reconciliation does not record the offline payload'
+    grep -Fq 'OPTIONAL_FEATURE_MODE=%s' "$reconcile_helper" \
+        || fail 'target reconciliation does not record optional-feature mode'
+    grep -Fq 'custom|profile-defaults' "$reconcile_helper" \
+        || fail 'target reconciliation does not validate optional-feature mode'
     grep -Fq "[x11-compatibility]='xorg-xwayland'" "$reconcile_helper" \
         || fail 'target reconciliation omits X11 compatibility mapping'
     grep -Fq '${ROOT}' "$preflight_file" \

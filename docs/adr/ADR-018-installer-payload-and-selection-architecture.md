@@ -100,19 +100,25 @@ Installation-profile selection is a single-choice QML page. Profiles are
 implemented as a package-owned mapping from profile identifiers to optional
 feature identifiers: `privacy`, `gaming`, `developer`, `creator`, `office`,
 and `minimal`. The optional-feature page is still evaluated after the profile
-page, and duplicate profile/manual selections are idempotent. This gives new
-users a safe starting point without hiding the exact package groups that will
-remain in the target.
+page. It preselects the selected profile's reviewed defaults, lets the user add
+or remove groups, and writes both the selected groups and an explicit
+`packagechooser_extras_mode`. Once reviewed, the optional-feature page is
+authoritative; reconciliation must not silently re-add profile defaults the
+user removed. This gives new users a safe starting point without hiding the
+exact package groups that will remain in the target.
 
 Optional feature sets are multi-choice and package-level descriptions explain
 why each top-level package is present. The Optional Features page is
 SchweisOS-owned QML loaded through Calamares `notesqml`, not the classic
-packagechooser widget. It still writes `packagechooser_extras` to Calamares
+packagechooser widget. It writes `packagechooser_extras`,
+`packagechooser_extras_mode`, and `packagechooser_extras_profile` to Calamares
 GlobalStorage, so the reconciliation helper remains the single package-policy
-owner. Hardware-critical firmware, networking, the Plasma session, package
-trust, boot support, and accessibility required to complete installation are
-not optional toggles. Optional groups must remain coarse enough that a
-one-maintainer project can test every combination.
+owner while preserving whether the selection came from reviewed profile
+defaults or from a user-reviewed custom page. Hardware-critical firmware,
+networking, the Plasma session, package trust, boot support, and accessibility
+required to complete installation are not optional toggles. Optional groups
+must remain coarse enough that a one-maintainer project can test every
+combination.
 
 Network detection is informative and privacy-bounded. Calamares checks
 SchweisOS-owned HTTPS endpoints as optional requirements and records

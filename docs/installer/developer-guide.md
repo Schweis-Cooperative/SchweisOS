@@ -47,8 +47,11 @@ Single-choice pages use Calamares `packagechooserq` and write their
 contract. The Optional Features page uses SchweisOS-owned QML through
 `notesqml` because the upstream packagechooser widget is not an acceptable
 final UX for the guided installer. That QML must still write
-`packagechooser_extras`; reconciliation, not the UI, remains the canonical
-package-policy owner.
+`packagechooser_extras`, `packagechooser_extras_mode`, and
+`packagechooser_extras_profile`; reconciliation, not the UI, remains the
+canonical package-policy owner. `custom` means the user reviewed the Optional
+Features page and its exact checked state is authoritative. `profile-defaults`
+is the fail-safe fallback used only if the page state is absent.
 
 ## Installation Pipeline
 

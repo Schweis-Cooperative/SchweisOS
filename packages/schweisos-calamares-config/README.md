@@ -89,15 +89,17 @@ alternatives. Unselected kernels and unsupported browser payload are removed
 from the copied payload.
 
 The optional-feature page is a SchweisOS-owned QML page loaded by Calamares
-`notesqml`. It writes `packagechooser_extras` to GlobalStorage for the
-reconciliation helper, but it does not use the legacy `packagechooser` widget
-presentation. It exposes package groups for privacy, security, gaming,
-development, virtualization, multimedia, office, international fonts,
-printing, Bluetooth, accessibility, Wayland diagnostics, X11 compatibility,
-power management, network tools, rootless containers, storage diagnostics,
-recovery, and maintenance. Every description explains the purpose and material
-limitation of the group. The complete choice universe is present on the ISO,
-so selections do not depend on network access.
+`notesqml`. It reads the selected profile, preselects that profile's reviewed
+defaults, and writes `packagechooser_extras`, `packagechooser_extras_mode`, and
+`packagechooser_extras_profile` to GlobalStorage for the reconciliation helper.
+It does not use the legacy `packagechooser` widget presentation. It exposes
+package groups for privacy, security, gaming, development, virtualization,
+multimedia, office, international fonts, printing, Bluetooth, accessibility,
+Wayland diagnostics, X11 compatibility, power management, network tools,
+rootless containers, storage diagnostics, recovery, and maintenance. Every
+description explains the purpose and material limitation of the group. The
+complete choice universe is present on the ISO, so selections do not depend on
+network access.
 
 Reconciliation fails closed if a required or selected package is missing from
 the copied payload. It removes Calamares, Archiso construction packages, the
